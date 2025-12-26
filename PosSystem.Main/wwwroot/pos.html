@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chọn Bàn</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- Thanh tiêu đề -->
+    <div class="header">
+        <span id="staff-name">Nhân viên</span>
+        <button onclick="logout()" style="background:none; border:none; color:white; font-weight:bold;">Thoát</button>
+    </div>
+
+    <div class="container">
+        <h3 style="margin-bottom: 10px;">Sơ đồ bàn</h3>
+        <!-- Nơi danh sách bàn sẽ hiện ra -->
+        <div id="table-list" class="table-grid"></div>
+    </div>
+
+    <script>
+        // 1. Kiểm tra đăng nhập
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if (!user) window.location.href = '/index.html';
+        document.getElementById('staff-name').innerText = user.accName;
+
+        // 2. Hàm tải danh sách bàn từ API
+        async function loadTables() {
+            try {
+                const res = await fetch('/api/table');
+                const tables = await res.json();
+
+                const container = document.getElementById('table-list');
+                container.innerHTML = ''; // Xóa cũ
+
+                tables.forEach(t => {
+                    const div = document.createElement('div');
+                    // Gắn class css dựa vào trạng thái bàn (Empty/Occupied)
+                    div.className = `table-card ${t.tableStatus.toLowerCase()}`;
+                    div.innerHTML = `
+                        <div style="font-size: 20px;">${t.tableName}</div>
+                        <small>${t.tableStatus === 'Occupied' ? 'Có khách' : 'Trống'}</small>
+                    `;
+
+                    // Sự kiện click vào bàn
+                    div.onclick = () => {
+                        // Chuyển sang trang Order, truyền ID bàn trên thanh địa chỉ
+                        window.location.href = `/order.html?id=${t.tableID}&name=${encodeURIComponent(t.tableName)}`;
+                    };
+
+                    container.appendChild(div);
+                });
+            } catch (err) {
+                alert('Không tải được danh sách bàn!');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = '/index.html';
+        }
+
+        // Chạy hàm tải bàn khi vào trang
+        loadTables();
+
+        // Cứ 5 giây tự động tải lại trạng thái bàn 1 lần (Realtime thô sơ)
+        setInterval(loadTables, 5000); 
+    </script>
+
+    <!-- Nạp thư viện SignalR -->
+    <script src="js/signalr.min.js"></script>
+
+    <script>
+        // ... (Code cũ giữ nguyên) ...
+
+        // --- CẤU HÌNH REALTIME ---
+        const connection = new signalr.HubConnectionBuilder()
+            .withUrl("/posHub")
+            .withAutomaticReconnect()
+            .build();
+
+        // Lắng nghe sự kiện từ Server
+        connection.on("TableUpdated", (updatedTableId) => {
+            console.log("Bàn " + updatedTableId + " vừa có thay đổi!");
+            // Cách đơn giản nhất: Tải lại toàn bộ danh sách bàn
+            loadTables();
+
+            // Nếu muốn xịn hơn: Chỉ tìm cái thẻ div của bàn đó để đổi màu (sẽ làm sau)
+        });
+
+        // Bắt đầu kết nối
+        connection.start().catch(err => console.error(err));
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,16 @@
+# Bỏ qua thư mục build
+[Bb]in/
+[Oo]bj/
+
+# Bỏ qua cấu hình người dùng VS/VSCode
+.vs/
+.vscode/
+*.user
+
+# Bỏ qua Database SQLite (Vì code sẽ tự tạo mới khi chạy)
+*.db
+*.db-shm
+*.db-wal
+
+# Các file log
+*.log
