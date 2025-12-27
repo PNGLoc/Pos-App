@@ -93,6 +93,7 @@ namespace PosSystem.Main
             }
         }
 
+        // --- 1. CẬP NHẬT HIỂN THỊ: Món SL=0 sẽ hiện rõ "CHỜ HỦY" ---
         private void LoadOrderDetails(int tableId)
         {
             using (var db = new AppDbContext())
@@ -114,16 +115,17 @@ namespace PosSystem.Main
                         DiscountDisplay = $"Giảm {d.DiscountRate:0.#}%",
                         d.ItemStatus,
 
-                        // KHÔI PHỤC HIỂN THỊ ĐỢT:
-                        // Nếu chưa in (Printed == 0) -> "Chờ in"
-                        // Nếu đã in -> Hiện số đợt "Đợt 1", "Đợt 2"...
+                        // HIỂN THỊ ĐỢT
                         BatchDisplay = d.PrintedQuantity == 0 ? "⏳" : (d.KitchenBatch > 0 ? $"Đợt {d.KitchenBatch}" : "---"),
 
-                        // Logic hiển thị trạng thái nút Gửi Bếp
-                        StatusDisplay = d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK",
+                        // LOGIC HIỂN THỊ TRẠNG THÁI MỚI
+                        // Nếu SL = 0 -> Hiện chữ "CHỜ HỦY" đỏ rực
+                        StatusDisplay = d.Quantity == 0 ? "❌ CHỜ HỦY" :
+                                       (d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK"),
 
-                        // Tô màu vàng nhạt cho dòng có thay đổi
-                        RowColor = d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White"
+                        // Tô màu nền: Đỏ nhạt nếu chờ hủy, Vàng nhạt nếu có sửa đổi
+                        RowColor = d.Quantity == 0 ? "#FFCCCC" :
+                                  (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White")
                     }).ToList();
 
                     lblSubTotal.Text = order.SubTotal.ToString("N0") + "đ";
@@ -137,19 +139,27 @@ namespace PosSystem.Main
                     else pnlDiscount.Visibility = Visibility.Collapsed;
 
                     lblTotal.Text = order.FinalAmount.ToString("N0") + "đ";
-                    btnCheckout.IsEnabled = true;
 
-                    // Logic sáng đèn nút Gửi Bếp
+                    // Logic nút bấm
                     bool hasChanges = order.OrderDetails.Any(d => d.Quantity != d.PrintedQuantity);
+
+                    // Nút Checkout: Chỉ sáng khi có ít nhất 1 món SL > 0
+                    bool hasValidItems = order.OrderDetails.Any(d => d.Quantity > 0);
+                    btnCheckout.IsEnabled = hasValidItems;
+
+                    // Nút Gửi bếp
                     btnSendKitchen.IsEnabled = hasChanges;
-                    btnSendKitchen.Content = hasChanges ? "🔔 GỬI BẾP (Có thay đổi)" : "👨‍🍳 GỬI BẾP";
-                    btnSendKitchen.Background = hasChanges ? (Brush)new BrushConverter().ConvertFrom("#FD7E14") : (Brush)new BrushConverter().ConvertFrom("#6C757D");
+                    btnSendKitchen.Content = hasChanges ? "🔔 GỬI BẾP (Cập nhật)" : "👨‍🍳 GỬI BẾP";
+                    btnSendKitchen.Background = hasChanges ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14")
+                                                           : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6C757D");
                 }
                 else
                 {
+                    // Reset khi không có đơn
                     lstOrderDetails.ItemsSource = null;
                     lblTotal.Text = "0đ";
                     lblSubTotal.Text = "0đ";
+                    pnlDiscount.Visibility = Visibility.Collapsed;
                     btnCheckout.IsEnabled = false;
                     btnSendKitchen.IsEnabled = false;
                     btnSendKitchen.Content = "👨‍🍳 GỬI BẾP";
@@ -286,32 +296,60 @@ namespace PosSystem.Main
                     var detail = db.OrderDetails.Find(detailId);
                     if (detail == null) return;
 
+                    long currentOrderId = detail.OrderID; // Lưu lại ID đơn hàng để kiểm tra sau
+
                     // 1. GIẢM SỐ LƯỢNG (Nếu đang > 0)
                     if (detail.Quantity > 0)
                     {
                         detail.Quantity--;
-                        // Tính lại tiền
                         detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100);
 
-                        // Đánh dấu trạng thái Modified nếu món này đã từng gửi bếp (để nút Gửi Bếp sáng lên)
                         if (detail.ItemStatus == "Sent") detail.ItemStatus = "Modified";
                     }
 
-                    // 2. LOGIC XÓA THÔNG MINH
-                    // Case A: Món hoàn toàn mới (Chưa in phiếu nào -> PrintedQuantity == 0)
-                    // Nếu giảm về 0 thì XÓA LUÔN khỏi danh sách
+                    // 2. LOGIC XÓA
+                    bool isRemoved = false;
+
+                    // Nếu món Mới (chưa in) về 0 -> XÓA
                     if (detail.Quantity == 0 && detail.PrintedQuantity == 0)
                     {
                         db.OrderDetails.Remove(detail);
+                        isRemoved = true;
                     }
-
-                    // Case B: Món đã in (PrintedQuantity > 0)
-                    // Nếu giảm về 0 thì GIỮ NGUYÊN dòng đó hiển thị số 0
-                    // (Mục đích: Để lát bấm Gửi Bếp, hệ thống tính ra chênh lệch âm và in phiếu HỦY)
+                    // Nếu món Cũ (đã in) -> Giữ lại số 0 để báo hủy (Không xóa dòng này ngay)
 
                     db.SaveChanges();
 
-                    // 3. Cập nhật lại giao diện
+                    // 3. QUAN TRỌNG: KIỂM TRA XEM ĐƠN HÀNG CÒN MÓN NÀO KHÔNG?
+                    // Chỉ kiểm tra nếu vừa có hành động xóa dòng
+                    if (isRemoved)
+                    {
+                        // Kiểm tra xem trong Order này còn dòng nào không?
+                        bool hasAnyItem = db.OrderDetails.Any(d => d.OrderID == currentOrderId);
+
+                        if (!hasAnyItem)
+                        {
+                            // === ĐƠN TRỐNG RỖNG -> HỦY ĐƠN & TRẢ BÀN ===
+                            var order = db.Orders.Find(currentOrderId);
+                            if (order != null)
+                            {
+                                // 1. Trả trạng thái bàn về "Empty"
+                                var table = db.Tables.Find(order.TableID);
+                                if (table != null) table.TableStatus = "Empty";
+
+                                // 2. Xóa Order rỗng
+                                db.Orders.Remove(order);
+                                db.SaveChanges();
+
+                                // 3. Cập nhật giao diện
+                                LoadTables(); // Load lại màu bàn (xanh)
+                                LoadOrderDetails(_selectedTableId); // Reset cột phải
+                                return; // Kết thúc luôn
+                            }
+                        }
+                    }
+
+                    // Nếu đơn vẫn còn món -> Tính lại tiền bình thường
                     RecalculateOrder(db, detail.OrderID);
                     LoadOrderDetails(_selectedTableId);
                 }
@@ -374,7 +412,7 @@ namespace PosSystem.Main
             }
         }
 
-        // --- 4. GỬI BẾP & QUẢN LÝ ĐỢT (BATCH) ---
+        // --- 2. CẬP NHẬT NÚT GỬI BẾP: Tự động dọn dẹp đơn rỗng ---
         private void BtnSendKitchen_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedTableId == 0) return;
@@ -393,14 +431,10 @@ namespace PosSystem.Main
                     var changedItems = order.OrderDetails.Where(d => d.Quantity != d.PrintedQuantity).ToList();
                     if (!changedItems.Any()) return;
 
-                    // === TÍNH TOÁN SỐ ĐỢT (BATCH) ===
-                    // Tìm số đợt lớn nhất hiện tại trong bàn
+                    // 1. TÍNH BATCH & GOM NHÓM IN (Giữ nguyên logic cũ)
                     int currentMaxBatch = order.OrderDetails.Max(d => (int?)d.KitchenBatch) ?? 0;
-                    // Nếu đây là lần gửi có món THÊM (tăng số lượng), ta nhảy sang đợt mới
-                    // Nếu chỉ toàn món HỦY (giảm số lượng), ta có thể giữ nguyên đợt hoặc không in đợt (tùy bạn, ở đây tôi cứ tăng Batch cho mỗi lần bấm Gửi để dễ quản lý)
                     int nextBatch = currentMaxBatch + 1;
 
-                    // === GOM NHÓM IN ===
                     var printerGroups = changedItems
                         .Where(d => d.Dish?.Category?.PrinterID != null)
                         .GroupBy(d => d.Dish.Category.PrinterID)
@@ -419,43 +453,57 @@ namespace PosSystem.Main
                             Note = item.Note
                         }).ToList();
 
-                        // Truyền nextBatch vào hàm in
                         Services.PrintService.PrintKitchenUpdates(printer, order.Table.TableName, nextBatch, printData);
                     }
 
-                    // === CẬP NHẬT DB ===
+                    // 2. CẬP NHẬT DATABASE
                     foreach (var item in changedItems)
                     {
-                        // Nếu món này có TĂNG số lượng (Thêm món) -> Cập nhật nó thuộc về Đợt mới
-                        if (item.Quantity > item.PrintedQuantity)
-                        {
-                            item.KitchenBatch = nextBatch;
-                        }
-                        // Nếu món này GIẢM (Hủy), ta giữ nguyên Batch cũ của nó hoặc không quan tâm, vì nó sắp bị xóa hoặc giảm đi.
-
-                        item.PrintedQuantity = item.Quantity; // Chốt số lượng đã in
+                        if (item.Quantity > item.PrintedQuantity) item.KitchenBatch = nextBatch;
+                        item.PrintedQuantity = item.Quantity;
 
                         if (item.Quantity == 0)
                         {
-                            db.OrderDetails.Remove(item); // Xóa nếu về 0
+                            db.OrderDetails.Remove(item); // Xóa món SL=0
                         }
                         else
                         {
                             item.ItemStatus = "Sent";
                         }
                     }
-
                     db.SaveChanges();
 
-                    Dispatcher.Invoke(() =>
+                    // 3. --- LOGIC MỚI: KIỂM TRA ĐƠN RỖNG ---
+                    // Sau khi xóa các món SL=0, kiểm tra xem đơn hàng còn món nào không?
+                    bool isOrderEmpty = !db.OrderDetails.Any(d => d.OrderID == order.OrderID);
+
+                    if (isOrderEmpty)
                     {
-                        LoadOrderDetails(_selectedTableId);
-                        ShowToast($"✅ Đã gửi Đợt {nextBatch}!");
-                    });
+                        // Nếu đơn trống -> Xóa luôn Order & Trả bàn
+                        db.Orders.Remove(order);
+                        var table = db.Tables.Find(order.TableID);
+                        if (table != null) table.TableStatus = "Empty";
+                        db.SaveChanges();
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            LoadTables();           // Reload sơ đồ bàn (về màu xanh)
+                            LoadOrderDetails(_selectedTableId); // Clear màn hình order
+                            ShowToast("✅ Đã hủy món & Trả bàn trống");
+                        });
+                    }
+                    else
+                    {
+                        // Nếu vẫn còn món -> Chỉ reload Order
+                        Dispatcher.Invoke(() =>
+                        {
+                            LoadOrderDetails(_selectedTableId);
+                            ShowToast($"✅ Đã gửi Đợt {nextBatch}!");
+                        });
+                    }
                 }
             });
         }
-
         // --- CÁC HÀM HỖ TRỢ KHÁC (GIỮ NGUYÊN) ---
         private void RecalculateOrder(AppDbContext db, long orderId)
         {
@@ -519,11 +567,36 @@ namespace PosSystem.Main
         {
             if (_selectedTableId == 0) return;
             int orderId = 0;
+            decimal finalAmount = 0;
+
             using (var db = new AppDbContext())
             {
-                var order = db.Orders.FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
-                if (order != null) orderId = (int)order.OrderID;
+                var order = db.Orders.Include(o => o.OrderDetails)
+                                     .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+
+                if (order != null)
+                {
+                    orderId = (int)order.OrderID;
+                    finalAmount = order.FinalAmount;
+
+                    // KIỂM TRA CHẶN: Nếu không có món nào (hoặc toàn món đã hủy)
+                    bool hasValidItems = order.OrderDetails.Any(d => d.Quantity > 0);
+
+                    if (!hasValidItems)
+                    {
+                        MessageBox.Show("Đơn hàng đang trống, không thể thanh toán!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    if (finalAmount <= 0)
+                    {
+                        MessageBoxResult result = MessageBox.Show("Tổng tiền đang là 0 đồng. Bạn có chắc muốn thanh toán (Checkout 0đ) để đóng bàn không?",
+                                                                  "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                        if (result != MessageBoxResult.Yes) return;
+                    }
+                }
             }
+
             if (orderId == 0) return;
 
             var payWindow = new PaymentWindow(orderId);
@@ -535,7 +608,6 @@ namespace PosSystem.Main
                 LoadOrderDetails(_selectedTableId);
             }
         }
-
 
     }
 }
