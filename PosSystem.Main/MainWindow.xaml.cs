@@ -104,29 +104,23 @@ namespace PosSystem.Main
 
                 if (order != null)
                 {
-                    lstOrderDetails.ItemsSource = order.OrderDetails.OrderBy(d => d.OrderDetailID).Select(d => new
+                    // SỬA ĐOẠN NÀY: Dùng OrderDetailViewModel thay vì new { ... }
+                    var viewModels = order.OrderDetails.OrderBy(d => d.OrderDetailID).Select(d => new OrderDetailViewModel
                     {
-                        d.OrderDetailID,
-                        d.Dish!.DishName,
-                        d.Quantity,
-                        d.TotalAmount,
-                        d.DiscountRate,
-                        HasDiscount = d.DiscountRate > 0,
-                        DiscountDisplay = $"Giảm {d.DiscountRate:0.#}%",
-                        d.ItemStatus,
+                        OrderDetailID = d.OrderDetailID,
+                        DishName = d.Dish != null ? d.Dish.DishName : "Unknown",
+                        Quantity = d.Quantity,
+                        TotalAmount = d.TotalAmount,
+                        DiscountRate = d.DiscountRate,
+                        ItemStatus = d.ItemStatus,
+                        Note = d.Note ?? "", // Lấy ghi chú, nếu null thì thành rỗng
 
-                        // HIỂN THỊ ĐỢT
                         BatchDisplay = d.PrintedQuantity == 0 ? "⏳" : (d.KitchenBatch > 0 ? $"Đợt {d.KitchenBatch}" : "---"),
-
-                        // LOGIC HIỂN THỊ TRẠNG THÁI MỚI
-                        // Nếu SL = 0 -> Hiện chữ "CHỜ HỦY" đỏ rực
-                        StatusDisplay = d.Quantity == 0 ? "❌ CHỜ HỦY" :
-                                       (d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK"),
-
-                        // Tô màu nền: Đỏ nhạt nếu chờ hủy, Vàng nhạt nếu có sửa đổi
-                        RowColor = d.Quantity == 0 ? "#FFCCCC" :
-                                  (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White")
+                        StatusDisplay = d.Quantity == 0 ? "❌ CHỜ HỦY" : (d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK"),
+                        RowColor = d.Quantity == 0 ? "#FFCCCC" : (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White")
                     }).ToList();
+
+                    lstOrderDetails.ItemsSource = viewModels; // Gán list mới
 
                     lblSubTotal.Text = order.SubTotal.ToString("N0") + "đ";
 
@@ -216,11 +210,11 @@ namespace PosSystem.Main
         {
             using (var db = new AppDbContext())
             {
-                var order = db.Orders.Include(o => o.OrderDetails).FirstOrDefault(o => o.TableID == tableId && o.OrderStatus == "Pending");
+                var order = db.Orders.Include(o => o.OrderDetails)
+                                     .FirstOrDefault(o => o.TableID == tableId && o.OrderStatus == "Pending");
 
                 if (order == null)
                 {
-                    // Tạo Order mới nếu chưa có
                     int? currentAccId = UserSession.AccID > 0 ? UserSession.AccID : (db.Accounts.FirstOrDefault()?.AccID);
                     order = new Order { TableID = tableId, AccID = currentAccId, OrderDetails = new List<OrderDetail>() };
                     db.Orders.Add(order);
@@ -228,38 +222,39 @@ namespace PosSystem.Main
                     if (table != null) table.TableStatus = "Occupied";
                 }
 
-                var existingDetail = order.OrderDetails.FirstOrDefault(d => d.DishID == dishId);
+                // === SỬA LẠI ĐOẠN NÀY ===
+                // Chỉ tìm dòng nào CÙNG MÓN và KHÔNG CÓ GHI CHÚ
+                var existingDetail = order.OrderDetails
+                    .FirstOrDefault(d => d.DishID == dishId && (string.IsNullOrEmpty(d.Note)));
+
                 var dishInfo = _allDishes.FirstOrDefault(d => d.DishID == dishId);
                 if (dishInfo == null) return;
 
                 if (existingDetail != null)
                 {
-                    // Chỉ tăng số lượng, KHÔNG IN GÌ CẢ
+                    // Tìm thấy món y hệt (không note) -> Cộng dồn
                     existingDetail.Quantity++;
                     existingDetail.TotalAmount = existingDetail.Quantity * existingDetail.UnitPrice * (1 - existingDetail.DiscountRate / 100);
-
-                    // Nếu món đã từng gửi bếp, đổi màu trạng thái để biết đang có thay đổi chờ gửi
                     if (existingDetail.ItemStatus == "Sent") existingDetail.ItemStatus = "Modified";
                 }
                 else
                 {
-                    // Thêm món mới
+                    // Không tìm thấy (tức là các dòng món này hiện tại đều ĐANG CÓ ghi chú) -> TẠO DÒNG MỚI
                     order.OrderDetails.Add(new OrderDetail
                     {
                         DishID = dishId,
                         Quantity = 1,
                         UnitPrice = dishInfo.Price,
                         ItemStatus = "New",
-                        PrintedQuantity = 0, // Chưa in cái nào
-                        TotalAmount = dishInfo.Price
+                        PrintedQuantity = 0,
+                        TotalAmount = dishInfo.Price,
+                        Note = "" // Món mới mặc định Note rỗng
                     });
                 }
 
                 db.SaveChanges();
                 RecalculateOrder(db, order.OrderID);
                 if (_selectedTableId == tableId) LoadOrderDetails(tableId);
-
-                // Chỉ hiện thông báo nhỏ
                 ShowToast($"Đã chọn: {dishInfo.DishName}");
             }
         }
@@ -624,6 +619,58 @@ namespace PosSystem.Main
             var historyWin = new HistoryWindow();
             historyWin.ShowDialog();
         }
+        private void TxtNote_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox txt && txt.Tag is long detailId)
+            {
+                string newNote = txt.Text.Trim(); // Lấy nội dung mới
 
+                using (var db = new AppDbContext())
+                {
+                    var detail = db.OrderDetails.Find(detailId);
+                    if (detail != null)
+                    {
+                        // Chỉ lưu nếu nội dung thay đổi
+                        string oldNote = detail.Note ?? "";
+                        if (oldNote != newNote)
+                        {
+                            detail.Note = newNote;
+
+                            // Nếu món đã gửi bếp mà sửa ghi chú -> Cần đánh dấu để in lại
+                            if (detail.ItemStatus == "Sent") detail.ItemStatus = "Modified";
+
+                            db.SaveChanges();
+
+                            // Lưu ý: Không cần reload lại toàn bộ bảng để tránh bị mất focus hoặc giật
+                            // Chỉ cần cập nhật trạng thái nút Gửi bếp nếu cần
+                            btnSendKitchen.IsEnabled = true;
+                            btnSendKitchen.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14");
+                            btnSendKitchen.Content = "🔔 GỬI BẾP (Cập nhật)";
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+    // Class dùng để hiển thị lên DataGrid và hỗ trợ sửa Ghi chú
+    public class OrderDetailViewModel
+    {
+        public long OrderDetailID { get; set; }
+        public string DishName { get; set; } = "";
+        public int Quantity { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal DiscountRate { get; set; }
+        public string ItemStatus { get; set; } = "";
+
+        // Ghi chú (Cho phép sửa đổi)
+        public string Note { get; set; } = "";
+
+        // Các thuộc tính hiển thị
+        public bool HasDiscount => DiscountRate > 0;
+        public string DiscountDisplay => HasDiscount ? $"Giảm {DiscountRate:0.#}%" : "";
+        public string BatchDisplay { get; set; } = "";
+        public string StatusDisplay { get; set; } = "";
+        public string RowColor { get; set; } = "White";
     }
 }

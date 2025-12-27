@@ -225,54 +225,73 @@ namespace PosSystem.Main.Templates
         /// </summary>
         private void RenderKitchenOrderDetails(Order order, int batchNumber)
         {
-            // Lấy tất cả món được truyền vào (Không lọc lại batch nữa vì đã lọc ở ngoài)
+            // Lấy danh sách món cần in (Đã được xử lý ở PrintService)
             var itemsToPrint = order.OrderDetails.ToList();
 
             if (itemsToPrint == null || itemsToPrint.Count == 0) return;
 
             foreach (var detail in itemsToPrint)
             {
-                var stackPanel = new StackPanel { Margin = new Thickness(0, 5, 0, 5) };
+                var stackPanel = new StackPanel { Margin = new Thickness(0, 5, 0, 10) }; // Tăng Margin dưới chút cho thoáng
 
-                string displayText = "";
+                // 1. XỬ LÝ TÊN MÓN & SỐ LƯỢNG
+                string quantityText = "";
+                string dishNameText = detail.Dish?.DishName ?? "Unknown";
                 Brush textColor = Brushes.Black;
 
                 if (detail.Quantity < 0)
                 {
-                    // --- TRƯỜNG HỢP HỦY MÓN ---
-                    displayText = $"[HỦY] {Math.Abs(detail.Quantity)} x {detail.Dish?.DishName ?? "Unknown"}";
-                    textColor = Brushes.Red; // Chữ màu đỏ
+                    // Trường hợp HỦY MÓN
+                    quantityText = $"[HỦY] {Math.Abs(detail.Quantity)}";
+                    textColor = Brushes.Red;
                 }
                 else
                 {
-                    // --- TRƯỜNG HỢP THÊM MÓN ---
-                    displayText = $"{detail.Quantity} x {detail.Dish?.DishName ?? "Unknown"}";
+                    // Trường hợp THÊM MÓN
+                    quantityText = $"{detail.Quantity}";
                     textColor = Brushes.Black;
                 }
 
                 var dishBlock = new TextBlock
                 {
-                    Text = displayText,
+                    Text = $"{quantityText} x {dishNameText}",
                     FontSize = 24,
                     FontWeight = FontWeights.Bold,
                     TextWrapping = TextWrapping.Wrap,
-                    Foreground = textColor // Áp dụng màu
+                    Foreground = textColor
                 };
                 stackPanel.Children.Add(dishBlock);
 
+                // 2. XỬ LÝ GHI CHÚ (THÊM PHẦN NÀY)
                 if (!string.IsNullOrEmpty(detail.Note))
                 {
                     var noteBlock = new TextBlock
                     {
-                        Text = $"   (Note: {detail.Note})",
-                        FontSize = 18,
-                        FontStyle = FontStyles.Italic,
-                        Margin = new Thickness(0, 2, 0, 0)
+                        Text = $"{detail.Note}", // Thêm icon hoặc dấu ngoặc
+                        FontSize = 18,                 // Font nhỏ hơn tên món
+                        FontStyle = FontStyles.Italic, // In nghiêng
+                        FontWeight = FontWeights.SemiBold,
+                        Margin = new Thickness(0, 2, 0, 0),
+                        Foreground = Brushes.Black     // Màu đen cho dễ đọc
                     };
                     stackPanel.Children.Add(noteBlock);
                 }
 
                 RootPanel.Children.Add(stackPanel);
+
+                // Thêm đường kẻ mờ ngăn cách giữa các món (tùy chọn)
+                var separator = new System.Windows.Shapes.Rectangle
+                {
+                    Height = 1,
+                    Stroke = Brushes.LightGray,
+                    StrokeThickness = 1,
+                    StrokeDashArray = new DoubleCollection { 4, 2 }, // 4 điểm tô, 2 điểm hở (tạo nét đứt)
+                    Margin = new Thickness(0, 0, 0, 5),
+                    SnapsToDevicePixels = true,
+                    HorizontalAlignment = HorizontalAlignment.Stretch
+                };
+
+                RootPanel.Children.Add(separator);
             }
         }
         /// <summary>

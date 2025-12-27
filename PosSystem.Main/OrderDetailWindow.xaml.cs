@@ -23,15 +23,20 @@ namespace PosSystem.Main
                 if (order == null) return;
 
                 lblTitle.Text = $"CHI TIẾT ĐƠN HÀNG #{order.OrderID}";
-                lblInfo.Text = $"Bàn: {order.Table?.TableName}  |  Ngày: {order.OrderTime:dd/MM/yyyy HH:mm}";
+                lblInfo.Text = $"Bàn: {order.Table?.TableName ?? "Mang về"}  |  Ngày: {order.OrderTime:dd/MM/yyyy HH:mm}";
                 lblTotal.Text = order.FinalAmount.ToString("N0") + "đ";
 
+                // Map dữ liệu (Bao gồm Note)
                 lstDetails.ItemsSource = order.OrderDetails.Select(d => new
                 {
                     DishName = d.Dish?.DishName ?? "Unknown",
                     d.Quantity,
                     d.UnitPrice,
-                    d.TotalAmount
+                    d.TotalAmount,
+
+                    // Lấy ghi chú từ DB
+                    NoteDisplay = string.IsNullOrEmpty(d.Note) ? "" : $"📝 {d.Note}",
+                    HasNote = !string.IsNullOrEmpty(d.Note)
                 }).ToList();
             }
         }
