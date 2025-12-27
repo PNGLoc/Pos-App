@@ -1,0 +1,12 @@
+<UserControl x:Class="PosSystem.Main.Templates.KitchenTemplate"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="550"
+             Background="White"
+             FontFamily="Arial">
+    <!-- Width 550px là chuẩn đẹp cho khổ giấy 80mm khi in ảnh -->
+    <!-- Layout được render động từ JSON template trong code-behind -->
+    
+    <StackPanel x:Name="RootPanel" Margin="10"/>
+</UserControl>
+

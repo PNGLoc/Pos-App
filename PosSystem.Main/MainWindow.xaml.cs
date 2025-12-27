@@ -428,37 +428,36 @@ namespace PosSystem.Main
 
                     if (order == null) return;
 
+                    // Lấy các món có thay đổi
                     var changedItems = order.OrderDetails.Where(d => d.Quantity != d.PrintedQuantity).ToList();
                     if (!changedItems.Any()) return;
 
-                    // 1. TÍNH BATCH & GOM NHÓM IN (Giữ nguyên logic cũ)
                     int currentMaxBatch = order.OrderDetails.Max(d => (int?)d.KitchenBatch) ?? 0;
                     int nextBatch = currentMaxBatch + 1;
 
-                    var printerGroups = changedItems
-                        .Where(d => d.Dish?.Category?.PrinterID != null)
-                        .GroupBy(d => d.Dish.Category.PrinterID)
-                        .ToList();
+                    // --- 1. TẠO DANH SÁCH IN (ẢO) TRƯỚC KHI SỬA DB ---
+                    var itemsToPrint = new List<OrderDetail>();
 
-                    foreach (var group in printerGroups)
-                    {
-                        if (group.Key == null) continue;
-                        var printer = db.Printers.Find(group.Key.Value);
-                        if (printer == null || !printer.IsActive) continue;
-
-                        var printData = group.Select(item => new
-                        {
-                            DishName = item.Dish.DishName,
-                            Diff = item.Quantity - item.PrintedQuantity,
-                            Note = item.Note
-                        }).ToList();
-
-                        Services.PrintService.PrintKitchenUpdates(printer, order.Table.TableName, nextBatch, printData);
-                    }
-
-                    // 2. CẬP NHẬT DATABASE
                     foreach (var item in changedItems)
                     {
+                        int diff = item.Quantity - item.PrintedQuantity;
+                        if (diff == 0) continue;
+
+                        // Tạo món ảo để in
+                        var printItem = new OrderDetail
+                        {
+                            Dish = item.Dish,          // Giữ thông tin món (để lấy Tên, PrinterID)
+                            Quantity = diff,           // Số lượng thay đổi (Dương = Thêm, Âm = Hủy)
+                            Note = item.Note,
+                            KitchenBatch = nextBatch   // Gán đợt mới
+                        };
+                        itemsToPrint.Add(printItem);
+                    }
+
+                    // --- 2. CẬP NHẬT DATABASE ---
+                    foreach (var item in changedItems)
+                    {
+                        // Cập nhật số lượng đã in
                         if (item.Quantity > item.PrintedQuantity) item.KitchenBatch = nextBatch;
                         item.PrintedQuantity = item.Quantity;
 
@@ -471,15 +470,19 @@ namespace PosSystem.Main
                             item.ItemStatus = "Sent";
                         }
                     }
-                    db.SaveChanges();
+                    db.SaveChanges(); // Lưu thay đổi (lúc này món hủy sẽ mất khỏi DB)
 
-                    // 3. --- LOGIC MỚI: KIỂM TRA ĐƠN RỖNG ---
-                    // Sau khi xóa các món SL=0, kiểm tra xem đơn hàng còn món nào không?
+                    // --- 3. GỌI IN (Dùng danh sách ảo itemsToPrint) ---
+                    if (itemsToPrint.Any())
+                    {
+                        // Gọi hàm PrintKitchen mới (đã sửa ở Bước 2)
+                        Services.PrintService.PrintKitchen(order, itemsToPrint, nextBatch);
+                    }
+
+                    // --- 4. KIỂM TRA ĐƠN RỖNG ---
                     bool isOrderEmpty = !db.OrderDetails.Any(d => d.OrderID == order.OrderID);
-
                     if (isOrderEmpty)
                     {
-                        // Nếu đơn trống -> Xóa luôn Order & Trả bàn
                         db.Orders.Remove(order);
                         var table = db.Tables.Find(order.TableID);
                         if (table != null) table.TableStatus = "Empty";
@@ -487,14 +490,13 @@ namespace PosSystem.Main
 
                         Dispatcher.Invoke(() =>
                         {
-                            LoadTables();           // Reload sơ đồ bàn (về màu xanh)
-                            LoadOrderDetails(_selectedTableId); // Clear màn hình order
+                            LoadTables();
+                            LoadOrderDetails(_selectedTableId);
                             ShowToast("✅ Đã hủy món & Trả bàn trống");
                         });
                     }
                     else
                     {
-                        // Nếu vẫn còn món -> Chỉ reload Order
                         Dispatcher.Invoke(() =>
                         {
                             LoadOrderDetails(_selectedTableId);

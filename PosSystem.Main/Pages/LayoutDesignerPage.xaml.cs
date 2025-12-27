@@ -14,6 +14,16 @@ namespace PosSystem.Main.Pages
 {
     public partial class LayoutDesignerPage : UserControl
     {
+        public static readonly DependencyProperty TemplateTypeProperty =
+            DependencyProperty.Register(nameof(TemplateType), typeof(string), typeof(LayoutDesignerPage),
+                new PropertyMetadata("Bill", OnTemplateTypeChanged));
+
+        public string TemplateType
+        {
+            get => (string)GetValue(TemplateTypeProperty);
+            set => SetValue(TemplateTypeProperty, value);
+        }
+
         private List<PrintElement> _elements = new List<PrintElement>();
         private PrintElement? _selectedElement;
         private bool _isInternalUpdate = false;
@@ -21,14 +31,29 @@ namespace PosSystem.Main.Pages
         public LayoutDesignerPage()
         {
             InitializeComponent();
+            this.Loaded += LayoutDesignerPage_Loaded;
+        }
+
+        private void LayoutDesignerPage_Loaded(object sender, RoutedEventArgs e)
+        {
             LoadLayout();
+        }
+
+        private static void OnTemplateTypeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is LayoutDesignerPage page && page.IsLoaded)
+            {
+                page.LoadLayout();
+            }
         }
 
         private void LoadLayout()
         {
+            string templateType = TemplateType ?? "Bill";
+            
             using (var db = new AppDbContext())
             {
-                var template = db.PrintTemplates.FirstOrDefault(t => t.TemplateType == "Bill" && t.IsActive);
+                var template = db.PrintTemplates.FirstOrDefault(t => t.TemplateType == templateType && t.IsActive);
 
                 if (template != null && !string.IsNullOrEmpty(template.TemplateContentJson))
                 {
@@ -48,22 +73,95 @@ namespace PosSystem.Main.Pages
                 }
 
                 RefreshList(-1);
+                UpdateUITitle();
+                UpdateElementTypeFilter();
+            }
+        }
+
+        private void UpdateUITitle()
+        {
+            string title = TemplateType == "Kitchen" ? "CẤU TRÚC PHIẾU BẾP" : "CẤU TRÚC HÓA ĐƠN";
+            if (txtTitle != null)
+            {
+                txtTitle.Text = title;
+            }
+        }
+
+        private void UpdateElementTypeFilter()
+        {
+            if (cboType == null) return;
+            
+            // Filter element types based on TemplateType
+            if (TemplateType == "Kitchen")
+            {
+                // For kitchen, hide bill-specific items
+                foreach (ComboBoxItem item in cboType.Items)
+                {
+                    string content = item.Content?.ToString() ?? "";
+                    // Hide OrderInfo, OrderDetails, Total for kitchen (show KitchenOrderInfo, KitchenOrderDetails instead)
+                    if (content.Contains("OrderInfo (Thông tin bàn)") && !content.Contains("Kitchen"))
+                    {
+                        item.Visibility = Visibility.Collapsed;
+                    }
+                    else if (content.Contains("OrderDetails (List món)") && !content.Contains("Kitchen"))
+                    {
+                        item.Visibility = Visibility.Collapsed;
+                    }
+                    else if (content.Contains("Total"))
+                    {
+                        item.Visibility = Visibility.Collapsed;
+                    }
+                    else
+                    {
+                        item.Visibility = Visibility.Visible;
+                    }
+                }
+            }
+            else
+            {
+                // For bill, hide kitchen-specific items
+                foreach (ComboBoxItem item in cboType.Items)
+                {
+                    string content = item.Content?.ToString() ?? "";
+                    if (content.Contains("Kitchen") || content.Contains("BatchNumber"))
+                    {
+                        item.Visibility = Visibility.Collapsed;
+                    }
+                    else
+                    {
+                        item.Visibility = Visibility.Visible;
+                    }
+                }
             }
         }
 
         private List<PrintElement> CreateDefaultLayout()
         {
-            return new List<PrintElement>
+            if (TemplateType == "Kitchen")
             {
-                new PrintElement { ElementType = "Text", Content = "TÊN QUÁN CỦA BẠN", FontSize = 24, IsBold = true, Align = "Center" },
-                new PrintElement { ElementType = "Text", Content = "ĐC: Địa chỉ quán...", FontSize = 14, Align = "Center" },
-                new PrintElement { ElementType = "Separator" },
-                new PrintElement { ElementType = "OrderInfo" },
-                new PrintElement { ElementType = "OrderDetails" },
-                new PrintElement { ElementType = "Separator" },
-                new PrintElement { ElementType = "Total" },
-                new PrintElement { ElementType = "Text", Content = "Xin cảm ơn quý khách!", FontSize = 14, Align = "Center" }
-            };
+                return new List<PrintElement>
+                {
+                    new PrintElement { ElementType = "Text", Content = "PHIẾU CHẾ BIẾN", FontSize = 24, IsBold = true, Align = "Center" },
+                    new PrintElement { ElementType = "Separator" },
+                    new PrintElement { ElementType = "KitchenOrderInfo" },
+                    new PrintElement { ElementType = "Separator" },
+                    new PrintElement { ElementType = "KitchenOrderDetails" }
+                };
+            }
+            else
+            {
+                return new List<PrintElement>
+                {
+                    new PrintElement { ElementType = "Text", Content = "TÊN QUÁN CỦA BẠN", FontSize = 24, IsBold = true, Align = "Center" },
+                    new PrintElement { ElementType = "Text", Content = "ĐC: Địa chỉ quán...", FontSize = 14, Align = "Center" },
+                    new PrintElement { ElementType = "Separator" },
+                    new PrintElement { ElementType = "OrderInfo" },
+                    new PrintElement { ElementType = "OrderDetails" },
+                    new PrintElement { ElementType = "Separator" },
+                    new PrintElement { ElementType = "Total" },
+                    new PrintElement { ElementType = "Text", Content = "Xin cảm ơn quý khách!", FontSize = 14, Align = "Center" }
+                };
+            }
         }
 
         private void RefreshList(int selectIndex)
@@ -128,6 +226,11 @@ namespace PosSystem.Main.Pages
                 _selectedElement = null;
                 pnlProperties.IsEnabled = false;
             }
+        }
+
+        private void CboType_Loaded(object sender, RoutedEventArgs e)
+        {
+            UpdateElementTypeFilter();
         }
 
         private void CboType_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -281,16 +384,21 @@ namespace PosSystem.Main.Pages
         {
             UpdateModelFromUI();
 
+            string templateType = TemplateType ?? "Bill";
+            string successMessage = templateType == "Kitchen" 
+                ? "✅ Đã lưu cấu trúc phiếu bếp thành công!" 
+                : "✅ Đã lưu cấu trúc hóa đơn thành công!";
+
             using (var db = new AppDbContext())
             {
-                var template = db.PrintTemplates.FirstOrDefault(t => t.TemplateType == "Bill" && t.IsActive);
+                var template = db.PrintTemplates.FirstOrDefault(t => t.TemplateType == templateType && t.IsActive);
 
                 if (template == null)
                 {
                     template = new PrintTemplate
                     {
-                        TemplateName = "Mẫu Tùy Chỉnh",
-                        TemplateType = "Bill",
+                        TemplateName = templateType == "Kitchen" ? "Mẫu Bếp" : "Mẫu Hóa Đơn",
+                        TemplateType = templateType,
                         TemplateContentJson = "",
                         IsActive = true
                     };
@@ -300,7 +408,7 @@ namespace PosSystem.Main.Pages
                 template.TemplateContentJson = JsonSerializer.Serialize(_elements);
 
                 db.SaveChanges();
-                MessageBox.Show("✅ Đã lưu cấu trúc hóa đơn thành công!");
+                MessageBox.Show(successMessage);
             }
         }
     }

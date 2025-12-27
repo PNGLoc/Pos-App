@@ -20,7 +20,8 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="CẤU TRÚC HÓA ĐƠN"
+                <TextBlock x:Name="txtTitle"
+                        Text="CẤU TRÚC HÓA ĐƠN"
                         FontSize="18"
                         FontWeight="Bold"
                         Margin="0,0,0,10"/>
@@ -101,7 +102,8 @@
                 <ComboBox x:Name="cboType"
                         SelectionChanged="CboType_SelectionChanged"
                         Margin="0,5,0,10"
-                        Padding="5">
+                        Padding="5"
+                        Loaded="CboType_Loaded">
                     <ComboBoxItem Content="Text (Văn bản)"/>
                     <ComboBoxItem Content="Logo (Ảnh)"/>
                     <ComboBoxItem Content="Separator (Gạch ngang)"/>
@@ -109,6 +111,9 @@
                     <ComboBoxItem Content="OrderDetails (List món)"/>
                     <ComboBoxItem Content="Total (Tổng tiền)"/>
                     <ComboBoxItem Content="QRCode"/>
+                    <ComboBoxItem Content="KitchenOrderInfo (Thông tin bàn - Bếp)"/>
+                    <ComboBoxItem Content="KitchenOrderDetails (List món - Bếp)"/>
+                    <ComboBoxItem Content="BatchNumber (Số đợt)"/>
                 </ComboBox>
 
                 <TextBlock Text="Nội dung:"/>
