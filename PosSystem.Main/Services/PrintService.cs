@@ -184,15 +184,15 @@ namespace PosSystem.Main.Services
                     buffer.AddRange(EscPos.SizeDoubleHeight);
                     buffer.AddRange(EscPos.BoldOn);
 
-                    string title = batchNumber > 0 ? $"PHIEU BEP - DOT {batchNumber}\n" : "PHIEU CHE BIEN\n";
+                    string title = batchNumber > 0 ? $"Phiếu bếp - Đợt {batchNumber}\n" : "PHIEU CHE BIEN\n";
                     buffer.AddRange(Encoding.ASCII.GetBytes(title));
 
                     buffer.AddRange(EscPos.SizeNormal);
                     buffer.AddRange(EscPos.AlignLeft);
 
-                    string tableName = order.Table?.TableName ?? "Mang ve";
-                    buffer.AddRange(Encoding.ASCII.GetBytes($"Ban: {VietnameseHelper.RemoveSign4VietnameseString(tableName)} (#{order.OrderID})\n"));
-                    buffer.AddRange(Encoding.ASCII.GetBytes($"Gio: {DateTime.Now:HH:mm}\n"));
+                    string tableName = order.Table?.TableName ?? "Mang về";
+                    buffer.AddRange(Encoding.ASCII.GetBytes($"Bàn: {VietnameseHelper.RemoveSign4VietnameseString(tableName)} (#{order.OrderID})\n"));
+                    buffer.AddRange(Encoding.ASCII.GetBytes($"Giờ: {DateTime.Now:HH:mm}\n"));
                     buffer.AddRange(Encoding.ASCII.GetBytes("--------------------------------\n"));
 
                     buffer.AddRange(EscPos.SizeDoubleHeight);

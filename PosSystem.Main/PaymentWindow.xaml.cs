@@ -80,7 +80,6 @@ namespace PosSystem.Main
                 // PrintService.PrintBill(_orderId);
 
                 IsPaidSuccess = true;
-                MessageBox.Show("Thanh toán thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 this.Close();
             }
         }

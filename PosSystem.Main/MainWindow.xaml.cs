@@ -605,6 +605,11 @@ namespace PosSystem.Main
                 if (tglPrintBill.IsChecked == true)
                 {
                     Services.PrintService.PrintBill(orderId);
+                    ShowToast("🖨 Đã in hóa đơn & Thanh toán xong!");
+                }
+                else
+                {
+                    ShowToast("💰 Thanh toán thành công (Không in)");
                 }
 
                 LoadTables();
