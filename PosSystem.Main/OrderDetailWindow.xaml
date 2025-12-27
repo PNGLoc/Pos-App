@@ -1,0 +1,72 @@
+<Window x:Class="PosSystem.Main.OrderDetailWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Chi tiết đơn hàng"
+        Height="450"
+        Width="600"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock x:Name="lblTitle"
+                    Text="ĐƠN HÀNG #..."
+                    FontSize="18"
+                    FontWeight="Bold"
+                    Foreground="#007BFF"
+                    HorizontalAlignment="Center"/>
+            <TextBlock x:Name="lblInfo"
+                    Text="Bàn: ... - Giờ: ..."
+                    HorizontalAlignment="Center"
+                    Margin="0,5,0,10"
+                    Foreground="Gray"/>
+        </StackPanel>
+
+        <DataGrid Grid.Row="1"
+                x:Name="lstDetails"
+                AutoGenerateColumns="False"
+                CanUserAddRows="False"
+                IsReadOnly="True"
+                  GridLinesVisibility="Horizontal"
+                HeadersVisibility="Column"
+                Background="White">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Tên món"
+                        Binding="{Binding DishName}"
+                        Width="*"/>
+                <DataGridTextColumn Header="SL"
+                        Binding="{Binding Quantity}"
+                        Width="50"/>
+                <DataGridTextColumn Header="Đơn giá"
+                        Binding="{Binding UnitPrice, StringFormat={}{0:N0}}"
+                        Width="80"/>
+                <DataGridTextColumn Header="Thành tiền"
+                        Binding="{Binding TotalAmount, StringFormat={}{0:N0}}"
+                        Width="90"
+                        FontWeight="Bold"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="2"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Margin="0,10,0,0">
+            <TextBlock Text="TỔNG CỘNG: "
+                    FontSize="16"/>
+            <TextBlock x:Name="lblTotal"
+                    Text="0đ"
+                    FontSize="18"
+                    FontWeight="Bold"
+                    Foreground="#DC3545"/>
+            <Button Content="Đóng"
+                    IsCancel="True"
+                    Width="80"
+                    Margin="15,0,0,0"/>
+        </StackPanel>
+    </Grid>
+</Window>

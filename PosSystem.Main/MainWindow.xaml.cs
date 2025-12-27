@@ -579,34 +579,43 @@ namespace PosSystem.Main
                     orderId = (int)order.OrderID;
                     finalAmount = order.FinalAmount;
 
-                    // KIỂM TRA CHẶN: Nếu không có món nào (hoặc toàn món đã hủy)
                     bool hasValidItems = order.OrderDetails.Any(d => d.Quantity > 0);
-
                     if (!hasValidItems)
                     {
-                        MessageBox.Show("Đơn hàng đang trống, không thể thanh toán!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show("Đơn hàng đang trống!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
 
                     if (finalAmount <= 0)
                     {
-                        MessageBoxResult result = MessageBox.Show("Tổng tiền đang là 0 đồng. Bạn có chắc muốn thanh toán (Checkout 0đ) để đóng bàn không?",
-                                                                  "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                        if (result != MessageBoxResult.Yes) return;
+                        if (MessageBox.Show("Thanh toán 0đ để đóng bàn?", "Xác nhận", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
                     }
                 }
             }
 
             if (orderId == 0) return;
 
+            // Mở cửa sổ thanh toán
             var payWindow = new PaymentWindow(orderId);
             payWindow.ShowDialog();
 
             if (payWindow.IsPaidSuccess)
             {
+                // --- SỬA: Kiểm tra ToggleButton (tglPrintBill) ---
+                if (tglPrintBill.IsChecked == true)
+                {
+                    Services.PrintService.PrintBill(orderId);
+                }
+
                 LoadTables();
                 LoadOrderDetails(_selectedTableId);
             }
+        }
+
+        private void BtnHistory_Click(object sender, RoutedEventArgs e)
+        {
+            var historyWin = new HistoryWindow();
+            historyWin.ShowDialog();
         }
 
     }

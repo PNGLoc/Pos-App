@@ -1,0 +1,130 @@
+<Page x:Class="PosSystem.Main.Pages.OrderHistoryPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="Lịch sử đơn hàng"
+        Background="#F0F2F5">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Background="White"
+                CornerRadius="5"
+                Padding="15"
+                Margin="0,0,0,15">
+            <StackPanel Orientation="Horizontal"
+                    VerticalAlignment="Center">
+                <TextBlock Text="📅 Từ: "
+                        VerticalAlignment="Center"/>
+                <DatePicker x:Name="dpFrom"
+                        Width="110"
+                        Margin="5,0,15,0"/>
+
+                <TextBlock Text="Đến: "
+                        VerticalAlignment="Center"/>
+                <DatePicker x:Name="dpTo"
+                        Width="110"
+                        Margin="5,0,15,0"/>
+
+                <TextBlock Text="PTTT: "
+                        VerticalAlignment="Center"/>
+                <ComboBox x:Name="cboPaymentMethod"
+                        Width="120"
+                        Margin="5,0,15,0"
+                        SelectedIndex="0"
+                        VerticalContentAlignment="Center">
+                    <ComboBoxItem Content="Tất cả"/>
+                    <ComboBoxItem Content="Tiền mặt"
+                            Tag="Cash"/>
+                    <ComboBoxItem Content="Chuyển khoản"
+                            Tag="Transfer"/>
+                </ComboBox>
+
+                <Button Content="🔍 Tìm"
+                        Click="BtnSearch_Click"
+                        Width="80"
+                        Background="#007BFF"
+                        Foreground="White"
+                        FontWeight="Bold"/>
+
+                <Button Content="💥 Xóa tất cả"
+                        Click="BtnDeleteAll_Click"
+                        Width="100"
+                        Margin="20,0,0,0"
+                        Background="#DC3545"
+                        Foreground="White"
+                        FontWeight="Bold"/>
+            </StackPanel>
+        </Border>
+
+        <DataGrid Grid.Row="1"
+                x:Name="dgOrders"
+                AutoGenerateColumns="False"
+                CanUserAddRows="False"
+                IsReadOnly="True"
+                  Background="White"
+                RowHeight="40"
+                SelectionMode="Single">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID"
+                        Binding="{Binding OrderID}"
+                        Width="60"/>
+                <DataGridTextColumn Header="Bàn"
+                        Binding="{Binding TableName}"
+                        Width="100"/>
+                <DataGridTextColumn Header="Thời gian"
+                        Binding="{Binding OrderTime, StringFormat='dd/MM/yyyy HH:mm'}"
+                        Width="140"/>
+
+                <DataGridTextColumn Header="PTTT"
+                        Binding="{Binding PaymentMethodDisplay}"
+                        Width="100"/>
+
+                <DataGridTextColumn Header="Tổng tiền"
+                        Binding="{Binding FinalAmount, StringFormat={}{0:N0}}"
+                        Width="120"
+                        FontWeight="Bold"/>
+                <DataGridTextColumn Header="Trạng thái"
+                        Binding="{Binding StatusDisplay}"
+                        Width="100"/>
+
+                <DataGridTemplateColumn Header="Hành động"
+                        Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="👁 Chi tiết"
+                                        Click="BtnDetail_Click"
+                                        Tag="{Binding OrderID}"
+                                        Margin="0,0,10,0"
+                                        Padding="5,0"/>
+                                <Button Content="🗑 Xóa"
+                                        Click="BtnDelete_Click"
+                                        Tag="{Binding OrderID}"
+                                        Background="#6C757D"
+                                        Foreground="White"
+                                        Padding="5,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="2"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Margin="0,10,0,0">
+            <TextBlock Text="Tổng doanh thu: "
+                    FontSize="16"/>
+            <TextBlock x:Name="lblTotalRevenue"
+                    Text="0đ"
+                    FontSize="18"
+                    FontWeight="Bold"
+                    Foreground="#28A745"/>
+        </StackPanel>
+    </Grid>
+</Page>

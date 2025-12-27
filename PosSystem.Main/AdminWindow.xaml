@@ -86,7 +86,10 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="LayoutDesigner"/>
-
+                <RadioButton Content="📜 Lịch sử đơn hàng"
+                             Style="{StaticResource AdminMenuButton}"
+                             Click="Menu_Click"
+                             Tag="OrderHistory"/>
                 <!-- NÚT CHUYỂN SANG BÁN HÀNG -->
                 <Button Content="➡ VÀO BÁN HÀNG"
                         Margin="10,50,10,0"
@@ -110,7 +113,8 @@
         <Border Grid.Column="1"
                 Background="#F4F6F9"
                 Padding="20">
-            <Grid x:Name="contentArea"/>
+            <Frame x:Name="mainFrame"
+                    NavigationUIVisibility="Hidden"/>
         </Border>
     </Grid>
 </Window>

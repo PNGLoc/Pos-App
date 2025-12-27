@@ -9,24 +9,35 @@ namespace PosSystem.Main
         {
             InitializeComponent();
             // Mặc định load trang Printer
-            contentArea.Children.Clear();
-            contentArea.Children.Add(new Pages.PrinterSetupPage());
+            mainFrame.Navigate(new Pages.PrinterSetupPage());
         }
 
         private void Menu_Click(object sender, RoutedEventArgs e)
         {
             if (sender is RadioButton btn && btn.Tag is string tag)
             {
-                contentArea.Children.Clear();
+                // Sử dụng Navigate cho Frame
                 switch (tag)
                 {
-                    case "Printer": contentArea.Children.Add(new Pages.PrinterSetupPage()); break;
-                    case "LayoutDesigner": contentArea.Children.Add(new Pages.LayoutDesignerPage()); break;
-
-                    // --- CÁC TRANG MỚI ---
-                    case "Table": contentArea.Children.Add(new Pages.TableSetupPage()); break;
-                    case "Account": contentArea.Children.Add(new Pages.AccountSetupPage()); break;
-                    case "Menu": contentArea.Children.Add(new Pages.MenuSetupPage()); break;
+                    case "Printer":
+                        mainFrame.Navigate(new Pages.PrinterSetupPage());
+                        break;
+                    case "LayoutDesigner":
+                        mainFrame.Navigate(new Pages.LayoutDesignerPage());
+                        break;
+                    case "Table":
+                        mainFrame.Navigate(new Pages.TableSetupPage());
+                        break;
+                    case "Account":
+                        mainFrame.Navigate(new Pages.AccountSetupPage());
+                        break;
+                    case "Menu":
+                        mainFrame.Navigate(new Pages.MenuSetupPage());
+                        break;
+                    // Case mới cho Lịch sử đơn hàng
+                    case "OrderHistory":
+                        mainFrame.Navigate(new Pages.OrderHistoryPage());
+                        break;
                 }
             }
         }
