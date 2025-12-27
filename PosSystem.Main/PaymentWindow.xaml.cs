@@ -76,8 +76,8 @@ namespace PosSystem.Main
 
                 db.SaveChanges();
 
-                // In hóa đơn chính thức
-                PrintService.PrintBill(_orderId);
+                // In hóa đơn chính thức , nhưng chuyển qua mainwindow in luôn rồi
+                // PrintService.PrintBill(_orderId);
 
                 IsPaidSuccess = true;
                 MessageBox.Show("Thanh toán thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
