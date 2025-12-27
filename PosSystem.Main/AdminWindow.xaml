@@ -1,0 +1,116 @@
+<Window x:Class="PosSystem.Main.AdminWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Quản trị hệ thống"
+        Height="600"
+        Width="1000"
+        WindowStartupLocation="CenterScreen">
+
+    <!-- 1. KHAI BÁO RESOURCES Ở ĐẦU TIÊN -->
+    <Window.Resources>
+        <!-- Style cho nút Menu -->
+        <Style x:Key="AdminMenuButton"
+               TargetType="RadioButton">
+            <Setter Property="Foreground"
+                    Value="LightGray"/>
+            <Setter Property="FontSize"
+                    Value="16"/>
+            <Setter Property="Margin"
+                    Value="0,5,0,5"/>
+            <Setter Property="Padding"
+                    Value="20,10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsChecked"
+                         Value="True">
+                    <Setter Property="Background"
+                            Value="#007BFF"/>
+                    <Setter Property="Foreground"
+                            Value="White"/>
+                    <Setter Property="FontWeight"
+                            Value="Bold"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <!-- 2. GIAO DIỆN CHÍNH (GRID) Ở DƯỚI -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="230"/>
+            <!-- Menu trái -->
+            <ColumnDefinition Width="*"/>
+            <!-- Nội dung phải -->
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar Menu -->
+        <Border Background="#343A40">
+            <StackPanel>
+                <TextBlock Text="ADMIN PANEL"
+                           Foreground="White"
+                           FontSize="20"
+                           FontWeight="Bold"
+                           Margin="20"/>
+
+                <!-- Lúc này StaticResource đã được định nghĩa ở trên nên sẽ không lỗi nữa -->
+                <RadioButton Content="🖨 Cấu hình Máy in"
+                             Style="{StaticResource AdminMenuButton}"
+                             IsChecked="True"
+                             Click="Menu_Click"
+                             Tag="Printer"/>
+                <Separator Background="#555"
+                           Margin="10"/>
+
+                <RadioButton Content="🍽 Quản lý Bàn"
+                             Style="{StaticResource AdminMenuButton}"
+                             Click="Menu_Click"
+                             Tag="Table"/>
+                <RadioButton Content="👥 Quản lý Nhân viên"
+                             Style="{StaticResource AdminMenuButton}"
+                             Click="Menu_Click"
+                             Tag="Account"/>
+                <RadioButton Content="📂 Thực đơn / Danh mục"
+                             Style="{StaticResource AdminMenuButton}"
+                             Click="Menu_Click"
+                             Tag="Menu"/>
+                <RadioButton Content="⚙️ Cấu hình hoá đơn"
+                             Style="{StaticResource AdminMenuButton}"
+                             Click="Menu_Click"
+                             Tag="LayoutDesigner"/>
+
+                <!-- NÚT CHUYỂN SANG BÁN HÀNG -->
+                <Button Content="➡ VÀO BÁN HÀNG"
+                        Margin="10,50,10,0"
+                        Height="50"
+                        Background="#28A745"
+                        Foreground="White"
+                        FontWeight="Bold"
+                        FontSize="14"
+                        Click="BtnGoToPOS_Click">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius"
+                                    Value="5"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- Content Area -->
+        <Border Grid.Column="1"
+                Background="#F4F6F9"
+                Padding="20">
+            <Grid x:Name="contentArea"/>
+        </Border>
+    </Grid>
+</Window>

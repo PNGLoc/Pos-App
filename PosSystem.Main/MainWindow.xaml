@@ -7,99 +7,255 @@
         WindowState="Maximized"
         Background="#F0F2F5">
 
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Window.Resources>
+
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
-            <!-- CỘT 1: SƠ ĐỒ BÀN (Rộng nhất) -->
-            <ColumnDefinition Width="400"/>
-            <!-- CỘT 2: SIDEBAR (Cố định) -->
+            <ColumnDefinition Width="480"/>
         </Grid.ColumnDefinitions>
 
-        <!-- === CỘT 1: DANH SÁCH BÀN === -->
-        <!-- Đã sửa lỗi Effect tại đây -->
         <Border Grid.Column="0"
                 Margin="10"
                 Background="White"
                 CornerRadius="8">
             <Border.Effect>
                 <DropShadowEffect Color="Gray"
-                        BlurRadius="10"
-                        ShadowDepth="0"
-                        Opacity="0.2"/>
+                                  BlurRadius="10"
+                                  ShadowDepth="0"
+                                  Opacity="0.2"/>
             </Border.Effect>
 
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+                <Grid x:Name="pnlTableList"
+                      Visibility="Visible">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                <!-- Tiêu đề -->
-                <TextBlock Text="SƠ ĐỒ PHÒNG BÀN"
-                        FontSize="20"
-                        FontWeight="Bold"
-                        Margin="20,15"
-                        Foreground="#333"/>
+                    <Grid Margin="20,15">
+                        <StackPanel>
+                            <TextBlock Text="SƠ ĐỒ PHÒNG BÀN"
+                                       FontSize="22"
+                                       FontWeight="Bold"
+                                       Foreground="#333"/>
+                            <StackPanel Orientation="Horizontal"
+                                        Margin="0,5,0,0">
+                                <TextBlock Text="Thu ngân: "
+                                           Foreground="#666"/>
+                                <TextBlock x:Name="lblStaffName"
+                                           Text="..."
+                                           FontWeight="Bold"
+                                           Foreground="#007BFF"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <Button HorizontalAlignment="Right"
+                                x:Name="btnBackToAdmin"
+                                Content="⚙ ADMIN"
+                                Height="35"
+                                Background="#343A40"
+                                Foreground="White"
+                                Click="BtnBackToAdmin_Click"
+                                Visibility="Collapsed"
+                                Padding="15,0"
+                                BorderThickness="0"
+                                FontWeight="SemiBold"/>
+                    </Grid>
 
-                <!-- List Bàn (WrapPanel để tự xuống dòng) -->
-                <ScrollViewer Grid.Row="1"
-                        VerticalScrollBarVisibility="Auto">
-                    <ListBox x:Name="lstTables"
-                            SelectionChanged="lstTables_SelectionChanged"
-                             BorderThickness="0"
-                            Background="Transparent"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ScrollViewer Grid.Row="1"
+                                  VerticalScrollBarVisibility="Auto">
+                        <ListBox x:Name="lstTables"
+                                 SelectionChanged="lstTables_SelectionChanged"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"
+                                               IsItemsHost="True"/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="150"
+                                            Height="120"
+                                            Margin="15"
+                                            CornerRadius="12"
+                                            Cursor="Hand"
+                                            Background="{Binding ColorBrush}">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="Gray"
+                                                              BlurRadius="5"
+                                                              ShadowDepth="2"
+                                                              Opacity="0.3"/>
+                                        </Border.Effect>
+                                        <StackPanel VerticalAlignment="Center"
+                                                    HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding TableName}"
+                                                       Foreground="White"
+                                                       FontWeight="Bold"
+                                                       FontSize="22"
+                                                       TextAlignment="Center"/>
+                                            <Border Background="White"
+                                                    CornerRadius="10"
+                                                    Padding="10,4"
+                                                    Margin="0,8,0,0"
+                                                    HorizontalAlignment="Center">
+                                                <TextBlock Text="{Binding StatusDisplay}"
+                                                           Foreground="Black"
+                                                           FontSize="12"
+                                                           FontWeight="Bold"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </ScrollViewer>
+                </Grid>
+
+                <Grid x:Name="pnlMenu"
+                      Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Margin="15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0"
+                                Content="⬅ CHỌN BÀN KHÁC"
+                                Click="BtnBackToTables_Click"
+                                Background="#6c757d"
+                                Foreground="White"
+                                Height="40"
+                                Padding="15,0"
+                                FontWeight="Bold"
+                                BorderThickness="0"/>
+                        <StackPanel Grid.Column="1"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center">
+                            <TextBlock Text="MENU MÓN ĂN"
+                                       FontSize="20"
+                                       FontWeight="Bold"
+                                       Foreground="#333"
+                                       TextAlignment="Right"/>
+                            <TextBlock Text="Chạm vào món để thêm ngay"
+                                       FontSize="12"
+                                       Foreground="#666"
+                                       TextAlignment="Right"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <ListBox Grid.Row="1"
+                             x:Name="lstCategories"
+                             SelectionChanged="lstCategories_SelectionChanged"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             Height="50"
+                             BorderThickness="0,0,0,1"
+                             Background="Transparent"
+                             Margin="0,0,0,10">
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal"
-                                        IsItemsHost="True"/>
+                                <StackPanel Orientation="Horizontal"/>
                             </ItemsPanelTemplate>
                         </ListBox.ItemsPanel>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <!-- Thẻ Bàn -->
-                                <Border Width="130"
-                                        Height="100"
-                                        Margin="10"
-                                        CornerRadius="8"
+                                <Border Padding="15,10"
+                                        Background="Transparent"
                                         Cursor="Hand"
-                                        Background="{Binding ColorBrush}">
-                                    <Border.Effect>
-                                        <DropShadowEffect Color="Gray"
-                                                BlurRadius="5"
-                                                ShadowDepth="2"
-                                                Opacity="0.3"/>
-                                    </Border.Effect>
-                                    <Grid>
-                                        <StackPanel VerticalAlignment="Center"
-                                                HorizontalAlignment="Center">
-                                            <TextBlock Text="{Binding TableName}"
-                                                    Foreground="White"
-                                                    FontWeight="Bold"
-                                                    FontSize="18"
-                                                    TextAlignment="Center"
-                                                    TextWrapping="Wrap"/>
-                                            <Border Background="White"
-                                                    CornerRadius="10"
-                                                    Padding="8,2"
-                                                    Margin="0,5,0,0"
-                                                    HorizontalAlignment="Center">
-                                                <TextBlock Text="{Binding StatusDisplay}"
-                                                        Foreground="Black"
-                                                        FontSize="11"
-                                                        FontWeight="SemiBold"/>
-                                            </Border>
-                                        </StackPanel>
-                                    </Grid>
+                                        Margin="2">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                                             Value="True">
+                                                    <Setter Property="Background"
+                                                            Value="#E3F2FD"/>
+                                                    <Setter Property="BorderBrush"
+                                                            Value="#2196F3"/>
+                                                    <Setter Property="BorderThickness"
+                                                            Value="0,0,0,3"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding CategoryName}"
+                                               FontWeight="SemiBold"
+                                               FontSize="14"/>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                </ScrollViewer>
+
+                    <ScrollViewer Grid.Row="2"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Padding="10">
+                        <ItemsControl x:Name="lstDishes">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel HorizontalAlignment="Center"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="160"
+                                            Height="140"
+                                            Margin="8"
+                                            CornerRadius="8"
+                                            BorderThickness="1"
+                                            BorderBrush="#E0E0E0"
+                                            Cursor="Hand"
+                                            Background="White"
+                                            Tag="{Binding DishID}"
+                                            MouseLeftButtonDown="Dish_MouseLeftButtonDown">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#DDD"
+                                                              BlurRadius="5"
+                                                              ShadowDepth="2"
+                                                              Opacity="0.4"/>
+                                        </Border.Effect>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock Grid.Row="0"
+                                                       Text="{Binding DishName}"
+                                                       TextWrapping="Wrap"
+                                                       TextAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="16"
+                                                       Margin="10"
+                                                       Foreground="#333"/>
+
+                                            <TextBlock Grid.Row="1"
+                                                       Text="{Binding Price, StringFormat={}{0:N0} đ}"
+                                                       TextAlignment="Center"
+                                                       Foreground="#F44336"
+                                                       FontWeight="Bold"
+                                                       FontSize="15"
+                                                       Margin="0,0,0,15"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
             </Grid>
         </Border>
 
-        <!-- === CỘT 2: SIDEBAR (ĐA CHỨC NĂNG) === -->
         <Border Grid.Column="1"
                 Background="White"
                 BorderBrush="#DDD"
@@ -107,193 +263,246 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="60"/>
-                    <!-- Header Tên Bàn -->
                     <RowDefinition Height="*"/>
-                    <!-- Nội dung thay đổi (List Món hoặc Menu) -->
                 </Grid.RowDefinitions>
 
-                <!-- Header Sidebar -->
                 <Grid Grid.Row="0"
-                        Background="#007BFF">
+                      Background="#007BFF">
                     <TextBlock x:Name="lblSelectedTable"
-                            Text="Chưa chọn bàn"
+                               Text="Chưa chọn bàn"
                                Foreground="White"
-                            FontWeight="Bold"
-                            FontSize="18"
+                               FontWeight="Bold"
+                               FontSize="20"
                                VerticalAlignment="Center"
-                            HorizontalAlignment="Center"/>
+                               HorizontalAlignment="Center"/>
                 </Grid>
 
-                <!-- CONTAINER CHỨA 2 VIEW -->
-                <Grid Grid.Row="1">
+                <Grid Grid.Row="1"
+                      x:Name="viewOrderDetails"
+                      Visibility="Visible">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                    <!-- VIEW A: CHI TIẾT ĐƠN HÀNG (Mặc định hiện) -->
-                    <Grid x:Name="viewOrderDetails"
-                            Visibility="Visible">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
+                    <DataGrid Grid.Row="0"
+                              x:Name="lstOrderDetails"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column"
+                              Background="White"
+                              RowHeight="55"
+                              FontSize="14">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="Background"
+                                        Value="{Binding RowColor}"/>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
 
-                        <!-- List món đã gọi -->
-                        <DataGrid Grid.Row="0"
-                                x:Name="lstOrderDetails"
-                                AutoGenerateColumns="False"
-                                  CanUserAddRows="False"
-                                GridLinesVisibility="Horizontal"
-                                  HeadersVisibility="Column"
-                                Background="White"
-                                RowHeight="40"
-                                FontSize="14">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Tên món"
-                                        Binding="{Binding DishName}"
-                                        Width="*"
-                                        IsReadOnly="True"/>
-                                <DataGridTextColumn Header="SL"
-                                        Binding="{Binding Quantity}"
-                                        Width="50"
-                                        IsReadOnly="True"/>
-                                <DataGridTextColumn Header="T.Tiền"
-                                        Binding="{Binding TotalAmount, StringFormat={}{0:N0}}"
-                                        Width="90"
-                                        IsReadOnly="True"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                            <DataGridTextColumn Header="Món"
+                                                Binding="{Binding DishName}"
+                                                Width="*"
+                                                IsReadOnly="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextWrapping"
+                                                Value="Wrap"/>
+                                        <Setter Property="VerticalAlignment"
+                                                Value="Center"/>
+                                        <Setter Property="Margin"
+                                                Value="5,0"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                        <!-- Footer: Nút bấm -->
-                        <StackPanel Grid.Row="1"
-                                Margin="15">
-                            <StackPanel Orientation="Horizontal"
-                                    HorizontalAlignment="Right"
-                                    Margin="0,0,0,15">
-                                <TextBlock Text="Tổng tiền: "
-                                        FontSize="16"/>
-                                <TextBlock x:Name="lblTotal"
-                                        Text="0đ"
-                                        FontSize="20"
-                                        FontWeight="Bold"
-                                        Foreground="Red"/>
-                            </StackPanel>
+                            <DataGridTextColumn Header="Đợt"
+                                                Binding="{Binding BatchDisplay}"
+                                                Width="50"
+                                                IsReadOnly="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment"
+                                                Value="Center"/>
+                                        <Setter Property="VerticalAlignment"
+                                                Value="Center"/>
+                                        <Setter Property="FontStyle"
+                                                Value="Italic"/>
+                                        <Setter Property="Foreground"
+                                                Value="Gray"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                            <!-- Nút thêm món -->
-                            <Button Content="+ THÊM MÓN"
-                                    Height="45"
-                                    Background="#17A2B8"
-                                    Foreground="White"
-                                    FontSize="16"
-                                    FontWeight="Bold"
-                                    Margin="0,0,0,10"
-                                    Click="BtnShowMenu_Click"/>
-
-                            <!-- Nút thanh toán -->
-                            <Button x:Name="btnCheckout"
-                                    Content="THANH TOÁN"
-                                    Height="50"
-                                    Background="#28A745"
-                                    Foreground="White"
-                                    FontSize="18"
-                                    FontWeight="Bold"
-                                    IsEnabled="False"
-                                    Click="btnCheckout_Click"/>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- VIEW B: MENU CHỌN MÓN (Mặc định ẩn) -->
-                    <Grid x:Name="viewMenu"
-                            Visibility="Collapsed"
-                            Background="White">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <!-- Nút Quay lại -->
-                            <RowDefinition Height="Auto"/>
-                            <!-- Tabs Danh mục -->
-                            <RowDefinition Height="*"/>
-                            <!-- List Món -->
-                        </Grid.RowDefinitions>
-
-                        <Button Grid.Row="0"
-                                Content="⬅ QUAY LẠI ĐƠN HÀNG"
-                                Height="40"
-                                Background="#6C757D"
-                                Foreground="White"
-                                Click="BtnBackToOrder_Click"
-                                Margin="5"/>
-
-                        <ListBox Grid.Row="1"
-                                x:Name="lstCategories"
-                                SelectionChanged="lstCategories_SelectionChanged"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                Height="50"
-                                 BorderThickness="0,0,0,1">
-                            <ListBox.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal"/>
-                                </ItemsPanelTemplate>
-                            </ListBox.ItemsPanel>
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Padding="15,10"
-                                            Background="Transparent"
-                                            Cursor="Hand">
-                                        <TextBlock Text="{Binding CategoryName}"
-                                                FontWeight="SemiBold"
-                                                FontSize="14"/>
-                                    </Border>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-
-                        <ScrollViewer Grid.Row="2"
-                                Padding="5">
-                            <ItemsControl x:Name="lstDishes">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel HorizontalAlignment="Center"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
+                            <DataGridTemplateColumn Header="SL"
+                                                    Width="110">
+                                <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Width="110"
-                                                Height="90"
-                                                Margin="4"
-                                                Click="BtnDish_Click"
-                                                Tag="{Binding DishID}">
-                                            <Button.Template>
-                                                <ControlTemplate TargetType="Button">
-                                                    <Border Background="White"
-                                                            BorderBrush="#EEE"
-                                                            BorderThickness="1"
-                                                            CornerRadius="6">
-                                                        <Grid>
-                                                            <Grid.RowDefinitions>
-                                                                <RowDefinition Height="*"/>
-                                                                <RowDefinition Height="Auto"/>
-                                                            </Grid.RowDefinitions>
-                                                            <TextBlock Text="{Binding DishName}"
-                                                                    TextWrapping="Wrap"
-                                                                    TextAlignment="Center"
-                                                                       VerticalAlignment="Center"
-                                                                    FontWeight="SemiBold"
-                                                                    Margin="2"
-                                                                    FontSize="12"/>
-                                                            <TextBlock Grid.Row="1"
-                                                                    Text="{Binding Price, StringFormat={}{0:N0}}"
-                                                                       TextAlignment="Center"
-                                                                    Foreground="#D9534F"
-                                                                    Margin="0,0,0,4"
-                                                                    FontSize="12"/>
-                                                        </Grid>
-                                                    </Border>
-                                                </ControlTemplate>
-                                            </Button.Template>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Grid>
+                                        <StackPanel Orientation="Horizontal"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center">
+                                            <Button Content="-"
+                                                    Click="BtnDecrease_Click"
+                                                    Tag="{Binding OrderDetailID}"
+                                                    Width="30"
+                                                    Height="30"
+                                                    Background="#F8F9FA"
+                                                    BorderBrush="#DEE2E6"
+                                                    BorderThickness="1"
+                                                    FontWeight="Bold"
+                                                    Foreground="#DC3545"
+                                                    Cursor="Hand"
+                                                    Margin="0,0,5,0"/>
 
+                                            <TextBlock Text="{Binding Quantity}"
+                                                       Width="30"
+                                                       TextAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       FontWeight="Bold"
+                                                       FontSize="16"/>
+
+                                            <Button Content="+"
+                                                    Click="BtnIncrease_Click"
+                                                    Tag="{Binding OrderDetailID}"
+                                                    Width="30"
+                                                    Height="30"
+                                                    Background="#F8F9FA"
+                                                    BorderBrush="#DEE2E6"
+                                                    BorderThickness="1"
+                                                    FontWeight="Bold"
+                                                    Foreground="#28A745"
+                                                    Cursor="Hand"
+                                                    Margin="5,0,0,0"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Tiền"
+                                                    Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding TotalAmount, StringFormat={}{0:N0}}"
+                                                       FontWeight="Bold"
+                                                       HorizontalAlignment="Right"/>
+                                            <TextBlock Text="{Binding DiscountDisplay}"
+                                                       FontSize="10"
+                                                       Foreground="Red"
+                                                       HorizontalAlignment="Right"
+                                                       Visibility="{Binding HasDiscount, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="✎"
+                                                Click="BtnEditItem_Click"
+                                                Tag="{Binding OrderDetailID}"
+                                                Width="30"
+                                                Height="30"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Foreground="#AAA"
+                                                ToolTip="Ghi chú / Hủy món / Giảm giá"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <StackPanel Grid.Row="1"
+                                Margin="15">
+                        <Grid Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0"
+                                    Content="🎫 Giảm Bill"
+                                    HorizontalAlignment="Left"
+                                    Background="Transparent"
+                                    Foreground="#007BFF"
+                                    BorderThickness="0"
+                                    Click="BtnDiscountBill_Click"/>
+                            <StackPanel Grid.Column="1"
+                                        HorizontalAlignment="Right">
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Right">
+                                    <TextBlock Text="Tổng: "/>
+                                    <TextBlock x:Name="lblSubTotal"
+                                               Text="0đ"
+                                               FontWeight="Bold"/>
+                                </StackPanel>
+                                <StackPanel x:Name="pnlDiscount"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            Visibility="Collapsed">
+                                    <TextBlock Text="Giảm: "
+                                               Foreground="Red"/>
+                                    <TextBlock x:Name="lblDiscount"
+                                               Text="-0đ"
+                                               FontWeight="Bold"
+                                               Foreground="Red"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            Margin="0,5,0,0">
+                                    <TextBlock Text="KHÁCH TRẢ: "
+                                               FontSize="18"
+                                               FontWeight="Bold"/>
+                                    <TextBlock x:Name="lblTotal"
+                                               Text="0đ"
+                                               FontSize="20"
+                                               FontWeight="Bold"
+                                               Foreground="#28A745"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+
+                        <Button x:Name="btnSendKitchen"
+                                Content="👨‍🍳 GỬI BẾP (In Đợt Mới)"
+                                Height="50"
+                                Margin="0,0,0,10"
+                                Background="#FD7E14"
+                                Foreground="White"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Click="BtnSendKitchen_Click"/>
+
+                        <Button x:Name="btnCheckout"
+                                Content="THANH TOÁN"
+                                Height="50"
+                                Background="#28A745"
+                                Foreground="White"
+                                FontSize="18"
+                                FontWeight="Bold"
+                                IsEnabled="False"
+                                Click="btnCheckout_Click"/>
+                    </StackPanel>
+
+                    <Border x:Name="bdToast"
+                            Background="#CC28A745"
+                            CornerRadius="20"
+                            VerticalAlignment="Bottom"
+                            HorizontalAlignment="Center"
+                            Margin="0,0,0,130"
+                            Padding="20,10"
+                            Visibility="Collapsed"
+                            IsHitTestVisible="False"
+                            Panel.ZIndex="999">
+                        <TextBlock x:Name="lblToastMessage"
+                                   Text="Đã thêm món"
+                                   Foreground="White"
+                                   FontWeight="Bold"
+                                   FontSize="14"/>
+                    </Border>
                 </Grid>
             </Grid>
         </Border>

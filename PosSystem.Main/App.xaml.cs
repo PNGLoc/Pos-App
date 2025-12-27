@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using PosSystem.Main.Server;
 using System;
+using PosSystem.Main.Database; // Dùng để khởi tạo DB nếu cần
 
 namespace PosSystem.Main
 {
@@ -44,5 +45,18 @@ namespace PosSystem.Main
             }
             base.OnExit(e);
         }
+        private void Application_Startup(object sender, StartupEventArgs e)
+        {
+            // Mẹo: Đảm bảo DB được tạo ngay khi mở app để tránh lỗi thiếu bảng
+            using (var db = new AppDbContext())
+            {
+                db.Database.EnsureCreated();
+            }
+
+            // Mở màn hình đăng nhập
+            LoginWindow login = new LoginWindow();
+            login.Show();
+        }
     }
+
 }

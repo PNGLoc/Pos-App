@@ -1,0 +1,112 @@
+<Window x:Class="PosSystem.Main.DiscountWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Điều chỉnh giá"
+        Height="260"
+        Width="350"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Background="White"
+        BorderBrush="#007BFF"
+        BorderThickness="1">
+
+    <Window.Resources>
+        <!-- Style cho TabItem để trông to và dễ bấm -->
+        <Style TargetType="TabItem">
+            <Setter Property="FontSize"
+                    Value="16"/>
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+            <Setter Property="Padding"
+                    Value="10"/>
+            <Setter Property="Height"
+                    Value="40"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="ĐIỀU CHỈNH GIÁ / GIẢM GIÁ"
+                HorizontalAlignment="Center"
+                FontWeight="Bold"
+                Margin="0,0,0,10"/>
+
+        <!-- Tab chuyển đổi -->
+        <TabControl Grid.Row="1"
+                x:Name="tabMain">
+            <!-- TAB 1: THEO PHẦN TRĂM -->
+            <TabItem Header="Theo %">
+                <StackPanel VerticalAlignment="Center"
+                        Margin="10">
+                    <TextBlock Text="Nhập % giảm:"
+                            Foreground="#666"
+                            Margin="0,0,0,5"/>
+                    <TextBox x:Name="txtPercent"
+                            Height="40"
+                            FontSize="20"
+                            FontWeight="Bold"
+                             HorizontalContentAlignment="Center"
+                            Text="0"
+                             PreviewTextInput="NumberValidationTextBox"
+                            GotFocus="Txt_GotFocus"/>
+                    <TextBlock Text="(Ví dụ: Nhập 10 để giảm 10%)"
+                            FontSize="11"
+                            Foreground="#999"
+                            HorizontalAlignment="Center"
+                            Margin="0,5,0,0"/>
+                </StackPanel>
+            </TabItem>
+
+            <!-- TAB 2: THEO SỐ TIỀN / GIÁ MỚI -->
+            <TabItem Header="Theo Giá Tiền">
+                <StackPanel VerticalAlignment="Center"
+                        Margin="10">
+                    <TextBlock x:Name="lblCashTitle"
+                            Text="Nhập số tiền:"
+                            Foreground="#666"
+                            Margin="0,0,0,5"/>
+                    <TextBox x:Name="txtAmount"
+                            Height="40"
+                            FontSize="20"
+                            FontWeight="Bold"
+                             HorizontalContentAlignment="Center"
+                            Text="0"
+                             PreviewTextInput="NumberValidationTextBox"
+                            GotFocus="Txt_GotFocus"/>
+                    <TextBlock Text="(Nhập thẳng giá bán mới hoặc số tiền giảm)"
+                            FontSize="11"
+                            Foreground="#999"
+                            HorizontalAlignment="Center"
+                            Margin="0,5,0,0"/>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+
+        <!-- Nút bấm -->
+        <StackPanel Grid.Row="2"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                Margin="0,15,0,5">
+            <Button Content="Hủy bỏ"
+                    Width="100"
+                    Height="40"
+                    Margin="0,0,10,0"
+                    Click="BtnCancel_Click"
+                    Background="#EEE"/>
+            <Button Content="XÁC NHẬN"
+                    Width="120"
+                    Height="40"
+                    Background="#007BFF"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    Click="BtnOK_Click"
+                    IsDefault="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

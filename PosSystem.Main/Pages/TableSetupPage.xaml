@@ -1,0 +1,90 @@
+<UserControl x:Class="PosSystem.Main.Pages.TableSetupPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="300"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- List -->
+        <DataGrid x:Name="dgTables"
+                Grid.Column="0"
+                AutoGenerateColumns="False"
+                CanUserAddRows="False"
+                Margin="0,0,10,0"
+                SelectionChanged="dgTables_SelectionChanged">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID"
+                        Binding="{Binding TableID}"
+                        Width="50"/>
+                <DataGridTextColumn Header="Tên bàn"
+                        Binding="{Binding TableName}"
+                        Width="*"/>
+                <DataGridTextColumn Header="Loại"
+                        Binding="{Binding TableType}"
+                        Width="100"/>
+                <DataGridTextColumn Header="Trạng thái"
+                        Binding="{Binding TableStatus}"
+                        Width="100"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Form -->
+        <Border Grid.Column="1"
+                Background="White"
+                Padding="15"
+                CornerRadius="5">
+            <StackPanel>
+                <TextBlock Text="QUẢN LÝ BÀN"
+                        FontWeight="Bold"
+                        FontSize="16"
+                        Margin="0,0,0,20"/>
+
+                <TextBlock Text="Tên bàn (Vd: Bàn 1):"/>
+                <TextBox x:Name="txtName"
+                        Height="35"
+                        Margin="0,5,0,15"/>
+
+                <TextBlock Text="Loại bàn:"/>
+                <ComboBox x:Name="cboType"
+                        Height="35"
+                        Margin="0,5,0,15"
+                        SelectedIndex="0">
+                    <ComboBoxItem Content="DineIn"/>
+                    <ComboBoxItem Content="TakeAway"/>
+                    <ComboBoxItem Content="Delivery"/>
+                </ComboBox>
+
+                <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,20,0,0">
+                    <Button Content="Thêm"
+                            Width="70"
+                            Height="35"
+                            Background="#28A745"
+                            Foreground="White"
+                            Click="BtnAdd_Click"
+                            Margin="0,0,5,0"/>
+                    <Button Content="Sửa"
+                            Width="70"
+                            Height="35"
+                            Background="#007BFF"
+                            Foreground="White"
+                            Click="BtnUpdate_Click"
+                            Margin="0,0,5,0"/>
+                    <Button Content="Xóa"
+                            Width="60"
+                            Height="35"
+                            Background="#DC3545"
+                            Foreground="White"
+                            Click="BtnDelete_Click"/>
+                </StackPanel>
+
+                <Button Content="Làm mới form"
+                        Margin="0,10,0,0"
+                        Click="BtnClear_Click"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

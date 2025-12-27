@@ -13,7 +13,8 @@ namespace PosSystem.Main.Database
         public DbSet<Table> Tables { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
-
+        public DbSet<Printer> Printers { get; set; }
+        public DbSet<PrintTemplate> PrintTemplates { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             string dbPath = Path.Combine(AppContext.BaseDirectory, "pos_data.db");
@@ -22,6 +23,12 @@ namespace PosSystem.Main.Database
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Seed dữ liệu mẫu cho máy in
+            modelBuilder.Entity<Printer>().HasData(
+                new Printer { PrinterID = 1, PrinterName = "Máy Thu Ngân", ConnectionType = "USB", ConnectionString = "XP-80C", IsBillPrinter = true },
+                new Printer { PrinterID = 2, PrinterName = "Máy Bar", ConnectionType = "LAN", ConnectionString = "192.168.1.201", IsBillPrinter = false },
+                new Printer { PrinterID = 3, PrinterName = "Máy Bếp", ConnectionType = "LAN", ConnectionString = "192.168.1.202", IsBillPrinter = false }
+            );
             // Seed Category
             modelBuilder.Entity<Category>().HasData(
                 new Category { CategoryID = 1, CategoryName = "Cà phê", OrderIndex = 1 },
@@ -46,45 +53,17 @@ namespace PosSystem.Main.Database
                 new Table { TableID = 1, TableName = "Bàn 1", TableType = "DineIn" },
                 new Table { TableID = 2, TableName = "Bàn 2", TableType = "DineIn" }
             );
-
-            // Seed dữ liệu mẫu cho Template Hóa Đơn
-            // Đây là cấu hình mặc định (JSON)
-            string defaultBillLayout = @"
-        {
-            ""Header"": {
-                ""ShowLogo"": true,
-                ""ShopNameSize"": 14,
-                ""AddressSize"": 10
-            },
-            ""Body"": {
-                ""ShowNo"": true,
-                ""ShowPrice"": true
-            },
-            ""Footer"": {
-                ""ShowWifi"": true,
-                ""ShowQr"": true,
-                ""EndMessage"": ""Xin cảm ơn và hẹn gặp lại!""
-            }
-        }";
+            // Seed Template Mặc định
+            string defaultJson = "[{\"ElementType\":\"Text\",\"Content\":\"NHÀ HÀNG DEMO\",\"FontSize\":24,\"IsBold\":true,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"Separator\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"OrderDetails\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"Separator\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"Total\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true}]";
 
             modelBuilder.Entity<PrintTemplate>().HasData(
                 new PrintTemplate
                 {
                     TemplateID = 1,
-                    TemplateName = "Mẫu Hóa Đơn Chuẩn (80mm)",
+                    TemplateName = "Mẫu chuẩn",
                     TemplateType = "Bill",
-                    PaperSize = 80,
-                    IsActive = true,
-                    LayoutConfig = defaultBillLayout
-                },
-                new PrintTemplate
-                {
-                    TemplateID = 2,
-                    TemplateName = "Mẫu Bếp (Rút gọn)",
-                    TemplateType = "Kitchen",
-                    PaperSize = 80,
-                    IsActive = true,
-                    LayoutConfig = "{ \"Header\": { \"ShowShopName\": false }, \"Body\": { \"FontSize\": 14 } }"
+                    TemplateContentJson = defaultJson,
+                    IsActive = true
                 }
             );
 

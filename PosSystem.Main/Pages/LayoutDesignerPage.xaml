@@ -1,0 +1,191 @@
+<UserControl x:Class="PosSystem.Main.Pages.LayoutDesignerPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#F0F2F5">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="320"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0"
+                Background="White"
+                CornerRadius="5"
+                Padding="10"
+                Margin="0,0,10,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="CẤU TRÚC HÓA ĐƠN"
+                        FontSize="18"
+                        FontWeight="Bold"
+                        Margin="0,0,0,10"/>
+
+                <ListBox Grid.Row="1"
+                        x:Name="lstElements"
+                        SelectionChanged="LstElements_SelectionChanged"
+                         BorderThickness="1"
+                        BorderBrush="#EEE"
+                        Background="#FAFAFA">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding ElementType}"
+                                        FontWeight="Bold"
+                                        Foreground="#007BFF"/>
+                                <TextBlock Grid.Column="1"
+                                        Text="{Binding Content}"
+                                        TextTrimming="CharacterEllipsis"
+                                        Margin="10,0,0,0"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <Grid Grid.Row="2"
+                        Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="➕ Thêm dòng"
+                                Click="BtnAdd_Click"
+                                Padding="10,5"
+                                Margin="0,0,5,0"
+                                Background="#28A745"
+                                Foreground="White"
+                                BorderThickness="0"/>
+                        <Button Content="❌ Xóa"
+                                Click="BtnDelete_Click"
+                                Padding="10,5"
+                                Background="#DC3545"
+                                Foreground="White"
+                                BorderThickness="0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+                        <Button Content="⬆"
+                                Click="BtnUp_Click"
+                                Width="30"
+                                Margin="0,0,5,0"/>
+                        <Button Content="⬇"
+                                Click="BtnDown_Click"
+                                Width="30"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Column="1"
+                Background="White"
+                CornerRadius="5"
+                Padding="10">
+            <StackPanel x:Name="pnlProperties"
+                    IsEnabled="False">
+                <TextBlock Text="THUỘC TÍNH"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Margin="0,0,0,15"/>
+
+                <TextBlock Text="Loại phần tử:"/>
+                <ComboBox x:Name="cboType"
+                        SelectionChanged="CboType_SelectionChanged"
+                        Margin="0,5,0,10"
+                        Padding="5">
+                    <ComboBoxItem Content="Text (Văn bản)"/>
+                    <ComboBoxItem Content="Logo (Ảnh)"/>
+                    <ComboBoxItem Content="Separator (Gạch ngang)"/>
+                    <ComboBoxItem Content="OrderInfo (Thông tin bàn)"/>
+                    <ComboBoxItem Content="OrderDetails (List món)"/>
+                    <ComboBoxItem Content="Total (Tổng tiền)"/>
+                    <ComboBoxItem Content="QRCode"/>
+                </ComboBox>
+
+                <TextBlock Text="Nội dung:"/>
+                <TextBox x:Name="txtContent"
+                        Height="60"
+                        TextWrapping="Wrap"
+                        Margin="0,5,0,10"
+                        Padding="5"
+                        TextChanged="TxtContent_TextChanged"/>
+
+                <StackPanel x:Name="pnlTextProp">
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,5,0">
+                            <TextBlock Text="Căn lề:"/>
+                            <ComboBox x:Name="cboAlign"
+                                    Margin="0,5,0,0"
+                                    Padding="5"
+                                    SelectionChanged="Prop_Changed">
+                                <ComboBoxItem Content="Left"/>
+                                <ComboBoxItem Content="Center"/>
+                                <ComboBoxItem Content="Right"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1"
+                                Margin="5,0,0,0">
+                            <TextBlock Text="Cỡ chữ:"/>
+                            <TextBox x:Name="txtFontSize"
+                                    Margin="0,5,0,0"
+                                    Padding="5"
+                                    TextChanged="Prop_Changed"/>
+                        </StackPanel>
+                    </Grid>
+                    <CheckBox x:Name="chkBold"
+                            Content="In đậm (Bold)"
+                            Margin="0,0,0,10"
+                            Checked="Prop_Changed"
+                            Unchecked="Prop_Changed"/>
+                </StackPanel>
+
+                <StackPanel x:Name="pnlImageProp"
+                        Visibility="Collapsed"
+                        Margin="0,0,0,10">
+                    <Button Content="📂 Chọn ảnh..."
+                            Click="BtnUploadImage_Click"
+                            Padding="5"
+                            Margin="0,0,0,5"/>
+                    <TextBlock x:Name="lblImgPath"
+                            Text="..."
+                            Foreground="Gray"
+                            FontStyle="Italic"
+                            TextWrapping="Wrap"
+                            Margin="0,0,0,5"/>
+                    <Image x:Name="imgPreview"
+                            Height="100"
+                            Stretch="Uniform"
+                            Margin="0,5"/>
+                </StackPanel>
+
+                <CheckBox x:Name="chkVisible"
+                        Content="Hiển thị"
+                        IsChecked="True"
+                        Margin="0,10,0,20"
+                        Checked="Prop_Changed"
+                        Unchecked="Prop_Changed"/>
+
+                <Button Content="💾 LƯU CẤU HÌNH"
+                        Click="BtnSave_Click"
+                        Height="40"
+                        Background="#007BFF"
+                        Foreground="White"
+                        FontWeight="Bold"
+                        BorderThickness="0"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
