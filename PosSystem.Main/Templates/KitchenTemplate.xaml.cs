@@ -1,17 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using PosSystem.Main.Database;
 using PosSystem.Main.Models;
+using PosSystem.Main.Helpers;
 
 namespace PosSystem.Main.Templates
 {
+    // SỬA TÊN CLASS Ở ĐÂY: Phải là KitchenTemplate, không phải BillTemplate
     public partial class KitchenTemplate : UserControl
     {
         public KitchenTemplate()
@@ -19,330 +17,123 @@ namespace PosSystem.Main.Templates
             InitializeComponent();
         }
 
-        /// <summary>
-        /// Render phiếu bếp từ order data và template layout
-        /// </summary>
-        public void SetData(Order order, int batchNumber = 0)
+        // Hàm SetData nhận cấu hình layout từ DB
+        public void SetData(Order order, int batchNumber, List<PrintElement> layoutElements)
         {
-            if (order == null)
-            {
-                return;
-            }
-
             RootPanel.Children.Clear();
 
-            using var db = new AppDbContext();
-
-            // Lấy template kitchen đang active
-            var template = db.PrintTemplates
-                .FirstOrDefault(t => t.TemplateType == "Kitchen" && t.IsActive);
-
-            if (template == null || string.IsNullOrEmpty(template.TemplateContentJson))
+            // Nếu chưa có cấu hình layout, chạy mặc định
+            if (layoutElements == null || layoutElements.Count == 0)
             {
+                RenderDefault(order, batchNumber);
                 return;
             }
 
-            // Deserialize layout từ JSON
-            List<PrintElement>? layout;
-            try
+            // VẼ THEO CẤU HÌNH (Dynamic Layout)
+            foreach (var el in layoutElements)
             {
-                layout = JsonSerializer.Deserialize<List<PrintElement>>(template.TemplateContentJson);
-            }
-            catch
-            {
-                return;
-            }
+                if (!el.IsVisible) continue;
 
-            if (layout == null || layout.Count == 0)
-            {
-                return;
-            }
-
-            // Render từng element trong layout
-            foreach (var element in layout)
-            {
-                if (!element.IsVisible)
+                switch (el.ElementType)
                 {
-                    continue;
+                    case "Text":
+                    case "KitchenOrderInfo":
+                    case "TableNumberBig":
+                    case "BatchNumber":
+                        string final = PrintContentHelper.ReplacePlaceholders(el.Content, order, batchNumber);
+                        AddTextBlock(final, el);
+                        break;
                 }
-
-                RenderElement(element, order, batchNumber);
             }
         }
 
-        /// <summary>
-        /// Render một element dựa trên type
-        /// </summary>
-        private void RenderElement(PrintElement element, Order order, int batchNumber)
+        private void AddTextBlock(string text, PrintElement style)
         {
-            switch (element.ElementType)
+            var tb = new TextBlock
             {
-                case "Text":
-                    RenderText(element);
-                    break;
-                case "Logo":
-                    RenderImage(element, 200);
-                    break;
-                case "QRCode":
-                    RenderImage(element, 250);
-                    break;
-                case "Separator":
-                    RenderSeparator();
-                    break;
-                case "KitchenOrderInfo":
-                    RenderKitchenOrderInfo(order, batchNumber);
-                    break;
-                case "KitchenOrderDetails":
-                    RenderKitchenOrderDetails(order, batchNumber);
-                    break;
-                case "BatchNumber":
-                    RenderBatchNumber(batchNumber);
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Render text element
-        /// </summary>
-        private void RenderText(PrintElement element)
-        {
-            var textBlock = new TextBlock
-            {
-                Text = element.Content ?? string.Empty,
-                FontSize = element.FontSize,
-                FontWeight = element.IsBold ? FontWeights.Bold : FontWeights.Normal,
+                Text = text,
+                FontSize = style.FontSize > 0 ? style.FontSize : 14,
+                FontWeight = style.IsBold ? FontWeights.Bold : FontWeights.Normal,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 2, 0, 2)
             };
 
-            SetAlignment(textBlock, element.Align);
-            RootPanel.Children.Add(textBlock);
+            if (style.Align == "Center") tb.TextAlignment = TextAlignment.Center;
+            else if (style.Align == "Right") tb.TextAlignment = TextAlignment.Right;
+            else tb.TextAlignment = TextAlignment.Left;
+
+            RootPanel.Children.Add(tb);
         }
 
-        /// <summary>
-        /// Render image element (Logo hoặc QR Code)
-        /// </summary>
-        private void RenderImage(PrintElement element, double width)
+        private void AddSeparator()
         {
-            if (string.IsNullOrEmpty(element.Content))
+            var line = new System.Windows.Shapes.Rectangle
             {
-                return;
-            }
-
-            string fullPath = Path.Combine(AppContext.BaseDirectory, "Images", element.Content);
-            if (!File.Exists(fullPath))
-            {
-                return;
-            }
-
-            try
-            {
-                var image = new Image
-                {
-                    Width = width,
-                    Margin = new Thickness(0, 5, 0, 5)
-                };
-
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.UriSource = new Uri(fullPath);
-                bitmap.EndInit();
-                image.Source = bitmap;
-
-                SetAlignment(image, element.Align);
-                RootPanel.Children.Add(image);
-            }
-            catch
-            {
-                // Ignore image load errors
-            }
-        }
-
-        /// <summary>
-        /// Render separator line
-        /// </summary>
-        private void RenderSeparator()
-        {
-            var border = new Border
-            {
-                BorderBrush = Brushes.Black,
-                BorderThickness = new Thickness(0, 1, 0, 0),
-                Margin = new Thickness(0, 10, 0, 10),
                 Height = 1,
+                Stroke = Brushes.Black,
+                StrokeThickness = 1,
+                StrokeDashArray = new DoubleCollection { 4, 2 },
+                Margin = new Thickness(0, 5, 0, 5),
                 SnapsToDevicePixels = true
             };
-            RootPanel.Children.Add(border);
+            RootPanel.Children.Add(line);
         }
 
-        /// <summary>
-        /// Render thông tin đơn hàng bếp (bàn, số phiếu, giờ, đợt)
-        /// </summary>
-        private void RenderKitchenOrderInfo(Order order, int batchNumber)
+        private void RenderKitchenDetails(Order order, int fontSize)
         {
-            var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            string leftText = "Bàn:\nSố phiếu:\nGiờ:";
-            if (batchNumber > 0)
+            var items = order.OrderDetails.ToList();
+            foreach (var d in items)
             {
-                leftText += "\nĐợt:";
-            }
+                // Logic HỦY / THÊM
+                string txt = d.Quantity < 0 ? $"[HỦY] {Math.Abs(d.Quantity)} x {d.Dish?.DishName}" : $"{d.Quantity} x {d.Dish?.DishName}";
+                var brush = d.Quantity < 0 ? Brushes.Red : Brushes.Black;
 
-            string rightText = $"{order.Table?.TableName ?? "Mang về"}\n" +
-                              $"#{order.OrderID}\n" +
-                              $"{DateTime.Now:HH:mm}";
-            if (batchNumber > 0)
-            {
-                rightText += $"\n{batchNumber}";
-            }
-
-            var labelBlock = new TextBlock
-            {
-                Text = leftText,
-                FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 10, 0),
-                FontSize = 18
-            };
-
-            var valueBlock = new TextBlock
-            {
-                Text = rightText,
-                FontSize = 18
-            };
-
-            Grid.SetColumn(labelBlock, 0);
-            Grid.SetColumn(valueBlock, 1);
-
-            grid.Children.Add(labelBlock);
-            grid.Children.Add(valueBlock);
-            RootPanel.Children.Add(grid);
-        }
-
-        /// <summary>
-        /// Render chi tiết các món trong đơn (chỉ món của đợt này)
-        /// </summary>
-        private void RenderKitchenOrderDetails(Order order, int batchNumber)
-        {
-            // Lấy danh sách món cần in (Đã được xử lý ở PrintService)
-            var itemsToPrint = order.OrderDetails.ToList();
-
-            if (itemsToPrint == null || itemsToPrint.Count == 0) return;
-
-            foreach (var detail in itemsToPrint)
-            {
-                var stackPanel = new StackPanel { Margin = new Thickness(0, 5, 0, 10) }; // Tăng Margin dưới chút cho thoáng
-
-                // 1. XỬ LÝ TÊN MÓN & SỐ LƯỢNG
-                string quantityText = "";
-                string dishNameText = detail.Dish?.DishName ?? "Unknown";
-                Brush textColor = Brushes.Black;
-
-                if (detail.Quantity < 0)
+                var tb = new TextBlock
                 {
-                    // Trường hợp HỦY MÓN
-                    quantityText = $"[HỦY] {Math.Abs(detail.Quantity)}";
-                    textColor = Brushes.Red;
-                }
-                else
-                {
-                    // Trường hợp THÊM MÓN
-                    quantityText = $"{detail.Quantity}";
-                    textColor = Brushes.Black;
-                }
-
-                var dishBlock = new TextBlock
-                {
-                    Text = $"{quantityText} x {dishNameText}",
-                    FontSize = 24,
+                    Text = txt,
+                    FontSize = fontSize,
                     FontWeight = FontWeights.Bold,
                     TextWrapping = TextWrapping.Wrap,
-                    Foreground = textColor
+                    Foreground = brush
                 };
-                stackPanel.Children.Add(dishBlock);
+                RootPanel.Children.Add(tb);
 
-                // 2. XỬ LÝ GHI CHÚ (THÊM PHẦN NÀY)
-                if (!string.IsNullOrEmpty(detail.Note))
+                // Ghi chú
+                if (!string.IsNullOrEmpty(d.Note))
                 {
-                    var noteBlock = new TextBlock
-                    {
-                        Text = $"{detail.Note}", // Thêm icon hoặc dấu ngoặc
-                        FontSize = 18,                 // Font nhỏ hơn tên món
-                        FontStyle = FontStyles.Italic, // In nghiêng
-                        FontWeight = FontWeights.SemiBold,
-                        Margin = new Thickness(0, 2, 0, 0),
-                        Foreground = Brushes.Black     // Màu đen cho dễ đọc
-                    };
-                    stackPanel.Children.Add(noteBlock);
+                    var note = new TextBlock { Text = $"   📝 {d.Note}", FontStyle = FontStyles.Italic, FontSize = fontSize - 6, FontWeight = FontWeights.SemiBold };
+                    RootPanel.Children.Add(note);
                 }
 
-                RootPanel.Children.Add(stackPanel);
-
-                // Thêm đường kẻ mờ ngăn cách giữa các món (tùy chọn)
-                var separator = new System.Windows.Shapes.Rectangle
+                // Kẻ ngăn cách mờ giữa các món
+                var sep = new System.Windows.Shapes.Rectangle
                 {
                     Height = 1,
                     Stroke = Brushes.LightGray,
                     StrokeThickness = 1,
-                    StrokeDashArray = new DoubleCollection { 4, 2 }, // 4 điểm tô, 2 điểm hở (tạo nét đứt)
-                    Margin = new Thickness(0, 0, 0, 5),
-                    SnapsToDevicePixels = true,
-                    HorizontalAlignment = HorizontalAlignment.Stretch
-                };
-
-                RootPanel.Children.Add(separator);
-            }
-        }
-        /// <summary>
-        /// Render số đợt
-        /// </summary>
-        private void RenderBatchNumber(int batchNumber)
-        {
-            if (batchNumber > 0)
-            {
-                var batchBlock = new TextBlock
-                {
-                    Text = $"ĐỢT {batchNumber}",
-                    FontSize = 20,
-                    FontWeight = FontWeights.Bold,
-                    HorizontalAlignment = HorizontalAlignment.Center,
+                    StrokeDashArray = new DoubleCollection { 2, 2 },
                     Margin = new Thickness(0, 5, 0, 5)
                 };
-                RootPanel.Children.Add(batchBlock);
+                RootPanel.Children.Add(sep);
             }
         }
-
-        /// <summary>
-        /// Set alignment cho FrameworkElement
-        /// </summary>
-        private void SetAlignment(FrameworkElement element, string align)
+        private string ReplacePlaceholders(string content, Order order, int batchNumber)
         {
-            switch (align)
-            {
-                case "Center":
-                    element.HorizontalAlignment = HorizontalAlignment.Center;
-                    if (element is TextBlock textBlock)
-                    {
-                        textBlock.TextAlignment = TextAlignment.Center;
-                    }
-                    break;
-                case "Right":
-                    element.HorizontalAlignment = HorizontalAlignment.Right;
-                    if (element is TextBlock textBlockRight)
-                    {
-                        textBlockRight.TextAlignment = TextAlignment.Right;
-                    }
-                    break;
-                default:
-                    element.HorizontalAlignment = HorizontalAlignment.Left;
-                    if (element is TextBlock textBlockLeft)
-                    {
-                        textBlockLeft.TextAlignment = TextAlignment.Left;
-                    }
-                    break;
-            }
+            if (string.IsNullOrEmpty(content)) return "";
+            string res = content;
+            res = res.Replace("{Table}", order.Table?.TableName ?? "Mang về");
+            res = res.Replace("{Date}", DateTime.Now.ToString("dd/MM/yyyy"));
+            res = res.Replace("{Time}", DateTime.Now.ToString("HH:mm"));
+            res = res.Replace("{Batch}", batchNumber.ToString()); // Bếp có thêm biến đợt
+            return res;
+        }
+        private void RenderDefault(Order order, int batchNumber)
+        {
+            AddTextBlock($"ĐỢT: {batchNumber}", new PrintElement { IsBold = true, FontSize = 20, Align = "Center" });
+            AddSeparator();
+            AddTextBlock($"Bàn: {order.Table?.TableName}", new PrintElement { IsBold = true, FontSize = 24 });
+            AddSeparator();
+            RenderKitchenDetails(order, 24);
         }
     }
 }
-

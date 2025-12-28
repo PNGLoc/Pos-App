@@ -1,14 +1,12 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using PosSystem.Main.Database;
 using PosSystem.Main.Models;
+using System.Text.RegularExpressions;
+using PosSystem.Main.Helpers;
 
 namespace PosSystem.Main.Templates
 {
@@ -19,340 +17,181 @@ namespace PosSystem.Main.Templates
             InitializeComponent();
         }
 
-        /// <summary>
-        /// Render hóa đơn từ order data và template layout
-        /// </summary>
-        public void SetData(Order order)
+        public void SetData(Order order, List<PrintElement> layoutElements)
         {
-            if (order == null)
+            RootPanel.Children.Clear(); // Xóa sạch giao diện cũ
+
+            // Nếu không có layout, dùng mặc định
+            if (layoutElements == null || layoutElements.Count == 0)
             {
+                RenderDefault(order);
                 return;
             }
 
-            RootPanel.Children.Clear();
+            // VẼ THEO LAYOUT CẤU HÌNH
+            foreach (var el in layoutElements)
+            {
+                if (!el.IsVisible) continue;
 
-            using var db = new AppDbContext();
-            
-            // Lấy template bill đang active
-            var template = db.PrintTemplates
-                .FirstOrDefault(t => t.TemplateType == "Bill" && t.IsActive);
-            
-            if (template == null || string.IsNullOrEmpty(template.TemplateContentJson))
-            {
-                return;
-            }
-
-            // Deserialize layout từ JSON
-            List<PrintElement>? layout;
-            try
-            {
-                layout = JsonSerializer.Deserialize<List<PrintElement>>(template.TemplateContentJson);
-            }
-            catch
-            {
-                return;
-            }
-
-            if (layout == null || layout.Count == 0)
-            {
-                return;
-            }
-
-            // Render từng element trong layout
-            foreach (var element in layout)
-            {
-                if (!element.IsVisible)
+                switch (el.ElementType)
                 {
-                    continue;
+                    case "Text":
+                    case "OrderInfo":      // Gộp chung xử lý như Text
+                    case "TableNumberBig": // Gộp chung
+                                           // Dùng Helper để thay thế biến số
+                        string finalContent = PrintContentHelper.ReplacePlaceholders(el.Content, order);
+                        AddTextBlock(finalContent, el);
+                        break;
+
+                    case "Separator": AddSeparator(); break;
+                    case "Logo": AddImage(el.Content, el.Align); break;
+
+                    case "OrderDetails": RenderOrderDetails(order, el.FontSize); break;
+                    case "Total": RenderTotal(order, el); break;
                 }
-
-                RenderElement(element, order);
             }
         }
-
-        /// <summary>
-        /// Render một element dựa trên type
-        /// </summary>
-        private void RenderElement(PrintElement element, Order order)
+        // --- HÀM MỚI: THAY THẾ BIẾN SỐ ---
+        private string ReplacePlaceholders(string content, Order order)
         {
-            switch (element.ElementType)
-            {
-                case "Text":
-                    RenderText(element);
-                    break;
-                case "Logo":
-                    RenderImage(element, 200);
-                    break;
-                case "QRCode":
-                    RenderImage(element, 250);
-                    break;
-                case "Separator":
-                    RenderSeparator();
-                    break;
-                case "OrderInfo":
-                    RenderOrderInfo(order);
-                    break;
-                case "OrderDetails":
-                    RenderOrderDetails(order);
-                    break;
-                case "Total":
-                    RenderTotal(order);
-                    break;
-            }
+            if (string.IsNullOrEmpty(content)) return "";
+
+            string res = content;
+            res = res.Replace("{Table}", order.Table?.TableName ?? "Mang về");
+            res = res.Replace("{Date}", order.OrderTime.ToString("dd/MM/yyyy"));
+            res = res.Replace("{Time}", order.OrderTime.ToString("HH:mm"));
+            res = res.Replace("{Staff}", "Admin"); // Hoặc lấy từ order.Account.FullName
+            res = res.Replace("{OrderId}", order.OrderID.ToString());
+
+            return res;
         }
 
-        /// <summary>
-        /// Render text element
-        /// </summary>
-        private void RenderText(PrintElement element)
+        private void AddTextBlock(string text, PrintElement style)
         {
-            var textBlock = new TextBlock
+            var tb = new TextBlock
             {
-                Text = element.Content ?? string.Empty,
-                FontSize = element.FontSize,
-                FontWeight = element.IsBold ? FontWeights.Bold : FontWeights.Normal,
+                Text = text,
+                FontSize = style.FontSize > 0 ? style.FontSize : 14,
+                FontWeight = style.IsBold ? FontWeights.Bold : FontWeights.Normal,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 2, 0, 2)
             };
 
-            SetAlignment(textBlock, element.Align);
-            RootPanel.Children.Add(textBlock);
+            // Xử lý căn lề
+            if (style.Align == "Center") tb.TextAlignment = TextAlignment.Center;
+            else if (style.Align == "Right") tb.TextAlignment = TextAlignment.Right;
+            else tb.TextAlignment = TextAlignment.Left;
+
+            RootPanel.Children.Add(tb);
         }
 
-        /// <summary>
-        /// Render image element (Logo hoặc QR Code)
-        /// </summary>
-        private void RenderImage(PrintElement element, double width)
+        private void AddSeparator()
         {
-            if (string.IsNullOrEmpty(element.Content))
+            var line = new System.Windows.Shapes.Rectangle
             {
-                return;
-            }
-
-            string fullPath = Path.Combine(AppContext.BaseDirectory, "Images", element.Content);
-            if (!File.Exists(fullPath))
-            {
-                return;
-            }
-
-            try
-            {
-                var image = new Image
-                {
-                    Width = width,
-                    Margin = new Thickness(0, 5, 0, 5)
-                };
-
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.UriSource = new Uri(fullPath);
-                bitmap.EndInit();
-                image.Source = bitmap;
-
-                SetAlignment(image, element.Align);
-                RootPanel.Children.Add(image);
-            }
-            catch
-            {
-                // Ignore image load errors
-            }
-        }
-
-        /// <summary>
-        /// Render separator line
-        /// </summary>
-        private void RenderSeparator()
-        {
-            var border = new Border
-            {
-                BorderBrush = Brushes.Black,
-                BorderThickness = new Thickness(0, 1, 0, 0),
-                Margin = new Thickness(0, 10, 0, 10),
                 Height = 1,
+                Stroke = Brushes.Black,
+                StrokeThickness = 1,
+                StrokeDashArray = new DoubleCollection { 4, 2 },
+                Margin = new Thickness(0, 5, 0, 5),
                 SnapsToDevicePixels = true
             };
-            RootPanel.Children.Add(border);
+            RootPanel.Children.Add(line);
         }
 
-        /// <summary>
-        /// Render thông tin đơn hàng (số phiếu, ngày, thu ngân)
-        /// </summary>
-        private void RenderOrderInfo(Order order)
+        private void AddImage(string fileName, string align)
         {
-            var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            string leftText = "Số phiếu:\nNgày:\nThu ngân:";
-            string rightText = $"#{order.OrderID}\n" +
-                              $"{(order.CheckoutTime ?? order.OrderTime):dd/MM/yyyy HH:mm}\n" +
-                              $"{order.Account?.AccName ?? "N/A"}";
-
-            var labelBlock = new TextBlock
+            // Logic load ảnh (giữ nguyên logic cũ hoặc copy từ LayoutDesigner)
+            try
             {
-                Text = leftText,
-                FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 10, 0)
-            };
+                string path = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Images", fileName);
+                if (File.Exists(path))
+                {
+                    var img = new Image { Source = new BitmapImage(new Uri(path)), Height = 100, Stretch = Stretch.Uniform };
+                    // Căn lề ảnh
+                    if (align == "Center") img.HorizontalAlignment = HorizontalAlignment.Center;
+                    else if (align == "Right") img.HorizontalAlignment = HorizontalAlignment.Right;
+                    else img.HorizontalAlignment = HorizontalAlignment.Left;
 
-            var valueBlock = new TextBlock { Text = rightText };
-
-            Grid.SetColumn(labelBlock, 0);
-            Grid.SetColumn(valueBlock, 1);
-            
-            grid.Children.Add(labelBlock);
-            grid.Children.Add(valueBlock);
-            RootPanel.Children.Add(grid);
-        }
-
-        /// <summary>
-        /// Render chi tiết các món trong đơn
-        /// </summary>
-        private void RenderOrderDetails(Order order)
-        {
-            if (order.OrderDetails == null || order.OrderDetails.Count == 0)
-            {
-                return;
+                    RootPanel.Children.Add(img);
+                }
             }
+            catch { }
+        }
 
-            // Header
-            var header = CreateDetailsHeader();
-            RootPanel.Children.Add(header);
+        private void RenderOrderDetails(Order order, int fontSize)
+        {
+            // Header bảng món
+            var headerGrid = new Grid();
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Tên
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // SL
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Tiền
 
-            // Items
-            foreach (var detail in order.OrderDetails)
+            var lblName = new TextBlock { Text = "Món", FontWeight = FontWeights.Bold, FontSize = fontSize };
+            var lblQty = new TextBlock { Text = "SL", FontWeight = FontWeights.Bold, Margin = new Thickness(10, 0, 10, 0), FontSize = fontSize };
+            var lblTotal = new TextBlock { Text = "Tiền", FontWeight = FontWeights.Bold, FontSize = fontSize };
+
+            Grid.SetColumn(lblName, 0);
+            Grid.SetColumn(lblQty, 1);
+            Grid.SetColumn(lblTotal, 2);
+
+            headerGrid.Children.Add(lblName);
+            headerGrid.Children.Add(lblQty);
+            headerGrid.Children.Add(lblTotal);
+            RootPanel.Children.Add(headerGrid);
+            AddSeparator();
+
+            // List món
+            foreach (var d in order.OrderDetails)
             {
-                var row = CreateDetailRow(detail);
+                var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                var txtName = new TextBlock { Text = d.Dish?.DishName, TextWrapping = TextWrapping.Wrap, FontSize = fontSize };
+                var txtQty = new TextBlock { Text = d.Quantity.ToString(), HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(10, 0, 10, 0), FontSize = fontSize };
+                var txtPrice = new TextBlock { Text = d.TotalAmount.ToString("N0"), HorizontalAlignment = HorizontalAlignment.Right, FontSize = fontSize };
+
+                Grid.SetColumn(txtName, 0);
+                Grid.SetColumn(txtQty, 1);
+                Grid.SetColumn(txtPrice, 2);
+
+                row.Children.Add(txtName);
+                row.Children.Add(txtQty);
+                row.Children.Add(txtPrice);
                 RootPanel.Children.Add(row);
+
+                // Ghi chú (nếu có)
+                if (!string.IsNullOrEmpty(d.Note))
+                {
+                    var txtNote = new TextBlock { Text = $"  ({d.Note})", FontStyle = FontStyles.Italic, FontSize = fontSize - 2, Foreground = Brushes.Black };
+                    RootPanel.Children.Add(txtNote);
+                }
             }
+            AddSeparator();
         }
 
-        /// <summary>
-        /// Tạo header cho bảng chi tiết
-        /// </summary>
-        private Grid CreateDetailsHeader()
+        private void RenderTotal(Order order, PrintElement style)
         {
-            var grid = new Grid { Margin = new Thickness(0, 5, 0, 5) };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+            var dock = new DockPanel();
+            var lbl = new TextBlock { Text = "TỔNG CỘNG:", FontWeight = FontWeights.Bold, FontSize = style.FontSize };
+            var val = new TextBlock { Text = order.FinalAmount.ToString("N0"), FontWeight = FontWeights.Bold, FontSize = style.FontSize + 4, HorizontalAlignment = HorizontalAlignment.Right }; // Tiền to hơn xíu
 
-            var dishHeader = new TextBlock
-            {
-                Text = "Món",
-                FontWeight = FontWeights.Bold,
-                FontSize = 18
-            };
-            grid.Children.Add(dishHeader);
-
-            var qtyHeader = new TextBlock
-            {
-                Text = "SL",
-                FontWeight = FontWeights.Bold,
-                TextAlignment = TextAlignment.Center,
-                FontSize = 18
-            };
-            Grid.SetColumn(qtyHeader, 1);
-            grid.Children.Add(qtyHeader);
-
-            var totalHeader = new TextBlock
-            {
-                Text = "T.Tiền",
-                FontWeight = FontWeights.Bold,
-                TextAlignment = TextAlignment.Right,
-                FontSize = 18
-            };
-            Grid.SetColumn(totalHeader, 2);
-            grid.Children.Add(totalHeader);
-
-            return grid;
+            DockPanel.SetDock(lbl, Dock.Left);
+            dock.Children.Add(lbl);
+            dock.Children.Add(val);
+            RootPanel.Children.Add(dock);
         }
 
-        /// <summary>
-        /// Tạo một dòng chi tiết món
-        /// </summary>
-        private Grid CreateDetailRow(OrderDetail detail)
+        private void RenderDefault(Order order)
         {
-            var grid = new Grid { Margin = new Thickness(0, 2, 0, 2) };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
-
-            var dishName = new TextBlock
-            {
-                Text = detail.Dish?.DishName ?? "N/A",
-                TextWrapping = TextWrapping.Wrap,
-                FontSize = 18
-            };
-            grid.Children.Add(dishName);
-
-            var quantity = new TextBlock
-            {
-                Text = detail.Quantity.ToString(),
-                TextAlignment = TextAlignment.Center,
-                FontSize = 18
-            };
-            Grid.SetColumn(quantity, 1);
-            grid.Children.Add(quantity);
-
-            var totalAmount = new TextBlock
-            {
-                Text = detail.TotalAmount.ToString("N0"),
-                TextAlignment = TextAlignment.Right,
-                FontSize = 18
-            };
-            Grid.SetColumn(totalAmount, 2);
-            grid.Children.Add(totalAmount);
-
-            return grid;
-        }
-
-        /// <summary>
-        /// Render tổng tiền thanh toán
-        /// </summary>
-        private void RenderTotal(Order order)
-        {
-            var totalBlock = new TextBlock
-            {
-                Text = $"THANH TOÁN: {order.FinalAmount:N0}",
-                FontSize = 24,
-                FontWeight = FontWeights.Bold,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(0, 10, 0, 0)
-            };
-            RootPanel.Children.Add(totalBlock);
-        }
-
-        /// <summary>
-        /// Set alignment cho FrameworkElement
-        /// </summary>
-        private void SetAlignment(FrameworkElement element, string align)
-        {
-            switch (align)
-            {
-                case "Center":
-                    element.HorizontalAlignment = HorizontalAlignment.Center;
-                    if (element is TextBlock textBlock)
-                    {
-                        textBlock.TextAlignment = TextAlignment.Center;
-                    }
-                    break;
-                case "Right":
-                    element.HorizontalAlignment = HorizontalAlignment.Right;
-                    if (element is TextBlock textBlockRight)
-                    {
-                        textBlockRight.TextAlignment = TextAlignment.Right;
-                    }
-                    break;
-                default:
-                    element.HorizontalAlignment = HorizontalAlignment.Left;
-                    if (element is TextBlock textBlockLeft)
-                    {
-                        textBlockLeft.TextAlignment = TextAlignment.Left;
-                    }
-                    break;
-            }
+            // (Code hardcode cũ để fallback)
+            AddTextBlock("HÓA ĐƠN", new PrintElement { Align = "Center", IsBold = true, FontSize = 20 });
+            AddSeparator();
+            RenderOrderDetails(order, 14);
+            AddSeparator();
+            RenderTotal(order, new PrintElement { FontSize = 16 });
         }
     }
 }

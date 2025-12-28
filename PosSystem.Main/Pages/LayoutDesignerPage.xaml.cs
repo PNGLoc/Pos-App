@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Windows;
@@ -9,9 +8,105 @@ using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
+using System.IO;
+using System.Windows.Media;
 
 namespace PosSystem.Main.Pages
 {
+    // Class hỗ trợ hiển thị Preview (Thông minh hơn)
+    public class PrintElementViewModel : PrintElement
+    {
+        // 1. Logic ẩn hiện
+        // Text, OrderDetails, Total... đều được coi là Text để hiển thị nội dung mẫu
+        public Visibility IsTextVisible => (ElementType != "Separator" && ElementType != "Logo" && ElementType != "QRCode") ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility IsSeparatorVisible => ElementType == "Separator" ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility IsImageVisible => (ElementType == "Logo" || ElementType == "QRCode") ? Visibility.Visible : Visibility.Collapsed;
+
+        // 2. Logic Font chữ & Căn lề
+        public FontWeight FontWeightDisplay => IsBold ? FontWeights.Bold : FontWeights.Normal;
+
+        public TextAlignment TextAlignmentDisplay
+        {
+            get
+            {
+                if (Align == "Center") return TextAlignment.Center;
+                if (Align == "Right") return TextAlignment.Right;
+                return TextAlignment.Left;
+            }
+        }
+
+        public HorizontalAlignment HorizontalAlignDisplay
+        {
+            get
+            {
+                if (Align == "Center") return HorizontalAlignment.Center;
+                if (Align == "Right") return HorizontalAlignment.Right;
+                return HorizontalAlignment.Left;
+            }
+        }
+
+        // 3. TẠO DỮ LIỆU MẪU (PREVIEW DATA)
+        public string DisplayPreview
+        {
+            get
+            {
+                // Nếu là Text thường -> Thay thế biến số thành dữ liệu giả
+                if (ElementType == "Text")
+                {
+                    string s = Content ?? "";
+                    s = s.Replace("{Table}", "10")
+                         .Replace("{Staff}", "Liễu")
+                         .Replace("{CheckInTime}", "09:30")
+                         .Replace("{PrintTime}", DateTime.Now.ToString("HH:mm"))
+                         .Replace("{PrintDate}", DateTime.Now.ToString("dd/MM/yyyy"))
+                         .Replace("{Duration}", "45p")
+                         .Replace("{Batch}", "1")
+                         .Replace("{TableType}", "Tại quán")
+                         .Replace("{OrderId}", "10023");
+                    return s;
+                }
+
+                // Nếu là các khối dữ liệu đặc biệt -> Sinh text mẫu nhìn cho giống thật
+                if (ElementType == "OrderDetails" || ElementType == "KitchenOrderDetails")
+                {
+                    return "Cà phê sữa đá        2      50,000\n   (Ít ngọt)\nSinh tố bơ           1      40,000\n----------------------------------";
+                }
+
+                if (ElementType == "Total")
+                {
+                    return "Tạm tính:               90,000\nGiảm giá:                    0\nTỔNG CỘNG:              90,000";
+                }
+
+                if (ElementType == "BatchNumber") return "ĐỢT: 1";
+
+                return Content; // Mặc định (Logo, Separator...)
+            }
+        }
+
+        public PrintElementViewModel(PrintElement origin)
+        {
+            this.ElementType = origin.ElementType;
+            this.Content = origin.Content;
+            this.FontSize = origin.FontSize;
+            this.IsBold = origin.IsBold;
+            this.Align = origin.Align;
+            this.IsVisible = origin.IsVisible;
+        }
+
+        public PrintElement ToModel()
+        {
+            return new PrintElement
+            {
+                ElementType = this.ElementType,
+                Content = this.Content,
+                FontSize = this.FontSize,
+                IsBold = this.IsBold,
+                Align = this.Align,
+                IsVisible = this.IsVisible
+            };
+        }
+    }
+
     public partial class LayoutDesignerPage : UserControl
     {
         public static readonly DependencyProperty TemplateTypeProperty =
@@ -24,8 +119,8 @@ namespace PosSystem.Main.Pages
             set => SetValue(TemplateTypeProperty, value);
         }
 
-        private List<PrintElement> _elements = new List<PrintElement>();
-        private PrintElement? _selectedElement;
+        private List<PrintElementViewModel> _elements = new List<PrintElementViewModel>();
+        private PrintElementViewModel? _selectedElement;
         private bool _isInternalUpdate = false;
 
         public LayoutDesignerPage()
@@ -34,102 +129,57 @@ namespace PosSystem.Main.Pages
             this.Loaded += LayoutDesignerPage_Loaded;
         }
 
-        private void LayoutDesignerPage_Loaded(object sender, RoutedEventArgs e)
-        {
-            LoadLayout();
-        }
+        private void LayoutDesignerPage_Loaded(object sender, RoutedEventArgs e) => LoadLayout();
 
         private static void OnTemplateTypeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is LayoutDesignerPage page && page.IsLoaded)
-            {
-                page.LoadLayout();
-            }
+            if (d is LayoutDesignerPage page && page.IsLoaded) page.LoadLayout();
         }
 
         private void LoadLayout()
         {
             string templateType = TemplateType ?? "Bill";
-            
+            List<PrintElement> rawElements;
+
             using (var db = new AppDbContext())
             {
                 var template = db.PrintTemplates.FirstOrDefault(t => t.TemplateType == templateType && t.IsActive);
-
                 if (template != null && !string.IsNullOrEmpty(template.TemplateContentJson))
                 {
-                    try
-                    {
-                        _elements = JsonSerializer.Deserialize<List<PrintElement>>(template.TemplateContentJson)
-                                    ?? CreateDefaultLayout();
-                    }
-                    catch
-                    {
-                        _elements = CreateDefaultLayout();
-                    }
+                    try { rawElements = JsonSerializer.Deserialize<List<PrintElement>>(template.TemplateContentJson) ?? CreateDefaultLayout(); }
+                    catch { rawElements = CreateDefaultLayout(); }
                 }
                 else
                 {
-                    _elements = CreateDefaultLayout();
+                    rawElements = CreateDefaultLayout();
                 }
-
-                RefreshList(-1);
-                UpdateUITitle();
-                UpdateElementTypeFilter();
             }
+
+            _elements = rawElements.Select(e => new PrintElementViewModel(e)).ToList();
+            if (txtTitle != null) txtTitle.Text = TemplateType == "Kitchen" ? "THIẾT KẾ PHIẾU BẾP" : "THIẾT KẾ HÓA ĐƠN";
+            FilterToolbox();
+            RefreshList(-1);
         }
 
-        private void UpdateUITitle()
+        private void FilterToolbox()
         {
-            string title = TemplateType == "Kitchen" ? "CẤU TRÚC PHIẾU BẾP" : "CẤU TRÚC HÓA ĐƠN";
-            if (txtTitle != null)
+            if (pnlToolbox == null) return;
+            foreach (var child in pnlToolbox.Children)
             {
-                txtTitle.Text = title;
-            }
-        }
-
-        private void UpdateElementTypeFilter()
-        {
-            if (cboType == null) return;
-            
-            // Filter element types based on TemplateType
-            if (TemplateType == "Kitchen")
-            {
-                // For kitchen, hide bill-specific items
-                foreach (ComboBoxItem item in cboType.Items)
+                if (child is Button btn && btn.Tag is string tag)
                 {
-                    string content = item.Content?.ToString() ?? "";
-                    // Hide OrderInfo, OrderDetails, Total for kitchen (show KitchenOrderInfo, KitchenOrderDetails instead)
-                    if (content.Contains("OrderInfo (Thông tin bàn)") && !content.Contains("Kitchen"))
+                    bool isKitchenItem = tag.Contains("Kitchen") || tag.Contains("Batch");
+                    bool isBillItem = tag == "OrderDetails" || tag == "Total";
+
+                    if (TemplateType == "Kitchen")
                     {
-                        item.Visibility = Visibility.Collapsed;
-                    }
-                    else if (content.Contains("OrderDetails (List món)") && !content.Contains("Kitchen"))
-                    {
-                        item.Visibility = Visibility.Collapsed;
-                    }
-                    else if (content.Contains("Total"))
-                    {
-                        item.Visibility = Visibility.Collapsed;
+                        if (isBillItem) btn.Visibility = Visibility.Collapsed;
+                        else btn.Visibility = Visibility.Visible;
                     }
                     else
                     {
-                        item.Visibility = Visibility.Visible;
-                    }
-                }
-            }
-            else
-            {
-                // For bill, hide kitchen-specific items
-                foreach (ComboBoxItem item in cboType.Items)
-                {
-                    string content = item.Content?.ToString() ?? "";
-                    if (content.Contains("Kitchen") || content.Contains("BatchNumber"))
-                    {
-                        item.Visibility = Visibility.Collapsed;
-                    }
-                    else
-                    {
-                        item.Visibility = Visibility.Visible;
+                        if (isKitchenItem) btn.Visibility = Visibility.Collapsed;
+                        else btn.Visibility = Visibility.Visible;
                     }
                 }
             }
@@ -141,9 +191,10 @@ namespace PosSystem.Main.Pages
             {
                 return new List<PrintElement>
                 {
-                    new PrintElement { ElementType = "Text", Content = "PHIẾU CHẾ BIẾN", FontSize = 24, IsBold = true, Align = "Center" },
+                    new PrintElement { ElementType = "Text", Content = "PHIẾU BẾP - ĐỢT {Batch}", FontSize = 20, IsBold = true, Align = "Center" },
                     new PrintElement { ElementType = "Separator" },
-                    new PrintElement { ElementType = "KitchenOrderInfo" },
+                    new PrintElement { ElementType = "Text", Content = "{Table}", FontSize = 50, IsBold = true, Align = "Center" },
+                    new PrintElement { ElementType = "Text", Content = "Vào: {CheckInTime} | In: {PrintTime}", FontSize = 12, Align = "Center" },
                     new PrintElement { ElementType = "Separator" },
                     new PrintElement { ElementType = "KitchenOrderDetails" }
                 };
@@ -152,10 +203,12 @@ namespace PosSystem.Main.Pages
             {
                 return new List<PrintElement>
                 {
-                    new PrintElement { ElementType = "Text", Content = "TÊN QUÁN CỦA BẠN", FontSize = 24, IsBold = true, Align = "Center" },
-                    new PrintElement { ElementType = "Text", Content = "ĐC: Địa chỉ quán...", FontSize = 14, Align = "Center" },
+                    new PrintElement { ElementType = "Text", Content = "TÊN QUÁN CAFE", FontSize = 24, IsBold = true, Align = "Center" },
+                    new PrintElement { ElementType = "Text", Content = "ĐC: 123 Đường ABC, TP.XYZ", FontSize = 12, Align = "Center" },
                     new PrintElement { ElementType = "Separator" },
-                    new PrintElement { ElementType = "OrderInfo" },
+                    new PrintElement { ElementType = "Text", Content = "Bàn: {Table}   #{OrderId}", FontSize = 14, IsBold = true },
+                    new PrintElement { ElementType = "Text", Content = "NV: {Staff}   Ngày: {PrintDate}", FontSize = 12 },
+                    new PrintElement { ElementType = "Separator" },
                     new PrintElement { ElementType = "OrderDetails" },
                     new PrintElement { ElementType = "Separator" },
                     new PrintElement { ElementType = "Total" },
@@ -166,193 +219,117 @@ namespace PosSystem.Main.Pages
 
         private void RefreshList(int selectIndex)
         {
+            if (lstElements == null) return;
             lstElements.ItemsSource = null;
             lstElements.ItemsSource = _elements;
+            if (selectIndex >= 0 && selectIndex < _elements.Count) lstElements.SelectedIndex = selectIndex;
+        }
 
-            if (selectIndex >= 0 && selectIndex < _elements.Count)
+        // --- XỬ LÝ NÚT BẤM (Đã xóa TableNumberBig) ---
+        private void BtnToolbox_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is string tag)
             {
-                lstElements.SelectedIndex = selectIndex;
+                var newEl = new PrintElement { ElementType = "Text", IsVisible = true, Align = "Left", FontSize = 14, Content = "Nội dung..." };
+
+                switch (tag)
+                {
+                    case "Text": newEl.Content = "Nhập văn bản..."; break;
+                    case "Separator": newEl.ElementType = "Separator"; newEl.Content = "----------------"; break;
+
+                    case "TextTable": newEl.Content = "Bàn: {Table}"; newEl.FontSize = 16; newEl.IsBold = true; break;
+                    case "TextStaff": newEl.Content = "NV: {Staff}"; newEl.FontSize = 12; break;
+                    case "TextTime": newEl.Content = "Vào: {CheckInTime} | In: {PrintTime}"; newEl.Align = "Center"; newEl.FontSize = 12; break;
+                    case "TextDuration": newEl.Content = "Thời gian: {Duration}"; newEl.Align = "Center"; newEl.FontSize = 12; break;
+
+                    case "BatchNumber": newEl.Content = "ĐỢT GỌI: {Batch}"; newEl.FontSize = 18; newEl.IsBold = true; newEl.Align = "Center"; break;
+
+                    // Các loại đặc biệt
+                    case "Logo":
+                    case "QRCode":
+                    case "OrderDetails":
+                    case "KitchenOrderDetails":
+                    case "Total":
+                        newEl.ElementType = tag;
+                        newEl.Content = tag;
+                        break;
+                }
+
+                _elements.Add(new PrintElementViewModel(newEl));
+                RefreshList(_elements.Count - 1);
             }
         }
 
         private void LstElements_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (lstElements.SelectedItem is PrintElement el)
+            if (lstElements.SelectedItem is PrintElementViewModel el)
             {
                 _selectedElement = el;
                 _isInternalUpdate = true;
 
-                pnlProperties.IsEnabled = true;
+                if (pnlProperties != null) pnlProperties.IsEnabled = true;
+                if (lblSelectedType != null) lblSelectedType.Text = el.ElementType;
 
-                foreach (ComboBoxItem item in cboType.Items)
-                {
-                    if (item.Content?.ToString()?.StartsWith(el.ElementType) == true)
-                    {
-                        cboType.SelectedItem = item;
-                        break;
-                    }
-                }
-
-                cboAlign.SelectedIndex = el.Align == "Left" ? 0 : (el.Align == "Right" ? 2 : 1);
-
-                txtFontSize.Text = el.FontSize.ToString();
-                chkBold.IsChecked = el.IsBold;
-                chkVisible.IsChecked = el.IsVisible;
+                if (txtContent != null) txtContent.Text = el.Content;
+                if (cboAlign != null) cboAlign.SelectedIndex = el.Align == "Left" ? 0 : (el.Align == "Right" ? 2 : 1);
+                if (txtFontSize != null) txtFontSize.Text = el.FontSize.ToString();
+                if (chkBold != null) chkBold.IsChecked = el.IsBold;
+                if (chkVisible != null) chkVisible.IsChecked = el.IsVisible;
 
                 if (el.ElementType == "Text")
                 {
-                    pnlTextProp.Visibility = Visibility.Visible;
-                    pnlImageProp.Visibility = Visibility.Collapsed;
-                    txtContent.Text = el.Content;
+                    if (pnlTextProp != null) pnlTextProp.Visibility = Visibility.Visible;
+                    if (pnlImageProp != null) pnlImageProp.Visibility = Visibility.Collapsed;
+                    if (txtContent != null) txtContent.IsEnabled = true;
                 }
                 else if (el.ElementType == "Logo" || el.ElementType == "QRCode")
                 {
-                    pnlTextProp.Visibility = Visibility.Collapsed;
-                    pnlImageProp.Visibility = Visibility.Visible;
-
-                    lblImgPath.Text = el.Content;
+                    if (pnlTextProp != null) pnlTextProp.Visibility = Visibility.Collapsed;
+                    if (pnlImageProp != null) pnlImageProp.Visibility = Visibility.Visible;
                     LoadImagePreview(el.Content);
                 }
                 else
                 {
-                    pnlTextProp.Visibility = Visibility.Collapsed;
-                    pnlImageProp.Visibility = Visibility.Collapsed;
+                    // Các loại dữ liệu (OrderDetails, Total...) không cho sửa text
+                    if (pnlTextProp != null) pnlTextProp.Visibility = Visibility.Visible;
+                    if (pnlImageProp != null) pnlImageProp.Visibility = Visibility.Collapsed;
+                    if (txtContent != null) txtContent.IsEnabled = false;
                 }
-
                 _isInternalUpdate = false;
             }
             else
             {
                 _selectedElement = null;
-                pnlProperties.IsEnabled = false;
+                if (pnlProperties != null) pnlProperties.IsEnabled = false;
+                if (lblSelectedType != null) lblSelectedType.Text = "None";
             }
-        }
-
-        private void CboType_Loaded(object sender, RoutedEventArgs e)
-        {
-            UpdateElementTypeFilter();
-        }
-
-        private void CboType_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_isInternalUpdate || _selectedElement == null) return;
-
-            var selectedItem = cboType.SelectedItem as ComboBoxItem;
-            if (selectedItem == null) return;
-
-            string raw = selectedItem.Content?.ToString() ?? "Text";
-            string newType = raw.Split(' ')[0];
-
-            _selectedElement.ElementType = newType;
-
-            if (newType == "Text" && (_selectedElement.Content.Contains(".png") || _selectedElement.Content.Contains(".jpg")))
-            {
-                _selectedElement.Content = "Văn bản mới";
-            }
-
-            LstElements_SelectionChanged(null, null);
-            lstElements.Items.Refresh();
-        }
-
-        private void TxtContent_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isInternalUpdate || _selectedElement == null) return;
-            _selectedElement.Content = txtContent.Text;
-        }
-
-        private void Prop_Changed(object sender, RoutedEventArgs e)
-        {
-            UpdateModelFromUI();
         }
 
         private void UpdateModelFromUI()
         {
             if (_isInternalUpdate || _selectedElement == null) return;
 
-            _selectedElement.Align = cboAlign.SelectedIndex == 0 ? "Left" : (cboAlign.SelectedIndex == 2 ? "Right" : "Center");
+            if (txtContent != null) _selectedElement.Content = txtContent.Text;
+            if (cboAlign != null) _selectedElement.Align = cboAlign.SelectedIndex == 0 ? "Left" : (cboAlign.SelectedIndex == 2 ? "Right" : "Center");
+            if (txtFontSize != null && int.TryParse(txtFontSize.Text, out int size)) _selectedElement.FontSize = size;
+            if (chkBold != null) _selectedElement.IsBold = chkBold.IsChecked == true;
+            if (chkVisible != null) _selectedElement.IsVisible = chkVisible.IsChecked == true;
 
-            if (int.TryParse(txtFontSize.Text, out int size)) _selectedElement.FontSize = size;
-
-            _selectedElement.IsBold = chkBold.IsChecked == true;
-            _selectedElement.IsVisible = chkVisible.IsChecked == true;
-
-            lstElements.Items.Refresh();
+            if (lstElements != null) lstElements.Items.Refresh(); // Refresh để thấy Preview thay đổi
         }
 
-        private void BtnUploadImage_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedElement == null) return;
+        private void Prop_Changed(object sender, RoutedEventArgs e) => UpdateModelFromUI();
+        private void Prop_Changed(object sender, SelectionChangedEventArgs e) => UpdateModelFromUI();
+        private void TxtContent_TextChanged(object sender, TextChangedEventArgs e) => UpdateModelFromUI();
 
-            OpenFileDialog dlg = new OpenFileDialog
-            {
-                Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp",
-                Title = "Chọn ảnh Logo hoặc QR Code"
-            };
-
-            if (dlg.ShowDialog() == true)
-            {
-                try
-                {
-                    string destFolder = Path.Combine(AppContext.BaseDirectory, "Images");
-                    if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder);
-
-                    string ext = Path.GetExtension(dlg.FileName);
-                    string newName = $"img_{DateTime.Now.Ticks}{ext}";
-                    string destPath = Path.Combine(destFolder, newName);
-
-                    File.Copy(dlg.FileName, destPath, true);
-
-                    _selectedElement.Content = newName;
-                    lblImgPath.Text = newName;
-
-                    LoadImagePreview(newName);
-
-                    lstElements.Items.Refresh();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Lỗi upload ảnh: " + ex.Message);
-                }
-            }
-        }
-
-        void LoadImagePreview(string fileName)
-        {
-            try
-            {
-                string path = Path.Combine(AppContext.BaseDirectory, "Images", fileName);
-                if (File.Exists(path))
-                {
-                    BitmapImage bmp = new BitmapImage();
-                    bmp.BeginInit();
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.UriSource = new Uri(path);
-                    bmp.EndInit();
-                    imgPreview.Source = bmp;
-                }
-                else
-                {
-                    imgPreview.Source = null;
-                }
-            }
-            catch
-            {
-                imgPreview.Source = null;
-            }
-        }
-
-        private void BtnAdd_Click(object sender, RoutedEventArgs e)
-        {
-            _elements.Add(new PrintElement { ElementType = "Text", Content = "Dòng mới", FontSize = 14 });
-            RefreshList(_elements.Count - 1);
-        }
-
+        // ... (Giữ nguyên các hàm BtnUp_Click, BtnDown_Click, BtnDelete_Click, BtnUploadImage_Click, BtnSave_Click như cũ)
         private void BtnDelete_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedElement != null)
             {
+                int idx = lstElements.SelectedIndex;
                 _elements.Remove(_selectedElement);
-                RefreshList(-1);
+                RefreshList(idx >= _elements.Count ? _elements.Count - 1 : idx);
             }
         }
 
@@ -380,35 +357,54 @@ namespace PosSystem.Main.Pages
             }
         }
 
+        private void BtnUploadImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedElement == null) return;
+            OpenFileDialog dlg = new OpenFileDialog { Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp" };
+            if (dlg.ShowDialog() == true)
+            {
+                try
+                {
+                    string destFolder = Path.Combine(AppContext.BaseDirectory, "Images");
+                    if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder);
+                    string ext = Path.GetExtension(dlg.FileName);
+                    string newName = $"img_{DateTime.Now.Ticks}{ext}";
+                    File.Copy(dlg.FileName, Path.Combine(destFolder, newName), true);
+
+                    _selectedElement.Content = newName;
+                    LoadImagePreview(newName);
+                    UpdateModelFromUI();
+                }
+                catch (Exception ex) { MessageBox.Show("Lỗi: " + ex.Message); }
+            }
+        }
+
+        void LoadImagePreview(string fileName)
+        {
+            try
+            {
+                string path = Path.Combine(AppContext.BaseDirectory, "Images", fileName);
+                if (File.Exists(path)) imgPreview.Source = new BitmapImage(new Uri(path));
+                else imgPreview.Source = null;
+            }
+            catch { if (imgPreview != null) imgPreview.Source = null; }
+        }
+
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
-            UpdateModelFromUI();
-
             string templateType = TemplateType ?? "Bill";
-            string successMessage = templateType == "Kitchen" 
-                ? "✅ Đã lưu cấu trúc phiếu bếp thành công!" 
-                : "✅ Đã lưu cấu trúc hóa đơn thành công!";
-
             using (var db = new AppDbContext())
             {
                 var template = db.PrintTemplates.FirstOrDefault(t => t.TemplateType == templateType && t.IsActive);
-
                 if (template == null)
                 {
-                    template = new PrintTemplate
-                    {
-                        TemplateName = templateType == "Kitchen" ? "Mẫu Bếp" : "Mẫu Hóa Đơn",
-                        TemplateType = templateType,
-                        TemplateContentJson = "",
-                        IsActive = true
-                    };
+                    template = new PrintTemplate { TemplateName = templateType, TemplateType = templateType, IsActive = true };
                     db.PrintTemplates.Add(template);
                 }
-
-                template.TemplateContentJson = JsonSerializer.Serialize(_elements);
-
+                var rawList = _elements.Select(vm => vm.ToModel()).ToList();
+                template.TemplateContentJson = JsonSerializer.Serialize(rawList);
                 db.SaveChanges();
-                MessageBox.Show(successMessage);
+                MessageBox.Show("✅ Đã lưu cấu trúc thành công!");
             }
         }
     }
