@@ -6,6 +6,7 @@
              FontFamily="Arial">
     <!-- Width 550px là chuẩn đẹp cho khổ giấy 80mm khi in ảnh -->
     <!-- Layout được render động từ JSON template trong code-behind -->
-    
-    <StackPanel x:Name="RootPanel" Margin="10"/>
+
+    <StackPanel x:Name="RootPanel"
+                Margin="10"/>
 </UserControl>

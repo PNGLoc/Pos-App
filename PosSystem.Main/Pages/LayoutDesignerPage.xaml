@@ -4,19 +4,19 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
-             Background="#F0F2F5"
-             d:DesignHeight="700"
-             d:DesignWidth="1200">
+        Background="#F0F2F5"
+        d:DesignHeight="700"
+        d:DesignWidth="1200">
 
     <UserControl.Resources>
         <DropShadowEffect x:Key="ShadowEffect"
-                          Color="Black"
-                          BlurRadius="15"
-                          ShadowDepth="0"
-                          Opacity="0.1"/>
+                Color="Black"
+                BlurRadius="15"
+                ShadowDepth="0"
+                Opacity="0.1"/>
 
         <Style x:Key="ToolboxButtonStyle"
-               TargetType="Button">
+                TargetType="Button">
             <Setter Property="Height"
                     Value="40"/>
             <Setter Property="HorizontalContentAlignment"
@@ -40,12 +40,12 @@
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="5">
                             <ContentPresenter HorizontalAlignment="Left"
-                                              VerticalAlignment="Center"
-                                              Margin="{TemplateBinding Padding}"/>
+                                    VerticalAlignment="Center"
+                                    Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver"
-                                     Value="True">
+                                    Value="True">
                                 <Setter TargetName="bd"
                                         Property="Background"
                                         Value="#F0F8FF"/>
@@ -60,7 +60,7 @@
         </Style>
 
         <Style x:Key="ActionButtonStyle"
-               TargetType="Button">
+                TargetType="Button">
             <Setter Property="Padding"
                     Value="15,8"/>
             <Setter Property="Background"
@@ -80,11 +80,11 @@
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="4">
                             <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
+                                    VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver"
-                                     Value="True">
+                                    Value="True">
                                 <Setter TargetName="bd"
                                         Property="Background"
                                         Value="#EEE"/>
@@ -96,7 +96,7 @@
         </Style>
 
         <Style x:Key="ReceiptItemContainerStyle"
-               TargetType="ListBoxItem">
+                TargetType="ListBoxItem">
             <Setter Property="HorizontalContentAlignment"
                     Value="Stretch"/>
             <Setter Property="Padding"
@@ -122,7 +122,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected"
-                                     Value="True">
+                                    Value="True">
                                 <Setter TargetName="bd"
                                         Property="BorderBrush"
                                         Value="#007BFF"/>
@@ -131,7 +131,7 @@
                                         Value="#E3F2FD"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver"
-                                     Value="True">
+                                    Value="True">
                                 <Setter TargetName="bd"
                                         Property="Background"
                                         Value="#F5F5F5"/>
@@ -157,37 +157,34 @@
                 Padding="15">
             <Border.Effect>
                 <DropShadowEffect Color="#DDD"
-                                  BlurRadius="10"
-                                  ShadowDepth="2"
-                                  Opacity="0.3"/>
+                        BlurRadius="10"
+                        ShadowDepth="2"
+                        Opacity="0.3"/>
             </Border.Effect>
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-
                 <StackPanel>
                     <TextBlock x:Name="txtTitle"
-                               Text="THIẾT KẾ MẪU IN"
-                               FontSize="18"
-                               FontWeight="Bold"
-                               Foreground="#333"
-                               Margin="0,0,0,5"/>
+                            Text="THIẾT KẾ MẪU IN"
+                            FontSize="18"
+                            FontWeight="Bold"
+                            Foreground="#333"
+                            Margin="0,0,0,5"/>
                     <TextBlock Text="Chọn thành phần để thêm vào mẫu"
-                               FontSize="12"
-                               Foreground="Gray"
-                               Margin="0,0,0,20"/>
+                            FontSize="12"
+                            Foreground="Gray"
+                            Margin="0,0,0,20"/>
                 </StackPanel>
-
                 <ScrollViewer Grid.Row="1"
-                              VerticalScrollBarVisibility="Auto">
+                        VerticalScrollBarVisibility="Auto">
                     <StackPanel x:Name="pnlToolbox">
-
                         <TextBlock Text="CƠ BẢN"
-                                   FontWeight="Bold"
-                                   Foreground="#888"
-                                   Margin="0,0,0,5"/>
+                                FontWeight="Bold"
+                                Foreground="#888"
+                                Margin="0,0,0,5"/>
                         <Button Content="📝 Văn bản tùy ý"
                                 Tag="Text"
                                 Click="BtnToolbox_Click"
@@ -206,10 +203,9 @@
                                 Style="{StaticResource ToolboxButtonStyle}"/>
 
                         <TextBlock Text="THÔNG TIN (Biến số)"
-                                   FontWeight="Bold"
-                                   Foreground="#888"
-                                   Margin="0,15,0,5"/>
-
+                                FontWeight="Bold"
+                                Foreground="#888"
+                                Margin="0,15,0,5"/>
                         <Button Content="📍 Tên bàn: {Table}"
                                 Tag="TextTable"
                                 Click="BtnToolbox_Click"
@@ -228,9 +224,9 @@
                                 Style="{StaticResource ToolboxButtonStyle}"/>
 
                         <TextBlock Text="BẾP / BAR"
-                                   FontWeight="Bold"
-                                   Foreground="#888"
-                                   Margin="0,15,0,5"/>
+                                FontWeight="Bold"
+                                Foreground="#888"
+                                Margin="0,15,0,5"/>
                         <Button Content="🔔 Số đợt gọi: {Batch}"
                                 Tag="BatchNumber"
                                 Click="BtnToolbox_Click"
@@ -241,9 +237,9 @@
                                 Style="{StaticResource ToolboxButtonStyle}"/>
 
                         <TextBlock Text="HÓA ĐƠN"
-                                   FontWeight="Bold"
-                                   Foreground="#888"
-                                   Margin="0,15,0,5"/>
+                                FontWeight="Bold"
+                                Foreground="#888"
+                                Margin="0,15,0,5"/>
                         <Button Content="📋 Danh sách món (Bill)"
                                 Tag="OrderDetails"
                                 Click="BtnToolbox_Click"
@@ -252,7 +248,6 @@
                                 Tag="Total"
                                 Click="BtnToolbox_Click"
                                 Style="{StaticResource ToolboxButtonStyle}"/>
-
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
@@ -263,7 +258,6 @@
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-
             <Border Background="#555"
                     CornerRadius="8"
                     Padding="20">
@@ -277,47 +271,42 @@
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-
                         <ListBox x:Name="lstElements"
-                                 Grid.Row="1"
-                                 SelectionChanged="LstElements_SelectionChanged"
-                                 ItemContainerStyle="{StaticResource ReceiptItemContainerStyle}"
-                                 BorderThickness="0"
-                                 Background="Transparent"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                 Padding="10">
-
+                                Grid.Row="1"
+                                SelectionChanged="LstElements_SelectionChanged"
+                                ItemContainerStyle="{StaticResource ReceiptItemContainerStyle}"
+                                BorderThickness="0"
+                                Background="Transparent"
+                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                Padding="10">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <Grid>
                                         <TextBlock Text="{Binding DisplayPreview}"
-                                                   FontSize="{Binding FontSize}"
-                                                   FontWeight="{Binding FontWeightDisplay}"
-                                                   TextAlignment="{Binding TextAlignmentDisplay}"
-                                                   TextWrapping="Wrap"
-                                                   Visibility="{Binding IsTextVisible}"/>
-
+                                                FontSize="{Binding FontSize}"
+                                                FontWeight="{Binding FontWeightDisplay}"
+                                                TextAlignment="{Binding TextAlignmentDisplay}"
+                                                TextWrapping="Wrap"
+                                                Visibility="{Binding IsTextVisible}"/>
                                         <Border BorderBrush="Black"
                                                 BorderThickness="0,0,0,1"
                                                 Height="1"
                                                 Visibility="{Binding IsSeparatorVisible}"/>
-
                                         <Border Background="#F0F0F0"
                                                 Height="80"
                                                 Width="80"
                                                 HorizontalAlignment="{Binding HorizontalAlignDisplay}"
                                                 Visibility="{Binding IsImageVisible}">
                                             <StackPanel VerticalAlignment="Center"
-                                                        HorizontalAlignment="Center">
+                                                    HorizontalAlignment="Center">
                                                 <TextBlock Text="🖼️"
-                                                           FontSize="20"
-                                                           HorizontalAlignment="Center"/>
+                                                        FontSize="20"
+                                                        HorizontalAlignment="Center"/>
                                                 <TextBlock Text="{Binding Content}"
-                                                           FontSize="10"
-                                                           Foreground="Gray"/>
+                                                        FontSize="10"
+                                                        Foreground="Gray"/>
                                             </StackPanel>
                                         </Border>
-
                                     </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -325,14 +314,13 @@
                     </Grid>
                 </Border>
             </Border>
-
             <Border Grid.Row="1"
                     Background="White"
                     CornerRadius="8"
                     Margin="0,15,0,0"
                     Padding="10">
                 <StackPanel Orientation="Horizontal"
-                            HorizontalAlignment="Center">
+                        HorizontalAlignment="Center">
                     <Button Content="⬆ Lên"
                             Click="BtnUp_Click"
                             Style="{StaticResource ActionButtonStyle}"
@@ -361,14 +349,12 @@
                         ShadowDepth="2"
                         Opacity="0.3"/>
             </Border.Effect>
-
             <StackPanel x:Name="pnlProperties"
                     IsEnabled="False">
                 <TextBlock Text="TÙY CHỈNH"
                         FontSize="16"
                         FontWeight="Bold"
                         Margin="0,0,0,15"/>
-
                 <TextBlock Text="Đang chọn:"
                         Foreground="Gray"
                         FontSize="12"/>
@@ -385,10 +371,9 @@
                             Height="80"
                             TextWrapping="Wrap"
                             Padding="5"
-                             TextChanged="TxtContent_TextChanged"
+                            TextChanged="TxtContent_TextChanged"
                             BorderBrush="#DDD"
                             BorderThickness="1"/>
-
                     <TextBlock Text="Định dạng:"
                             Margin="0,15,0,5"/>
                     <Grid>
@@ -438,22 +423,42 @@
                     <StackPanel x:Name="optOrderDetails">
                         <CheckBox x:Name="chkShowNote"
                                 Content="In ghi chú (Note)"
-                                  Checked="Prop_Changed"
+                                Checked="Prop_Changed"
                                 Unchecked="Prop_Changed"
                                 Margin="0,5"/>
+                        <StackPanel Orientation="Horizontal"
+                                Margin="0,5,0,0">
+                            <TextBlock Text="Cỡ chữ Note:"
+                                    VerticalAlignment="Center"
+                                    Width="80"/>
+                            <TextBox x:Name="txtNoteSize"
+                                    Width="50"
+                                    Padding="3"
+                                    TextChanged="TxtContent_TextChanged"/>
+                        </StackPanel>
                     </StackPanel>
 
                     <StackPanel x:Name="optTotal">
                         <CheckBox x:Name="chkShowSubTotal"
                                 Content="In dòng Tạm tính"
-                                  Checked="Prop_Changed"
+                                Checked="Prop_Changed"
                                 Unchecked="Prop_Changed"
                                 Margin="0,5"/>
                         <CheckBox x:Name="chkShowDiscount"
                                 Content="In dòng Giảm giá / Thuế"
-                                  Checked="Prop_Changed"
+                                Checked="Prop_Changed"
                                 Unchecked="Prop_Changed"
                                 Margin="0,5"/>
+                        <StackPanel Orientation="Horizontal"
+                                Margin="0,5,0,0">
+                            <TextBlock Text="Cỡ chữ phụ:"
+                                    VerticalAlignment="Center"
+                                    Width="80"/>
+                            <TextBox x:Name="txtSubSize"
+                                    Width="50"
+                                    Padding="3"
+                                    TextChanged="TxtContent_TextChanged"/>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
 
@@ -476,7 +481,6 @@
                         IsChecked="True"
                         Checked="Prop_Changed"
                         Unchecked="Prop_Changed"/>
-
                 <Button Content="💾 LƯU CẤU TRÚC"
                         Click="BtnSave_Click"
                         Height="45"

@@ -4,12 +4,11 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using PosSystem.Main.Helpers; // Dùng Helper thay thế biến số
 using PosSystem.Main.Models;
-using PosSystem.Main.Helpers;
 
 namespace PosSystem.Main.Templates
 {
-    // SỬA TÊN CLASS Ở ĐÂY: Phải là KitchenTemplate, không phải BillTemplate
     public partial class KitchenTemplate : UserControl
     {
         public KitchenTemplate()
@@ -17,19 +16,13 @@ namespace PosSystem.Main.Templates
             InitializeComponent();
         }
 
-        // Hàm SetData nhận cấu hình layout từ DB
         public void SetData(Order order, int batchNumber, List<PrintElement> layoutElements)
         {
             RootPanel.Children.Clear();
 
-            // Nếu chưa có cấu hình layout, chạy mặc định
-            if (layoutElements == null || layoutElements.Count == 0)
-            {
-                RenderDefault(order, batchNumber);
-                return;
-            }
+            // Nếu không có layout, dùng mặc định
+            if (layoutElements == null || layoutElements.Count == 0) return;
 
-            // VẼ THEO CẤU HÌNH (Dynamic Layout)
             foreach (var el in layoutElements)
             {
                 if (!el.IsVisible) continue;
@@ -40,10 +33,90 @@ namespace PosSystem.Main.Templates
                     case "KitchenOrderInfo":
                     case "TableNumberBig":
                     case "BatchNumber":
-                        string final = PrintContentHelper.ReplacePlaceholders(el.Content, order, batchNumber);
-                        AddTextBlock(final, el);
+                        // Dùng Helper thay thế {Table}, {Batch}...
+                        string finalContent = PrintContentHelper.ReplacePlaceholders(el.Content, order, batchNumber);
+                        AddTextBlock(finalContent, el);
+                        break;
+
+                    case "Separator":
+                        AddSeparator();
+                        break;
+
+                    case "KitchenOrderDetails":
+                        // QUAN TRỌNG: Truyền el.Content (chứa cấu hình NoteSize) vào hàm
+                        RenderKitchenDetails(order, el.FontSize, el.Content);
                         break;
                 }
+            }
+        }
+
+        private void RenderKitchenDetails(Order order, int fontSize, string config)
+        {
+            // 1. Parse cấu hình (Cỡ chữ Note...)
+            bool showNote = !config.Contains("ShowNote=False");
+            int noteSize = Math.Max(18, fontSize - 4); // Mặc định Note bếp to hơn Bill chút cho dễ đọc
+
+            if (!string.IsNullOrEmpty(config))
+            {
+                var parts = config.Split(';');
+                foreach (var p in parts)
+                {
+                    if (p.StartsWith("NoteSize=") && int.TryParse(p.Split('=')[1], out int s))
+                        noteSize = s;
+                }
+            }
+
+            // 2. Vẽ danh sách món
+            var items = order.OrderDetails.ToList();
+            if (items.Count == 0) return;
+
+            foreach (var d in items)
+            {
+                // Logic hiển thị HỦY MÓN / THÊM MÓN
+                string txt = d.Quantity < 0
+                    ? $"[HỦY] {Math.Abs(d.Quantity)} x {d.Dish?.DishName}"
+                    : $"{d.Quantity} x {d.Dish?.DishName}";
+
+                var brush = d.Quantity < 0 ? Brushes.Red : Brushes.Black; // Hủy màu đỏ (nếu in màu), hoặc Đen
+
+                // Tên món (In đậm, To)
+                var tb = new TextBlock
+                {
+                    Text = txt,
+                    FontSize = fontSize > 0 ? fontSize : 24,
+                    FontWeight = FontWeights.Bold,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = brush,
+                    Margin = new Thickness(0, 5, 0, 2)
+                };
+                RootPanel.Children.Add(tb);
+
+                // Ghi chú (Nghiêng, Nhỏ hơn chút)
+                if (showNote && !string.IsNullOrEmpty(d.Note))
+                {
+                    var note = new TextBlock
+                    {
+                        Text = $"   📝 {d.Note}",
+                        FontStyle = FontStyles.Italic,
+                        FontSize = noteSize,
+                        FontWeight = FontWeights.SemiBold,
+                        Margin = new Thickness(0, 0, 0, 5)
+                    };
+                    RootPanel.Children.Add(note);
+                }
+
+                // Đường kẻ mờ ngăn cách giữa các món cho dễ nhìn
+                var sep = new System.Windows.Shapes.Rectangle
+                {
+                    Height = 1,
+                    Stroke = Brushes.Gray,
+                    StrokeThickness = 1,
+                    StrokeDashArray = new DoubleCollection { 2, 2 },
+                    Margin = new Thickness(0, 5, 0, 5),
+                    SnapsToDevicePixels = true,
+                    Opacity = 0.5
+                };
+                RootPanel.Children.Add(sep);
             }
         }
 
@@ -69,71 +142,13 @@ namespace PosSystem.Main.Templates
         {
             var line = new System.Windows.Shapes.Rectangle
             {
-                Height = 1,
+                Height = 2, // Kẻ bếp dày hơn chút
                 Stroke = Brushes.Black,
-                StrokeThickness = 1,
-                StrokeDashArray = new DoubleCollection { 4, 2 },
+                StrokeThickness = 2,
                 Margin = new Thickness(0, 5, 0, 5),
                 SnapsToDevicePixels = true
             };
             RootPanel.Children.Add(line);
-        }
-
-        private void RenderKitchenDetails(Order order, int fontSize)
-        {
-            var items = order.OrderDetails.ToList();
-            foreach (var d in items)
-            {
-                // Logic HỦY / THÊM
-                string txt = d.Quantity < 0 ? $"[HỦY] {Math.Abs(d.Quantity)} x {d.Dish?.DishName}" : $"{d.Quantity} x {d.Dish?.DishName}";
-                var brush = d.Quantity < 0 ? Brushes.Red : Brushes.Black;
-
-                var tb = new TextBlock
-                {
-                    Text = txt,
-                    FontSize = fontSize,
-                    FontWeight = FontWeights.Bold,
-                    TextWrapping = TextWrapping.Wrap,
-                    Foreground = brush
-                };
-                RootPanel.Children.Add(tb);
-
-                // Ghi chú
-                if (!string.IsNullOrEmpty(d.Note))
-                {
-                    var note = new TextBlock { Text = $"   📝 {d.Note}", FontStyle = FontStyles.Italic, FontSize = fontSize - 6, FontWeight = FontWeights.SemiBold };
-                    RootPanel.Children.Add(note);
-                }
-
-                // Kẻ ngăn cách mờ giữa các món
-                var sep = new System.Windows.Shapes.Rectangle
-                {
-                    Height = 1,
-                    Stroke = Brushes.LightGray,
-                    StrokeThickness = 1,
-                    StrokeDashArray = new DoubleCollection { 2, 2 },
-                    Margin = new Thickness(0, 5, 0, 5)
-                };
-                RootPanel.Children.Add(sep);
-            }
-        }
-        private string ReplacePlaceholders(string content, Order order, int batchNumber)
-        {
-            if (string.IsNullOrEmpty(content)) return "";
-            string res = content;
-            res = res.Replace("{Table}", order.Table?.TableName ?? "Mang về");
-            res = res.Replace("{Date}", DateTime.Now.ToString("dd/MM/yyyy"));
-            res = res.Replace("{Time}", DateTime.Now.ToString("HH:mm"));
-            res = res.Replace("{Batch}", batchNumber.ToString()); // Bếp có thêm biến đợt
-            return res;
-        }
-        private void RenderDefault(Order order, int batchNumber)
-        {
-            AddTextBlock($"ĐỢT: {batchNumber}", new PrintElement { IsBold = true, FontSize = 20, Align = "Center" });
-            AddSeparator();
-            AddTextBlock($"Bàn: {order.Table?.TableName}", new PrintElement { IsBold = true, FontSize = 24 });
-            AddSeparator();
-            RenderKitchenDetails(order, 24);
         }
     }
 }
