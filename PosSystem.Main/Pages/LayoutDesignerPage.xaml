@@ -308,13 +308,13 @@
                                                 HorizontalAlignment="{Binding HorizontalAlignDisplay}"
                                                 Visibility="{Binding IsImageVisible}">
                                             <StackPanel VerticalAlignment="Center"
-                                                    HorizontalAlignment="Center">
+                                                        HorizontalAlignment="Center">
                                                 <TextBlock Text="🖼️"
-                                                        FontSize="20"
-                                                        HorizontalAlignment="Center"/>
+                                                           FontSize="20"
+                                                           HorizontalAlignment="Center"/>
                                                 <TextBlock Text="{Binding Content}"
-                                                        FontSize="10"
-                                                        Foreground="Gray"/>
+                                                           FontSize="10"
+                                                           Foreground="Gray"/>
                                             </StackPanel>
                                         </Border>
 
@@ -357,40 +357,40 @@
                 Padding="15">
             <Border.Effect>
                 <DropShadowEffect Color="#DDD"
-                                  BlurRadius="10"
-                                  ShadowDepth="2"
-                                  Opacity="0.3"/>
+                        BlurRadius="10"
+                        ShadowDepth="2"
+                        Opacity="0.3"/>
             </Border.Effect>
 
             <StackPanel x:Name="pnlProperties"
-                        IsEnabled="False">
+                    IsEnabled="False">
                 <TextBlock Text="TÙY CHỈNH"
-                           FontSize="16"
-                           FontWeight="Bold"
-                           Margin="0,0,0,15"/>
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Margin="0,0,0,15"/>
 
                 <TextBlock Text="Đang chọn:"
-                           Foreground="Gray"
-                           FontSize="12"/>
+                        Foreground="Gray"
+                        FontSize="12"/>
                 <TextBlock x:Name="lblSelectedType"
-                           Text="None"
-                           FontWeight="Bold"
-                           FontSize="14"
-                           Margin="0,0,0,15"/>
+                        Text="None"
+                        FontWeight="Bold"
+                        FontSize="14"
+                        Margin="0,0,0,15"/>
 
                 <StackPanel x:Name="pnlTextProp">
                     <TextBlock Text="Nội dung hiển thị:"
-                               Margin="0,0,0,5"/>
+                            Margin="0,0,0,5"/>
                     <TextBox x:Name="txtContent"
-                             Height="80"
-                             TextWrapping="Wrap"
-                             Padding="5"
+                            Height="80"
+                            TextWrapping="Wrap"
+                            Padding="5"
                              TextChanged="TxtContent_TextChanged"
-                             BorderBrush="#DDD"
-                             BorderThickness="1"/>
+                            BorderBrush="#DDD"
+                            BorderThickness="1"/>
 
                     <TextBlock Text="Định dạng:"
-                               Margin="0,15,0,5"/>
+                            Margin="0,15,0,5"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -398,12 +398,12 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock Text="Căn lề:"
-                                       FontSize="12"
-                                       Foreground="Gray"/>
+                                    FontSize="12"
+                                    Foreground="Gray"/>
                             <ComboBox x:Name="cboAlign"
-                                      SelectionChanged="Prop_Changed"
-                                      Margin="0,5,5,0"
-                                      Padding="5">
+                                    SelectionChanged="Prop_Changed"
+                                    Margin="0,5,5,0"
+                                    Padding="5">
                                 <ComboBoxItem Content="Left (Trái)"/>
                                 <ComboBoxItem Content="Center (Giữa)"/>
                                 <ComboBoxItem Content="Right (Phải)"/>
@@ -411,23 +411,54 @@
                         </StackPanel>
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="Cỡ chữ:"
-                                       FontSize="12"
-                                       Foreground="Gray"/>
+                                    FontSize="12"
+                                    Foreground="Gray"/>
                             <TextBox x:Name="txtFontSize"
-                                     TextChanged="Prop_Changed"
-                                     Margin="5,5,0,0"
-                                     Padding="5"/>
+                                    TextChanged="Prop_Changed"
+                                    Margin="5,5,0,0"
+                                    Padding="5"/>
                         </StackPanel>
                     </Grid>
                     <CheckBox x:Name="chkBold"
-                              Content="In đậm (Bold)"
-                              Margin="0,15,0,0"
-                              Checked="Prop_Changed"
-                              Unchecked="Prop_Changed"/>
+                            Content="In đậm (Bold)"
+                            Margin="0,15,0,0"
+                            Checked="Prop_Changed"
+                            Unchecked="Prop_Changed"/>
+                </StackPanel>
+
+                <StackPanel x:Name="pnlOptionProp"
+                        Visibility="Collapsed"
+                        Margin="0,15,0,0">
+                    <TextBlock Text="TÙY CHỌN NÂNG CAO"
+                            FontWeight="Bold"
+                            FontSize="12"
+                            Foreground="Gray"
+                            Margin="0,0,0,5"/>
+
+                    <StackPanel x:Name="optOrderDetails">
+                        <CheckBox x:Name="chkShowNote"
+                                Content="In ghi chú (Note)"
+                                  Checked="Prop_Changed"
+                                Unchecked="Prop_Changed"
+                                Margin="0,5"/>
+                    </StackPanel>
+
+                    <StackPanel x:Name="optTotal">
+                        <CheckBox x:Name="chkShowSubTotal"
+                                Content="In dòng Tạm tính"
+                                  Checked="Prop_Changed"
+                                Unchecked="Prop_Changed"
+                                Margin="0,5"/>
+                        <CheckBox x:Name="chkShowDiscount"
+                                Content="In dòng Giảm giá / Thuế"
+                                  Checked="Prop_Changed"
+                                Unchecked="Prop_Changed"
+                                Margin="0,5"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <StackPanel x:Name="pnlImageProp"
-                            Visibility="Collapsed">
+                        Visibility="Collapsed">
                     <Button Content="📂 Tải ảnh lên..."
                             Click="BtnUploadImage_Click"
                             Padding="10"
@@ -435,16 +466,16 @@
                             BorderThickness="0"
                             Margin="0,0,0,10"/>
                     <Image x:Name="imgPreview"
-                           Height="120"
-                           Stretch="Uniform"/>
+                            Height="120"
+                            Stretch="Uniform"/>
                 </StackPanel>
 
                 <Separator Margin="0,20"/>
                 <CheckBox x:Name="chkVisible"
-                          Content="Hiển thị trên mẫu in"
-                          IsChecked="True"
-                          Checked="Prop_Changed"
-                          Unchecked="Prop_Changed"/>
+                        Content="Hiển thị trên mẫu in"
+                        IsChecked="True"
+                        Checked="Prop_Changed"
+                        Unchecked="Prop_Changed"/>
 
                 <Button Content="💾 LƯU CẤU TRÚC"
                         Click="BtnSave_Click"

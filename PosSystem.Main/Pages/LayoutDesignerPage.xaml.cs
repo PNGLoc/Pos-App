@@ -13,16 +13,22 @@ using System.Windows.Media;
 
 namespace PosSystem.Main.Pages
 {
-    // Class hỗ trợ hiển thị Preview (Thông minh hơn)
     public class PrintElementViewModel : PrintElement
     {
-        // 1. Logic ẩn hiện
-        // Text, OrderDetails, Total... đều được coi là Text để hiển thị nội dung mẫu
+        // 1. LOGIC ẨN HIỆN TRÊN CANVAS
+        // Coi OrderDetails, Total... là Text để hiển thị dữ liệu mẫu (Preview)
+        public bool ShowNote => !Content.Contains("ShowNote=False"); // Mặc định là True (Hiện note)
+
+        public bool ShowSubTotal => Content.Contains("ShowSub=True");
+        public bool ShowDiscount => Content.Contains("ShowDisc=True");
         public Visibility IsTextVisible => (ElementType != "Separator" && ElementType != "Logo" && ElementType != "QRCode") ? Visibility.Visible : Visibility.Collapsed;
         public Visibility IsSeparatorVisible => ElementType == "Separator" ? Visibility.Visible : Visibility.Collapsed;
         public Visibility IsImageVisible => (ElementType == "Logo" || ElementType == "QRCode") ? Visibility.Visible : Visibility.Collapsed;
 
-        // 2. Logic Font chữ & Căn lề
+        // Ẩn hoàn toàn hộp vàng cũ (vì giờ đã có dữ liệu mẫu đẹp hơn)
+        public Visibility IsDynamicDataVisible => Visibility.Collapsed;
+
+        // 2. LOGIC HIỂN THỊ FONT & CĂN LỀ
         public FontWeight FontWeightDisplay => IsBold ? FontWeights.Bold : FontWeights.Normal;
 
         public TextAlignment TextAlignmentDisplay
@@ -45,17 +51,36 @@ namespace PosSystem.Main.Pages
             }
         }
 
+        // --- SỬA LỖI CS1061: THÊM LẠI THUỘC TÍNH NÀY ---
+        public string ElementTypeDisplay
+        {
+            get
+            {
+                switch (ElementType)
+                {
+                    case "OrderDetails": return "[DANH SÁCH MÓN]";
+                    case "KitchenOrderDetails": return "[BẾP: MÓN]";
+                    case "Total": return "[TỔNG TIỀN]";
+                    case "BatchNumber": return "[SỐ ĐỢT]";
+                    case "Text": return "[VĂN BẢN]";
+                    case "Separator": return "[KẺ NGANG]";
+                    case "Logo": return "[LOGO]";
+                    case "QRCode": return "[QR CODE]";
+                    default: return ElementType;
+                }
+            }
+        }
+
         // 3. TẠO DỮ LIỆU MẪU (PREVIEW DATA)
         public string DisplayPreview
         {
             get
             {
-                // Nếu là Text thường -> Thay thế biến số thành dữ liệu giả
                 if (ElementType == "Text")
                 {
                     string s = Content ?? "";
                     s = s.Replace("{Table}", "10")
-                         .Replace("{Staff}", "Liễu")
+                         .Replace("{Staff}", "Admin")
                          .Replace("{CheckInTime}", "09:30")
                          .Replace("{PrintTime}", DateTime.Now.ToString("HH:mm"))
                          .Replace("{PrintDate}", DateTime.Now.ToString("dd/MM/yyyy"))
@@ -66,7 +91,6 @@ namespace PosSystem.Main.Pages
                     return s;
                 }
 
-                // Nếu là các khối dữ liệu đặc biệt -> Sinh text mẫu nhìn cho giống thật
                 if (ElementType == "OrderDetails" || ElementType == "KitchenOrderDetails")
                 {
                     return "Cà phê sữa đá        2      50,000\n   (Ít ngọt)\nSinh tố bơ           1      40,000\n----------------------------------";
@@ -79,7 +103,7 @@ namespace PosSystem.Main.Pages
 
                 if (ElementType == "BatchNumber") return "ĐỢT: 1";
 
-                return Content; // Mặc định (Logo, Separator...)
+                return Content; // Mặc định cho Logo, Separator
             }
         }
 
@@ -225,7 +249,6 @@ namespace PosSystem.Main.Pages
             if (selectIndex >= 0 && selectIndex < _elements.Count) lstElements.SelectedIndex = selectIndex;
         }
 
-        // --- XỬ LÝ NÚT BẤM (Đã xóa TableNumberBig) ---
         private void BtnToolbox_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is string tag)
@@ -244,7 +267,14 @@ namespace PosSystem.Main.Pages
 
                     case "BatchNumber": newEl.Content = "ĐỢT GỌI: {Batch}"; newEl.FontSize = 18; newEl.IsBold = true; newEl.Align = "Center"; break;
 
-                    // Các loại đặc biệt
+                    // Nút Số bàn Khổng Lồ (Vẫn xử lý như Text nhưng font to)
+                    case "TableNumberBig":
+                        newEl.Content = "{Table}";
+                        newEl.FontSize = 60;
+                        newEl.IsBold = true;
+                        newEl.Align = "Center";
+                        break;
+
                     case "Logo":
                     case "QRCode":
                     case "OrderDetails":
@@ -268,32 +298,65 @@ namespace PosSystem.Main.Pages
                 _isInternalUpdate = true;
 
                 if (pnlProperties != null) pnlProperties.IsEnabled = true;
-                if (lblSelectedType != null) lblSelectedType.Text = el.ElementType;
 
+                // Hiển thị tên loại phần tử (đã fix lỗi CS1061)
+                if (lblSelectedType != null) lblSelectedType.Text = el.ElementTypeDisplay;
+
+                // Load các thuộc tính chung
                 if (txtContent != null) txtContent.Text = el.Content;
                 if (cboAlign != null) cboAlign.SelectedIndex = el.Align == "Left" ? 0 : (el.Align == "Right" ? 2 : 1);
                 if (txtFontSize != null) txtFontSize.Text = el.FontSize.ToString();
                 if (chkBold != null) chkBold.IsChecked = el.IsBold;
                 if (chkVisible != null) chkVisible.IsChecked = el.IsVisible;
 
+                // Reset trạng thái hiển thị các Panel
+                if (pnlTextProp != null) pnlTextProp.Visibility = Visibility.Collapsed;
+                if (pnlImageProp != null) pnlImageProp.Visibility = Visibility.Collapsed;
+                if (pnlOptionProp != null) pnlOptionProp.Visibility = Visibility.Collapsed;
+
+                // --- XỬ LÝ HIỂN THỊ THEO TỪNG LOẠI ---
                 if (el.ElementType == "Text")
                 {
                     if (pnlTextProp != null) pnlTextProp.Visibility = Visibility.Visible;
-                    if (pnlImageProp != null) pnlImageProp.Visibility = Visibility.Collapsed;
                     if (txtContent != null) txtContent.IsEnabled = true;
                 }
                 else if (el.ElementType == "Logo" || el.ElementType == "QRCode")
                 {
-                    if (pnlTextProp != null) pnlTextProp.Visibility = Visibility.Collapsed;
                     if (pnlImageProp != null) pnlImageProp.Visibility = Visibility.Visible;
                     LoadImagePreview(el.Content);
                 }
                 else
                 {
-                    // Các loại dữ liệu (OrderDetails, Total...) không cho sửa text
-                    if (pnlTextProp != null) pnlTextProp.Visibility = Visibility.Visible;
-                    if (pnlImageProp != null) pnlImageProp.Visibility = Visibility.Collapsed;
-                    if (txtContent != null) txtContent.IsEnabled = false;
+                    // Các khối dữ liệu (OrderDetails, Total...) -> Ẩn ô nhập Text, Hiện Option
+                    if (pnlTextProp != null) pnlTextProp.Visibility = Visibility.Collapsed;
+
+                    // Logic hiển thị Panel Tùy chọn nâng cao
+                    if (pnlOptionProp != null)
+                    {
+                        if (el.ElementType == "OrderDetails" || el.ElementType == "KitchenOrderDetails")
+                        {
+                            pnlOptionProp.Visibility = Visibility.Visible;
+
+                            // Hiện nhóm Note, Ẩn nhóm Tiền
+                            if (optOrderDetails != null) optOrderDetails.Visibility = Visibility.Visible;
+                            if (optTotal != null) optTotal.Visibility = Visibility.Collapsed;
+
+                            // Load giá trị từ Model lên Checkbox
+                            if (chkShowNote != null) chkShowNote.IsChecked = el.ShowNote;
+                        }
+                        else if (el.ElementType == "Total")
+                        {
+                            pnlOptionProp.Visibility = Visibility.Visible;
+
+                            // Ẩn nhóm Note, Hiện nhóm Tiền
+                            if (optOrderDetails != null) optOrderDetails.Visibility = Visibility.Collapsed;
+                            if (optTotal != null) optTotal.Visibility = Visibility.Visible;
+
+                            // Load giá trị từ Model lên Checkbox
+                            if (chkShowSubTotal != null) chkShowSubTotal.IsChecked = el.ShowSubTotal;
+                            if (chkShowDiscount != null) chkShowDiscount.IsChecked = el.ShowDiscount;
+                        }
+                    }
                 }
                 _isInternalUpdate = false;
             }
@@ -309,20 +372,47 @@ namespace PosSystem.Main.Pages
         {
             if (_isInternalUpdate || _selectedElement == null) return;
 
-            if (txtContent != null) _selectedElement.Content = txtContent.Text;
+            // Cập nhật các thuộc tính cơ bản
             if (cboAlign != null) _selectedElement.Align = cboAlign.SelectedIndex == 0 ? "Left" : (cboAlign.SelectedIndex == 2 ? "Right" : "Center");
             if (txtFontSize != null && int.TryParse(txtFontSize.Text, out int size)) _selectedElement.FontSize = size;
             if (chkBold != null) _selectedElement.IsBold = chkBold.IsChecked == true;
             if (chkVisible != null) _selectedElement.IsVisible = chkVisible.IsChecked == true;
 
-            if (lstElements != null) lstElements.Items.Refresh(); // Refresh để thấy Preview thay đổi
+            // --- CẬP NHẬT CONTENT (NỘI DUNG HOẶC CẤU HÌNH) ---
+            if (_selectedElement.ElementType == "Text")
+            {
+                // Với Text: Content là nội dung văn bản
+                if (txtContent != null) _selectedElement.Content = txtContent.Text;
+            }
+            else if (_selectedElement.ElementType == "OrderDetails" || _selectedElement.ElementType == "KitchenOrderDetails")
+            {
+                // Với List món: Content lưu cấu hình ShowNote
+                // Nếu bỏ tick Note -> Lưu "ShowNote=False", ngược lại lưu rỗng
+                if (chkShowNote != null)
+                    _selectedElement.Content = (chkShowNote.IsChecked == false) ? "ShowNote=False" : "";
+            }
+            else if (_selectedElement.ElementType == "Total")
+            {
+                // Với Total: Content lưu cấu hình ShowSubTotal, ShowDiscount
+                List<string> configs = new List<string>();
+
+                if (chkShowSubTotal != null && chkShowSubTotal.IsChecked == true)
+                    configs.Add("ShowSub=True");
+
+                if (chkShowDiscount != null && chkShowDiscount.IsChecked == true)
+                    configs.Add("ShowDisc=True");
+
+                _selectedElement.Content = string.Join(";", configs);
+            }
+
+            // Refresh lại ListBox để thấy Preview thay đổi ngay lập tức
+            if (lstElements != null) lstElements.Items.Refresh();
         }
 
         private void Prop_Changed(object sender, RoutedEventArgs e) => UpdateModelFromUI();
         private void Prop_Changed(object sender, SelectionChangedEventArgs e) => UpdateModelFromUI();
         private void TxtContent_TextChanged(object sender, TextChangedEventArgs e) => UpdateModelFromUI();
 
-        // ... (Giữ nguyên các hàm BtnUp_Click, BtnDown_Click, BtnDelete_Click, BtnUploadImage_Click, BtnSave_Click như cũ)
         private void BtnDelete_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedElement != null)

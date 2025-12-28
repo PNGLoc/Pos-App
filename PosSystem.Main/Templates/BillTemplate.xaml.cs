@@ -21,12 +21,6 @@ namespace PosSystem.Main.Templates
         {
             RootPanel.Children.Clear(); // Xóa sạch giao diện cũ
 
-            // Nếu không có layout, dùng mặc định
-            if (layoutElements == null || layoutElements.Count == 0)
-            {
-                RenderDefault(order);
-                return;
-            }
 
             // VẼ THEO LAYOUT CẤU HÌNH
             foreach (var el in layoutElements)
@@ -46,7 +40,9 @@ namespace PosSystem.Main.Templates
                     case "Separator": AddSeparator(); break;
                     case "Logo": AddImage(el.Content, el.Align); break;
 
-                    case "OrderDetails": RenderOrderDetails(order, el.FontSize); break;
+                    case "OrderDetails":
+                        RenderOrderDetails(order, el.FontSize, el.Content); // Truyền el.Content vào
+                        break;
                     case "Total": RenderTotal(order, el); break;
                 }
             }
@@ -119,8 +115,10 @@ namespace PosSystem.Main.Templates
             catch { }
         }
 
-        private void RenderOrderDetails(Order order, int fontSize)
+        private void RenderOrderDetails(Order order, int fontSize, string config)
         {
+            // Mặc định hiện note nếu không có cấu hình "ShowNote=False"
+            bool showNote = !config.Contains("ShowNote=False");
             // Header bảng món
             var headerGrid = new Grid();
             headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Tên
@@ -162,8 +160,8 @@ namespace PosSystem.Main.Templates
                 row.Children.Add(txtPrice);
                 RootPanel.Children.Add(row);
 
-                // Ghi chú (nếu có)
-                if (!string.IsNullOrEmpty(d.Note))
+                // CHỈ IN GHI CHÚ NẾU ĐƯỢC BẬT
+                if (showNote && !string.IsNullOrEmpty(d.Note))
                 {
                     var txtNote = new TextBlock { Text = $"  ({d.Note})", FontStyle = FontStyles.Italic, FontSize = fontSize - 2, Foreground = Brushes.Black };
                     RootPanel.Children.Add(txtNote);
@@ -172,11 +170,35 @@ namespace PosSystem.Main.Templates
             AddSeparator();
         }
 
-        private void RenderTotal(Order order, PrintElement style)
+        private void RenderTotal(Order order, PrintElement el)
         {
-            var dock = new DockPanel();
-            var lbl = new TextBlock { Text = "TỔNG CỘNG:", FontWeight = FontWeights.Bold, FontSize = style.FontSize };
-            var val = new TextBlock { Text = order.FinalAmount.ToString("N0"), FontWeight = FontWeights.Bold, FontSize = style.FontSize + 4, HorizontalAlignment = HorizontalAlignment.Right }; // Tiền to hơn xíu
+            bool showSub = el.Content.Contains("ShowSub=True");
+            bool showDisc = el.Content.Contains("ShowDisc=True");
+
+            // 1. TẠM TÍNH
+            if (showSub)
+            {
+                AddRowTotal("Tạm tính:", order.SubTotal.ToString("N0"), el.FontSize);
+            }
+
+            // 2. GIẢM GIÁ / THUẾ
+            if (showDisc)
+            {
+                if (order.DiscountAmount > 0 || order.DiscountPercent > 0)
+                {
+                    string discText = order.DiscountAmount > 0 ? $"-{order.DiscountAmount:N0}" : $"-{order.DiscountPercent}%";
+                    AddRowTotal("Giảm giá:", discText, el.FontSize);
+                }
+                if (order.TaxAmount > 0)
+                {
+                    AddRowTotal("Thuế (VAT):", order.TaxAmount.ToString("N0"), el.FontSize);
+                }
+            }
+
+            // 3. TỔNG CỘNG (Luôn hiện & To hơn)
+            var dock = new DockPanel { Margin = new Thickness(0, 5, 0, 0) };
+            var lbl = new TextBlock { Text = "TỔNG CỘNG:", FontWeight = FontWeights.Bold, FontSize = el.FontSize + 2 };
+            var val = new TextBlock { Text = order.FinalAmount.ToString("N0"), FontWeight = FontWeights.Bold, FontSize = el.FontSize + 6, HorizontalAlignment = HorizontalAlignment.Right };
 
             DockPanel.SetDock(lbl, Dock.Left);
             dock.Children.Add(lbl);
@@ -184,14 +206,27 @@ namespace PosSystem.Main.Templates
             RootPanel.Children.Add(dock);
         }
 
-        private void RenderDefault(Order order)
+        // Hàm phụ để add dòng nhỏ
+        private void AddRowTotal(string label, string value, int fontSize)
         {
-            // (Code hardcode cũ để fallback)
-            AddTextBlock("HÓA ĐƠN", new PrintElement { Align = "Center", IsBold = true, FontSize = 20 });
-            AddSeparator();
-            RenderOrderDetails(order, 14);
-            AddSeparator();
-            RenderTotal(order, new PrintElement { FontSize = 16 });
+            var dock = new DockPanel();
+            var lbl = new TextBlock { Text = label, FontSize = fontSize };
+            var val = new TextBlock { Text = value, FontSize = fontSize, HorizontalAlignment = HorizontalAlignment.Right };
+            DockPanel.SetDock(lbl, Dock.Left);
+            dock.Children.Add(lbl);
+            dock.Children.Add(val);
+            RootPanel.Children.Add(dock);
         }
+        /*
+                private void RenderDefault(Order order)
+                {
+                    // (Code hardcode cũ để fallback)
+                    AddTextBlock("HÓA ĐƠN", new PrintElement { Align = "Center", IsBold = true, FontSize = 20 });
+                    AddSeparator();
+                    RenderOrderDetails(order, 14);
+                    AddSeparator();
+                    RenderTotal(order, new PrintElement { FontSize = 16 });
+                }
+                */
     }
 }
