@@ -55,7 +55,7 @@ namespace PosSystem.Main.Templates
             // 1. Parse cấu hình (Cỡ chữ Note...)
             bool showNote = !config.Contains("ShowNote=False");
             int noteSize = Math.Max(18, fontSize - 4); // Mặc định Note bếp to hơn Bill chút cho dễ đọc
-
+            int itemSize = fontSize > 0 ? fontSize : 24;
             if (!string.IsNullOrEmpty(config))
             {
                 var parts = config.Split(';');
@@ -63,6 +63,7 @@ namespace PosSystem.Main.Templates
                 {
                     if (p.StartsWith("NoteSize=") && int.TryParse(p.Split('=')[1], out int s))
                         noteSize = s;
+                    if (p.StartsWith("ItemSize=") && int.TryParse(p.Split('=')[1], out int i)) itemSize = i;
                 }
             }
 
@@ -83,7 +84,7 @@ namespace PosSystem.Main.Templates
                 var tb = new TextBlock
                 {
                     Text = txt,
-                    FontSize = fontSize > 0 ? fontSize : 24,
+                    FontSize = itemSize,
                     FontWeight = FontWeights.Bold,
                     TextWrapping = TextWrapping.Wrap,
                     Foreground = brush,

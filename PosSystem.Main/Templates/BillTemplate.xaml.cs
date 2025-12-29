@@ -63,55 +63,114 @@ namespace PosSystem.Main.Templates
 
         // --- HÀM VẼ DANH SÁCH MÓN (Đã sửa lỗi mainFontSize) ---
         // --- SỬA HÀM NÀY ĐỂ TĂNG KHOẢNG CÁCH CỘT ---
+        // --- HÀM VẼ DANH SÁCH MÓN (CẬP NHẬT: ItemSize + Kẻ dọc) ---
         private void RenderOrderDetails(Order order, int fontSize, string config)
         {
-            // Parse cấu hình (NoteSize...)
+            // 1. Parse cấu hình
             bool showNote = !config.Contains("ShowNote=False");
             int noteSize = Math.Max(10, fontSize - 2);
-            if (!string.IsNullOrEmpty(config)) { var parts = config.Split(';'); foreach (var p in parts) if (p.StartsWith("NoteSize=") && int.TryParse(p.Split('=')[1], out int s)) noteSize = s; }
+            int itemSize = fontSize; // Mặc định lấy theo fontSize chung
 
-            // Tạo Header Grid
-            var headerGrid = new Grid();
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Tên
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // SL
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Tiền
+            if (!string.IsNullOrEmpty(config))
+            {
+                var parts = config.Split(';');
+                foreach (var p in parts)
+                {
+                    if (p.StartsWith("NoteSize=") && int.TryParse(p.Split('=')[1], out int s)) noteSize = s;
+                    if (p.StartsWith("ItemSize=") && int.TryParse(p.Split('=')[1], out int i)) itemSize = i;
+                }
+            }
 
-            var lblName = new TextBlock { Text = "Món", FontWeight = FontWeights.Bold, FontSize = fontSize };
-            // TĂNG MARGIN Ở ĐÂY TỪ 10 LÊN 25 ĐỂ TÁCH CỘT
-            var lblQty = new TextBlock { Text = "SL", FontWeight = FontWeights.Bold, Margin = new Thickness(25, 0, 25, 0), FontSize = fontSize };
-            var lblTotal = new TextBlock { Text = "Tiền", FontWeight = FontWeights.Bold, FontSize = fontSize };
+            // 2. Định nghĩa cấu trúc cột chung (5 cột: Tên | Kẻ | SL | Kẻ | Tiền)
+            // Width tham khảo: Tên(*), Kẻ(10px), SL(40px), Kẻ(10px), Tiền(Auto)
+            Action<Grid> setupColumns = (g) =>
+            {
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 0. Tên
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });                   // 1. Kẻ
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = 35 });       // 2. SL
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });                   // 3. Kẻ
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                      // 4. Tiền
+            };
 
-            Grid.SetColumn(lblName, 0); Grid.SetColumn(lblQty, 1); Grid.SetColumn(lblTotal, 2);
-            headerGrid.Children.Add(lblName); headerGrid.Children.Add(lblQty); headerGrid.Children.Add(lblTotal);
+            // 3. Vẽ Header
+            var headerGrid = new Grid { Margin = new Thickness(0, 0, 0, 5) };
+            setupColumns(headerGrid);
+
+            var lblName = new TextBlock { Text = "Món", FontWeight = FontWeights.Bold, FontSize = itemSize };
+            var lblQty = new TextBlock { Text = "SL", FontWeight = FontWeights.Bold, FontSize = itemSize, HorizontalAlignment = HorizontalAlignment.Center };
+            var lblTotal = new TextBlock { Text = "Tiền", FontWeight = FontWeights.Bold, FontSize = itemSize, HorizontalAlignment = HorizontalAlignment.Right };
+
+            Grid.SetColumn(lblName, 0);
+            Grid.SetColumn(lblQty, 2);
+            Grid.SetColumn(lblTotal, 4);
+
+            headerGrid.Children.Add(lblName);
+            headerGrid.Children.Add(lblQty);
+            headerGrid.Children.Add(lblTotal);
+
+            // Vẽ đường kẻ dọc cho Header (tùy chọn, ở đây tôi chỉ kẻ ngang phân cách)
             RootPanel.Children.Add(headerGrid);
-            AddSeparator();
 
-            // Vẽ list món
+            // Đường kẻ ngang đậm phân cách Header
+            RootPanel.Children.Add(new System.Windows.Shapes.Rectangle { Height = 2, Fill = Brushes.Black, Margin = new Thickness(0, 0, 0, 5) });
+
+            // 4. Vẽ từng dòng món ăn
             foreach (var d in order.OrderDetails)
             {
                 var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                setupColumns(row);
 
-                var txtName = new TextBlock { Text = d.Dish?.DishName, TextWrapping = TextWrapping.Wrap, FontSize = fontSize };
-                // TĂNG MARGIN CHO CỘT SL
-                var txtQty = new TextBlock { Text = d.Quantity.ToString(), HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(25, 0, 25, 0), FontSize = fontSize };
-                var txtPrice = new TextBlock { Text = d.TotalAmount.ToString("N0"), HorizontalAlignment = HorizontalAlignment.Right, FontSize = fontSize };
+                // Nội dung
+                var txtName = new TextBlock { Text = d.Dish?.DishName, TextWrapping = TextWrapping.Wrap, FontSize = itemSize };
+                var txtQty = new TextBlock { Text = d.Quantity.ToString(), HorizontalAlignment = HorizontalAlignment.Center, FontWeight = FontWeights.Bold, FontSize = itemSize };
+                var txtPrice = new TextBlock { Text = d.TotalAmount.ToString("N0"), HorizontalAlignment = HorizontalAlignment.Right, FontSize = itemSize };
 
-                Grid.SetColumn(txtName, 0); Grid.SetColumn(txtQty, 1); Grid.SetColumn(txtPrice, 2);
-                row.Children.Add(txtName); row.Children.Add(txtQty); row.Children.Add(txtPrice);
+                // Đường kẻ dọc mờ (Màu xám nhạt hoặc đen nét đứt)
+                var vLine1 = new System.Windows.Shapes.Rectangle { Width = 1, Fill = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center };
+                var vLine2 = new System.Windows.Shapes.Rectangle { Width = 1, Fill = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center };
+
+                // Gán cột
+                Grid.SetColumn(txtName, 0);
+                Grid.SetColumn(vLine1, 1);
+                Grid.SetColumn(txtQty, 2);
+                Grid.SetColumn(vLine2, 3);
+                Grid.SetColumn(txtPrice, 4);
+
+                row.Children.Add(txtName);
+                row.Children.Add(vLine1);
+                row.Children.Add(txtQty);
+                row.Children.Add(vLine2);
+                row.Children.Add(txtPrice);
+
                 RootPanel.Children.Add(row);
 
+                // Note (Ghi chú)
                 if (showNote && !string.IsNullOrEmpty(d.Note))
                 {
-                    var txtNote = new TextBlock { Text = $"  ({d.Note})", FontStyle = FontStyles.Italic, FontSize = noteSize, Foreground = Brushes.Black, Margin = new Thickness(5, 0, 0, 0) };
+                    var txtNote = new TextBlock
+                    {
+                        Text = $"({d.Note})",
+                        FontStyle = FontStyles.Italic,
+                        FontSize = noteSize,
+                        Foreground = Brushes.Black,
+                        Margin = new Thickness(10, 0, 0, 2) // Thụt đầu dòng
+                    };
                     RootPanel.Children.Add(txtNote);
                 }
+
+                // Kẻ mờ ngăn cách từng món (tùy chọn, nếu rối mắt có thể bỏ)
+                RootPanel.Children.Add(new System.Windows.Shapes.Rectangle
+                {
+                    Height = 1,
+                    Fill = Brushes.Black,
+                    Opacity = 0.2,
+                    Margin = new Thickness(0, 2, 0, 2)
+                });
             }
+
+            // Đường kẻ ngang kết thúc list
             AddSeparator();
         }
-
         // --- HÀM VẼ TỔNG TIỀN (Hỗ trợ Tạm tính, Thuế, Cỡ chữ riêng) ---
         private void RenderTotal(Order order, PrintElement el)
         {

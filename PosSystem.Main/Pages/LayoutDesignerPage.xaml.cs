@@ -165,7 +165,7 @@ namespace PosSystem.Main.Pages
         public bool ShowDiscount => GetConfig("ShowDisc") == "True";
         public int NoteFontSize { get { if (int.TryParse(GetConfig("NoteSize"), out int s)) return s; return Math.Max(10, FontSize - 2); } }
         public int SubFontSize { get { if (int.TryParse(GetConfig("SubSize"), out int s)) return s; return Math.Max(12, FontSize - 2); } }
-
+        public int ItemFontSize { get { if (int.TryParse(GetConfig("ItemSize"), out int s)) return s; return 14; } }
         public PrintElementViewModel(PrintElement origin)
         {
             // Copy dữ liệu từ Model sang ViewModel
@@ -354,6 +354,7 @@ namespace PosSystem.Main.Pages
                             pnlOptionProp.Visibility = Visibility.Visible;
                             if (optOrderDetails != null) optOrderDetails.Visibility = Visibility.Visible;
                             if (optTotal != null) optTotal.Visibility = Visibility.Collapsed;
+                            if (txtItemSize != null) txtItemSize.Text = el.ItemFontSize.ToString();
                             if (chkShowNote != null) chkShowNote.IsChecked = el.ShowNote;
                             if (txtNoteSize != null) txtNoteSize.Text = el.NoteFontSize.ToString();
                         }
@@ -393,6 +394,7 @@ namespace PosSystem.Main.Pages
             List<string> configs = new List<string>();
             if (_selectedElement.ElementType == "OrderDetails" || _selectedElement.ElementType == "KitchenOrderDetails")
             {
+                if (txtItemSize != null && int.TryParse(txtItemSize.Text, out int iSize)) configs.Add($"ItemSize={iSize}");
                 if (chkShowNote != null && chkShowNote.IsChecked == false) configs.Add("ShowNote=False");
                 if (txtNoteSize != null && int.TryParse(txtNoteSize.Text, out int nSize)) configs.Add($"NoteSize={nSize}");
                 _selectedElement.Content = string.Join(";", configs);
