@@ -4,7 +4,7 @@
              Width="550"
              Background="White"
              FontFamily="Arial">
-    <!-- Width 550px là chuẩn đẹp cho khổ giấy 80mm khi in ảnh -->
+    <!-- Width 550px phù hợp với máy in 80mm -->
     <!-- Layout được render động từ JSON template trong code-behind -->
 
     <StackPanel x:Name="RootPanel"

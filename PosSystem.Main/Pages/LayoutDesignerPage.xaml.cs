@@ -349,6 +349,7 @@ namespace PosSystem.Main.Pages
                 {
                     if (pnlImageProp != null) pnlImageProp.Visibility = Visibility.Visible;
                     LoadImagePreview(el.Content);
+                    if (txtImageHeight != null) txtImageHeight.Text = el.ImageHeight.ToString();
                 }
                 else
                 {
@@ -404,6 +405,13 @@ namespace PosSystem.Main.Pages
             if (chkBold != null) _selectedElement.IsBold = chkBold.IsChecked == true;
             if (chkVisible != null) _selectedElement.IsVisible = chkVisible.IsChecked == true;
 
+            // Tuỳ chỉnh độ lớn ảnh (Logo, QRCode)
+            if ((_selectedElement.ElementType == "Logo" || _selectedElement.ElementType == "QRCode") && txtImageHeight != null)
+            {
+                if (int.TryParse(txtImageHeight.Text, out int imgHeight))
+                    _selectedElement.ImageHeight = imgHeight;
+            }
+
             // Lưu cấu hình vào Content cho các element đặc biệt
             List<string> configs = new List<string>();
             if (_selectedElement.ElementType == "OrderDetails" || _selectedElement.ElementType == "KitchenOrderDetails")
@@ -431,11 +439,55 @@ namespace PosSystem.Main.Pages
         private void Prop_Changed(object sender, RoutedEventArgs e) => UpdateModelFromUI();
         private void Prop_Changed(object sender, SelectionChangedEventArgs e) => UpdateModelFromUI();
 
+        private void NumberValidationTextBox(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            System.Text.RegularExpressions.Regex regex = new System.Text.RegularExpressions.Regex("[^0-9]+");
+            e.Handled = regex.IsMatch(e.Text);
+        }
+
         private void BtnDelete_Click(object sender, RoutedEventArgs e) { if (_selectedElement != null) { int idx = lstElements.SelectedIndex; _elements.Remove(_selectedElement); RefreshList(idx >= _elements.Count ? _elements.Count - 1 : idx); } }
         private void BtnUp_Click(object sender, RoutedEventArgs e) { int idx = lstElements.SelectedIndex; if (idx > 0) { var item = _elements[idx]; _elements.RemoveAt(idx); _elements.Insert(idx - 1, item); RefreshList(idx - 1); } }
         private void BtnDown_Click(object sender, RoutedEventArgs e) { int idx = lstElements.SelectedIndex; if (idx >= 0 && idx < _elements.Count - 1) { var item = _elements[idx]; _elements.RemoveAt(idx); _elements.Insert(idx + 1, item); RefreshList(idx + 1); } }
-        private void BtnUploadImage_Click(object sender, RoutedEventArgs e) { if (_selectedElement == null) return; OpenFileDialog dlg = new OpenFileDialog { Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp" }; if (dlg.ShowDialog() == true) { try { string destFolder = Path.Combine(AppContext.BaseDirectory, "Images"); if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder); string ext = Path.GetExtension(dlg.FileName); string newName = $"img_{DateTime.Now.Ticks}{ext}"; File.Copy(dlg.FileName, Path.Combine(destFolder, newName), true); _selectedElement.Content = newName; LoadImagePreview(newName); UpdateModelFromUI(); } catch (Exception ex) { MessageBox.Show("Lỗi: " + ex.Message); } } }
-        void LoadImagePreview(string fileName) { try { string path = Path.Combine(AppContext.BaseDirectory, "Images", fileName); if (File.Exists(path)) imgPreview.Source = new BitmapImage(new Uri(path)); else imgPreview.Source = null; } catch { if (imgPreview != null) imgPreview.Source = null; } }
+        private void BtnUploadImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedElement == null) return;
+            OpenFileDialog dlg = new OpenFileDialog { Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp" };
+            if (dlg.ShowDialog() == true)
+            {
+                try
+                {
+                    // Lưu đường dẫn tuyệt đối để dùng trực tiếp
+                    _selectedElement.Content = dlg.FileName;
+                    LoadImagePreview(dlg.FileName);
+                    UpdateModelFromUI();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Lỗi: " + ex.Message);
+                }
+            }
+        }
+        void LoadImagePreview(string filePath)
+        {
+            try
+            {
+                // Hỗ trợ cả đường dẫn tuyệt đối và tên file
+                string path = filePath;
+                if (!Path.IsPathRooted(filePath))
+                {
+                    path = Path.Combine(AppContext.BaseDirectory, "Images", filePath);
+                }
+
+                if (File.Exists(path))
+                    imgPreview.Source = new BitmapImage(new Uri(path));
+                else
+                    imgPreview.Source = null;
+            }
+            catch
+            {
+                if (imgPreview != null) imgPreview.Source = null;
+            }
+        }
         private void BtnSave_Click(object sender, RoutedEventArgs e) { string templateType = TemplateType ?? "Bill"; using (var db = new AppDbContext()) { var template = db.PrintTemplates.FirstOrDefault(t => t.TemplateType == templateType && t.IsActive); if (template == null) { template = new PrintTemplate { TemplateName = templateType, TemplateType = templateType, IsActive = true }; db.PrintTemplates.Add(template); } var rawList = _elements.Select(vm => vm.ToModel()).ToList(); template.TemplateContentJson = JsonSerializer.Serialize(rawList); db.SaveChanges(); MessageBox.Show("✅ Đã lưu cấu trúc thành công!"); } }
     }
 }

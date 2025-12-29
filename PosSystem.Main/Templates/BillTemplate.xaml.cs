@@ -18,7 +18,7 @@ namespace PosSystem.Main.Templates
             InitializeComponent();
         }
 
-        public void SetData(Order order, List<PrintElement> layoutElements)
+        public void SetData(Order order, List<PrintElement> layoutElements, string paymentMethod = "Cash")
         {
             RootPanel.Children.Clear();
 
@@ -44,8 +44,15 @@ namespace PosSystem.Main.Templates
                         break;
 
                     case "Logo":
+                        AddImage(el.Content, el.Align, el.ImageHeight);
+                        break;
+
                     case "QRCode":
-                        AddImage(el.Content, el.Align);
+                        // Chỉ hiển thị QR code khi phương thức thanh toán là Transfer (QR)
+                        if (paymentMethod == "Transfer")
+                        {
+                            AddImage(el.Content, el.Align, el.ImageHeight);
+                        }
                         break;
 
                     case "OrderDetails":
@@ -94,7 +101,7 @@ namespace PosSystem.Main.Templates
             const int lineColumnWidth = 5; // Width cố định cho cột kẻ
             const int qtyColumnWidth = 40; // Width cố định cho cột số lượng
             const int priceColumnWidth = 120; // Width cố định cho cột tiền (đủ để hiển thị 1.000.000)
-            
+
             Action<Grid> setupColumns = (g) =>
             {
                 g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 0. Tên
@@ -115,17 +122,17 @@ namespace PosSystem.Main.Templates
             var lblTotal = new TextBlock { Text = "Tiền", FontWeight = FontWeights.Bold, FontSize = headerSize, HorizontalAlignment = HorizontalAlignment.Right };
 
             // Đường kẻ dọc cho Header (để align với data rows) - luôn hiển thị rõ
-            var headerVLine1 = new System.Windows.Shapes.Rectangle 
-            { 
-                Width = 1, 
-                Fill = Brushes.Black, 
+            var headerVLine1 = new System.Windows.Shapes.Rectangle
+            {
+                Width = 1,
+                Fill = Brushes.Black,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
-            var headerVLine2 = new System.Windows.Shapes.Rectangle 
-            { 
-                Width = 1, 
-                Fill = Brushes.Black, 
+            var headerVLine2 = new System.Windows.Shapes.Rectangle
+            {
+                Width = 1,
+                Fill = Brushes.Black,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
@@ -155,21 +162,21 @@ namespace PosSystem.Main.Templates
 
                 // Nội dung
                 var txtName = new TextBlock { Text = d.Dish?.DishName, TextWrapping = TextWrapping.Wrap, FontSize = itemSize };
-                var txtQty = new TextBlock { Text = d.Quantity.ToString(), HorizontalAlignment = HorizontalAlignment.Center, FontWeight = FontWeights.Bold, FontSize = itemSize };
+                var txtQty = new TextBlock { Text = d.Quantity.ToString(), HorizontalAlignment = HorizontalAlignment.Center, FontSize = itemSize };
                 var txtPrice = new TextBlock { Text = d.TotalAmount.ToString("N0"), HorizontalAlignment = HorizontalAlignment.Right, FontSize = itemSize };
 
                 // Đường kẻ dọc - luôn hiển thị rõ để bao quanh cột số lượng
-                var vLine1 = new System.Windows.Shapes.Rectangle 
-                { 
-                    Width = 1, 
-                    Fill = Brushes.Black, 
+                var vLine1 = new System.Windows.Shapes.Rectangle
+                {
+                    Width = 1,
+                    Fill = Brushes.Black,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Stretch
                 };
-                var vLine2 = new System.Windows.Shapes.Rectangle 
-                { 
-                    Width = 1, 
-                    Fill = Brushes.Black, 
+                var vLine2 = new System.Windows.Shapes.Rectangle
+                {
+                    Width = 1,
+                    Fill = Brushes.Black,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Stretch
                 };
@@ -319,23 +326,56 @@ namespace PosSystem.Main.Templates
             RootPanel.Children.Add(line);
         }
 
-        private void AddImage(string fileName, string align)
+        private void AddImage(string fileName, string align, int imageHeight = 300)
         {
             try
             {
-                string path = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Images", fileName);
+                string path = fileName;
+
+                // Nếu là đường dẫn tuyệt đối, sử dụng trực tiếp
+                if (Path.IsPathRooted(fileName) && File.Exists(fileName))
+                {
+                    path = fileName;
+                }
+                // Nếu là tên file, tìm trong thư mục Images
+                else
+                {
+                    path = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Images", fileName);
+                }
+
                 if (File.Exists(path))
                 {
-                    var img = new Image { Source = new BitmapImage(new Uri(path)), Height = 100, Stretch = Stretch.Uniform };
+                    // Tạo BitmapImage với UriKind.Absolute
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.UriSource = new Uri(path, UriKind.Absolute);
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.EndInit();
+                    bitmap.Freeze();
 
-                    if (align == "Center") img.HorizontalAlignment = HorizontalAlignment.Center;
-                    else if (align == "Right") img.HorizontalAlignment = HorizontalAlignment.Right;
-                    else img.HorizontalAlignment = HorizontalAlignment.Left;
+                    var img = new Image
+                    {
+                        Source = bitmap,
+                        Height = imageHeight,
+                        Stretch = Stretch.Uniform  // Giữ nguyên aspect ratio, width tự động
+                    };
 
-                    RootPanel.Children.Add(img);
+                    // Wrap ảnh trong Border để cố định kích thước
+                    var border = new System.Windows.Controls.Border
+                    {
+                        Child = img,
+                        HorizontalAlignment = align == "Center" ? HorizontalAlignment.Center :
+                                             (align == "Right" ? HorizontalAlignment.Right : HorizontalAlignment.Left),
+                        Margin = new Thickness(0, 10, 0, 10)
+                    };
+
+                    RootPanel.Children.Add(border);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AddImage Error] {ex.Message}");
+            }
         }
     }
 }

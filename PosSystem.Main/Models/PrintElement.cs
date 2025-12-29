@@ -9,5 +9,6 @@ namespace PosSystem.Main.Models
         public int FontSize { get; set; } = 14;
         public bool IsBold { get; set; } = false;
         public bool IsVisible { get; set; } = true;
+        public int ImageHeight { get; set; } = 300; // Độ lớn ảnh (Logo, QRCode) - mặc định 300px
     }
 }

@@ -111,8 +111,8 @@ namespace PosSystem.Main.Services
                     {
                         var template = new Templates.BillTemplate();
 
-                        // Truyền thêm elements vào SetData
-                        template.SetData(order, elements);
+                        // Truyền thêm elements và paymentMethod vào SetData
+                        template.SetData(order, elements, order.PaymentMethod);
 
                         int width = printer.PaperSize == 58 ? 380 : 550;
                         using (var bmp = EscPosImageHelper.RenderVisualToBitmap(template, width))

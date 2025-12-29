@@ -513,6 +513,19 @@
                                         <Image x:Name="imgPreview"
                                                Height="120"
                                                Stretch="Uniform"/>
+                                        <TextBlock Text="Độ lớn ảnh (px):"
+                                                   Margin="0,15,0,5"
+                                                   FontSize="12"/>
+                                        <TextBox x:Name="txtImageHeight"
+                                                 Text="300"
+                                                 Height="30"
+                                                 Padding="5"
+                                                 PreviewTextInput="NumberValidationTextBox"
+                                                 TextChanged="Prop_Changed"/>
+                                        <TextBlock Text="(Gợi ý: 200-400 cho in đẹp)"
+                                                   Margin="0,5,0,0"
+                                                   FontSize="10"
+                                                   Foreground="#999"/>
                                 </StackPanel>
 
                                 <Separator Margin="0,20"/>
