@@ -88,16 +88,22 @@ namespace PosSystem.Main.Templates
                 }
             }
 
-            // 2. Định nghĩa cấu trúc cột chung (5 cột: Tên | Kẻ | SL | Kẻ | Tiền)
-            // Width: Tên(*), Kẻ(columnSpacing), SL(40px cố định), Kẻ(columnSpacing), Tiền(90px cố định)
-            // Sử dụng width cố định cho tất cả các cột (trừ cột Tên) để đảm bảo alignment hoàn hảo
+            // 2. Định nghĩa cấu trúc cột (7 cột: Tên | Spacing | Kẻ | SL | Kẻ | Spacing | Tiền)
+            // ColumnSpacing dùng để di chuyển cột SL sang trái/phải, không ảnh hưởng width của cột kẻ
+            // Cột kẻ luôn có width cố định 5px để đường kẻ | | hiển thị rõ
+            const int lineColumnWidth = 5; // Width cố định cho cột kẻ
+            const int qtyColumnWidth = 40; // Width cố định cho cột số lượng
+            const int priceColumnWidth = 120; // Width cố định cho cột tiền (đủ để hiển thị 1.000.000)
+            
             Action<Grid> setupColumns = (g) =>
             {
                 g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 0. Tên
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(columnSpacing) });        // 1. Kẻ
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });                    // 2. SL - width cố định 40px
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(columnSpacing) });        // 3. Kẻ
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(90) });                    // 4. Tiền - width cố định 90px để chứa số tiền lớn
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(columnSpacing) });        // 1. Spacing trái
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(lineColumnWidth) });      // 2. Kẻ trái - width cố định
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(qtyColumnWidth) });       // 3. SL - width cố định
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(lineColumnWidth) });      // 4. Kẻ phải - width cố định
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(columnSpacing) });        // 5. Spacing phải
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(priceColumnWidth) });     // 6. Tiền - width cố định 120px
             };
 
             // 3. Vẽ Header
@@ -108,15 +114,27 @@ namespace PosSystem.Main.Templates
             var lblQty = new TextBlock { Text = "SL", FontWeight = FontWeights.Bold, FontSize = headerSize, HorizontalAlignment = HorizontalAlignment.Center };
             var lblTotal = new TextBlock { Text = "Tiền", FontWeight = FontWeights.Bold, FontSize = headerSize, HorizontalAlignment = HorizontalAlignment.Right };
 
-            // Đường kẻ dọc cho Header (để align với data rows)
-            var headerVLine1 = new System.Windows.Shapes.Rectangle { Width = 1, Fill = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center };
-            var headerVLine2 = new System.Windows.Shapes.Rectangle { Width = 1, Fill = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center };
+            // Đường kẻ dọc cho Header (để align với data rows) - luôn hiển thị rõ
+            var headerVLine1 = new System.Windows.Shapes.Rectangle 
+            { 
+                Width = 1, 
+                Fill = Brushes.Black, 
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+            var headerVLine2 = new System.Windows.Shapes.Rectangle 
+            { 
+                Width = 1, 
+                Fill = Brushes.Black, 
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
 
             Grid.SetColumn(lblName, 0);
-            Grid.SetColumn(headerVLine1, 1);
-            Grid.SetColumn(lblQty, 2);
-            Grid.SetColumn(headerVLine2, 3);
-            Grid.SetColumn(lblTotal, 4);
+            Grid.SetColumn(headerVLine1, 2); // Kẻ trái ở cột 2
+            Grid.SetColumn(lblQty, 3);       // SL ở cột 3
+            Grid.SetColumn(headerVLine2, 4); // Kẻ phải ở cột 4
+            Grid.SetColumn(lblTotal, 6);     // Tiền ở cột 6
 
             headerGrid.Children.Add(lblName);
             headerGrid.Children.Add(headerVLine1);
@@ -140,16 +158,28 @@ namespace PosSystem.Main.Templates
                 var txtQty = new TextBlock { Text = d.Quantity.ToString(), HorizontalAlignment = HorizontalAlignment.Center, FontWeight = FontWeights.Bold, FontSize = itemSize };
                 var txtPrice = new TextBlock { Text = d.TotalAmount.ToString("N0"), HorizontalAlignment = HorizontalAlignment.Right, FontSize = itemSize };
 
-                // Đường kẻ dọc mờ (Màu xám nhạt hoặc đen nét đứt)
-                var vLine1 = new System.Windows.Shapes.Rectangle { Width = 1, Fill = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center };
-                var vLine2 = new System.Windows.Shapes.Rectangle { Width = 1, Fill = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center };
+                // Đường kẻ dọc - luôn hiển thị rõ để bao quanh cột số lượng
+                var vLine1 = new System.Windows.Shapes.Rectangle 
+                { 
+                    Width = 1, 
+                    Fill = Brushes.Black, 
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Stretch
+                };
+                var vLine2 = new System.Windows.Shapes.Rectangle 
+                { 
+                    Width = 1, 
+                    Fill = Brushes.Black, 
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Stretch
+                };
 
                 // Gán cột
                 Grid.SetColumn(txtName, 0);
-                Grid.SetColumn(vLine1, 1);
-                Grid.SetColumn(txtQty, 2);
-                Grid.SetColumn(vLine2, 3);
-                Grid.SetColumn(txtPrice, 4);
+                Grid.SetColumn(vLine1, 2);   // Kẻ trái ở cột 2
+                Grid.SetColumn(txtQty, 3);   // SL ở cột 3
+                Grid.SetColumn(vLine2, 4);   // Kẻ phải ở cột 4
+                Grid.SetColumn(txtPrice, 6); // Tiền ở cột 6
 
                 row.Children.Add(txtName);
                 row.Children.Add(vLine1);
