@@ -11,117 +11,120 @@
         BorderBrush="#28A745"
         BorderThickness="2">
 
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        <Grid Margin="20">
+                <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <TextBlock Text="XÁC NHẬN THANH TOÁN"
-                FontSize="24"
-                FontWeight="Bold"
-                HorizontalAlignment="Center"
-                Foreground="#333"/>
-        <TextBlock x:Name="lblOrderInfo"
-                Text="Bàn 1 - Đơn #102"
-                FontSize="14"
-                HorizontalAlignment="Center"
-                Foreground="#666"
-                Margin="0,5,0,20"/>
+                <!-- Header -->
+                <TextBlock Grid.Row="0"
+                           Text="XÁC NHẬN THANH TOÁN"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"
+                           Foreground="#333"/>
+                <TextBlock Grid.Row="1"
+                           x:Name="lblOrderInfo"
+                           Text="Bàn 1 - Đơn #102"
+                           FontSize="14"
+                           HorizontalAlignment="Center"
+                           Foreground="#666"
+                           Margin="0,5,0,20"/>
 
-        <!-- Tổng tiền -->
-        <Border Grid.Row="1"
-                Background="#F8F9FA"
-                Padding="20"
-                CornerRadius="10"
-                Margin="0,0,0,20">
-            <StackPanel>
-                <DockPanel Margin="0,0,0,5">
-                    <TextBlock Text="Tổng tiền hàng:"
-                            FontSize="16"/>
-                    <TextBlock x:Name="txtSubTotal"
-                            Text="100.000đ"
-                            FontSize="16"
-                            FontWeight="Bold"
-                            HorizontalAlignment="Right"/>
-                </DockPanel>
-                <DockPanel Margin="0,0,0,5">
-                    <TextBlock Text="Giảm giá:"
-                            FontSize="16"
-                            Foreground="Red"/>
-                    <TextBlock x:Name="txtDiscount"
-                            Text="-0đ"
-                            FontSize="16"
-                            FontWeight="Bold"
-                            Foreground="Red"
-                            HorizontalAlignment="Right"/>
-                </DockPanel>
-                <Separator Margin="0,10"/>
-                <DockPanel>
-                    <TextBlock Text="KHÁCH CẦN TRẢ:"
-                            FontSize="20"
-                            FontWeight="Bold"/>
-                    <TextBlock x:Name="txtFinal"
-                            Text="100.000đ"
-                            FontSize="32"
-                            FontWeight="Bold"
-                            Foreground="#28A745"
-                            HorizontalAlignment="Right"/>
-                </DockPanel>
-            </StackPanel>
-        </Border>
+                <!-- Tổng tiền -->
+                <Border Grid.Row="2"
+                        Background="#F8F9FA"
+                        Padding="20"
+                        CornerRadius="10"
+                        Margin="0,0,0,20">
+                        <StackPanel>
+                                <DockPanel Margin="0,0,0,5">
+                                        <TextBlock Text="Tổng tiền hàng:"
+                                                   FontSize="16"/>
+                                        <TextBlock x:Name="txtSubTotal"
+                                                   Text="100.000đ"
+                                                   FontSize="16"
+                                                   FontWeight="Bold"
+                                                   HorizontalAlignment="Right"/>
+                                </DockPanel>
+                                <DockPanel Margin="0,0,0,5">
+                                        <TextBlock Text="Giảm giá:"
+                                                   FontSize="16"
+                                                   Foreground="Red"/>
+                                        <TextBlock x:Name="txtDiscount"
+                                                   Text="-0đ"
+                                                   FontSize="16"
+                                                   FontWeight="Bold"
+                                                   Foreground="Red"
+                                                   HorizontalAlignment="Right"/>
+                                </DockPanel>
+                                <Separator Margin="0,10"/>
+                                <DockPanel>
+                                        <TextBlock Text="KHÁCH CẦN TRẢ:"
+                                                   FontSize="20"
+                                                   FontWeight="Bold"/>
+                                        <TextBlock x:Name="txtFinal"
+                                                   Text="100.000đ"
+                                                   FontSize="32"
+                                                   FontWeight="Bold"
+                                                   Foreground="#28A745"
+                                                   HorizontalAlignment="Right"/>
+                                </DockPanel>
+                        </StackPanel>
+                </Border>
 
-        <!-- Phương thức thanh toán -->
-        <StackPanel Grid.Row="2">
-            <TextBlock Text="Phương thức:"
-                    FontWeight="Bold"
-                    Margin="0,0,0,10"/>
-            <StackPanel Orientation="Horizontal"
-                    HorizontalAlignment="Center">
-                <RadioButton x:Name="radCash"
-                        Content="💵 Tiền mặt"
-                        GroupName="PayMethod"
-                        IsChecked="True"
-                             FontSize="16"
-                        Margin="0,0,20,0"
-                        VerticalContentAlignment="Center"/>
-                <RadioButton x:Name="radTransfer"
-                        Content="📱 Chuyển khoản (QR)"
-                        GroupName="PayMethod"
-                             FontSize="16"
-                        VerticalContentAlignment="Center"/>
-            </StackPanel>
-        </StackPanel>
+                <!-- Phương thức thanh toán -->
+                <StackPanel Grid.Row="3">
+                        <TextBlock Text="Phương thức:"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,10"/>
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center">
+                                <RadioButton x:Name="radCash"
+                                             Content="💵 Tiền mặt"
+                                             GroupName="PayMethod"
+                                             IsChecked="True"
+                                             FontSize="16"
+                                             Margin="0,0,20,0"
+                                             VerticalContentAlignment="Center"/>
+                                <RadioButton x:Name="radTransfer"
+                                             Content="📱 Chuyển khoản (QR)"
+                                             GroupName="PayMethod"
+                                             FontSize="16"
+                                             VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                </StackPanel>
 
-        <!-- Buttons -->
-        <StackPanel Grid.Row="3"
-                Orientation="Horizontal"
-                HorizontalAlignment="Right"
-                Margin="0,20,0,0">
-            <Button Content="🖨 In Tạm Tính"
-                    Width="120"
-                    Height="45"
-                    Background="#17A2B8"
-                    Foreground="White"
-                    Margin="0,0,10,0"
-                    Click="BtnPrintCheck_Click"/>
-            <Button Content="Hủy"
-                    Width="100"
-                    Height="45"
-                    Background="#6C757D"
-                    Foreground="White"
-                    Margin="0,0,10,0"
-                    Click="BtnCancel_Click"/>
-            <Button Content="✅ THANH TOÁN"
-                    Width="150"
-                    Height="45"
-                    Background="#28A745"
-                    Foreground="White"
-                    FontWeight="Bold"
-                    Click="BtnPay_Click"/>
-        </StackPanel>
-    </Grid>
+                <!-- Buttons -->
+                <StackPanel Grid.Row="4"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            Margin="0,20,0,0">
+                        <Button Content="🖨 In Tạm Tính"
+                                Width="120"
+                                Height="45"
+                                Background="#17A2B8"
+                                Foreground="White"
+                                Margin="0,0,10,0"
+                                Click="BtnPrintCheck_Click"/>
+                        <Button Content="Hủy"
+                                Width="100"
+                                Height="45"
+                                Background="#6C757D"
+                                Foreground="White"
+                                Margin="0,0,10,0"
+                                Click="BtnCancel_Click"/>
+                        <Button Content="✅ THANH TOÁN"
+                                Width="150"
+                                Height="45"
+                                Background="#28A745"
+                                Foreground="White"
+                                FontWeight="Bold"
+                                Click="BtnPay_Click"/>
+                </StackPanel>
+        </Grid>
 </Window>
