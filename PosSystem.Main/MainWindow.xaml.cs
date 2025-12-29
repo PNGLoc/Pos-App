@@ -19,6 +19,7 @@ namespace PosSystem.Main
         public int TableID { get; set; }
         public required string TableName { get; set; }
         public required string TableStatus { get; set; }
+        public string TimeDisplay { get; set; } = "";
         public string StatusDisplay => TableStatus == "Occupied" ? "Có khách" : "Trống";
         public SolidColorBrush ColorBrush => TableStatus == "Occupied" ? new SolidColorBrush(Color.FromRgb(220, 53, 69)) : new SolidColorBrush(Color.FromRgb(40, 167, 69));
     }
@@ -41,6 +42,7 @@ namespace PosSystem.Main
         private List<Dish> _allDishes = new List<Dish>();
         private List<DishViewModel> _dishViewModels = new List<DishViewModel>();
         private DispatcherTimer _tableTimeTimer = new DispatcherTimer();
+        private DispatcherTimer _tableListUpdateTimer = new DispatcherTimer();
         private DateTime? _currentOrderTime = null;
 
         public MainWindow()
@@ -52,6 +54,11 @@ namespace PosSystem.Main
             // Setup timer to update table time every second
             _tableTimeTimer.Interval = TimeSpan.FromSeconds(1);
             _tableTimeTimer.Tick += TableTimeTimer_Tick;
+
+            // Setup timer to refresh table list every second (for displaying elapsed times)
+            _tableListUpdateTimer.Interval = TimeSpan.FromSeconds(1);
+            _tableListUpdateTimer.Tick += (s, e) => LoadTables();
+            _tableListUpdateTimer.Start();
 
             LoadTables();
             LoadMenu();
@@ -102,12 +109,34 @@ namespace PosSystem.Main
         {
             using (var db = new AppDbContext())
             {
-                var tables = db.Tables.ToList();
-                lstTables.ItemsSource = tables.Select(t => new TableViewModel
+                var tables = db.Tables.Include(t => t.Orders.Where(o => o.OrderStatus == "Pending")).ThenInclude(o => o.OrderDetails).ToList();
+                lstTables.ItemsSource = tables.Select(t =>
                 {
-                    TableID = t.TableID,
-                    TableName = t.TableName,
-                    TableStatus = t.TableStatus
+                    var vm = new TableViewModel
+                    {
+                        TableID = t.TableID,
+                        TableName = t.TableName,
+                        TableStatus = t.TableStatus,
+                        TimeDisplay = ""
+                    };
+
+                    // Calculate time for occupied tables with pending orders that have been sent to kitchen
+                    if (t.TableStatus == "Occupied" && t.Orders.Any())
+                    {
+                        var order = t.Orders.FirstOrDefault(o => o.OrderStatus == "Pending");
+                        if (order != null && order.OrderDetails.Any(d => d.KitchenBatch > 0))
+                        {
+                            var elapsed = DateTime.Now - order.OrderTime;
+                            if (elapsed.TotalMinutes < 1)
+                                vm.TimeDisplay = $"{(int)elapsed.TotalSeconds}s";
+                            else if (elapsed.TotalHours < 1)
+                                vm.TimeDisplay = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
+                            else
+                                vm.TimeDisplay = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
+                        }
+                    }
+
+                    return vm;
                 }).ToList();
             }
         }

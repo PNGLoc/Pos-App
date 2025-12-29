@@ -279,6 +279,11 @@
                                                            FontWeight="Bold"
                                                            FontSize="22"
                                                            TextAlignment="Center"/>
+                                                <TextBlock Text="{Binding TimeDisplay}"
+                                                           Foreground="White"
+                                                           FontSize="14"
+                                                           TextAlignment="Center"
+                                                           Margin="0,4,0,0"/>
                                                 <Border Background="White"
                                                         CornerRadius="10"
                                                         Padding="10,4"
@@ -495,15 +500,15 @@
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="Món"
-                                        Width="*"
-                                        IsReadOnly="True">
+                                                        Width="*"
+                                                        IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Margin="5,5">
                                                 <TextBlock Text="{Binding DishName}"
-                                                        FontWeight="SemiBold"
-                                                        TextWrapping="Wrap"
-                                                        Margin="0,0,0,3"/>
+                                                           FontWeight="SemiBold"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,0,0,3"/>
 
                                                 <TextBox Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                          Tag="{Binding OrderDetailID}"

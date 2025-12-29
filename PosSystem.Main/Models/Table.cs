@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace PosSystem.Main.Models
 {
@@ -15,5 +16,8 @@ namespace PosSystem.Main.Models
 
         // Trạng thái: Empty (Trống), Occupied (Có khách)
         public string TableStatus { get; set; } = "Empty";
+
+        // Navigation property
+        public ICollection<Order> Orders { get; set; } = new List<Order>();
     }
 }
