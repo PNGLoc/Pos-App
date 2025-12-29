@@ -165,7 +165,10 @@ namespace PosSystem.Main.Pages
         public bool ShowDiscount => GetConfig("ShowDisc") == "True";
         public int NoteFontSize { get { if (int.TryParse(GetConfig("NoteSize"), out int s)) return s; return Math.Max(10, FontSize - 2); } }
         public int SubFontSize { get { if (int.TryParse(GetConfig("SubSize"), out int s)) return s; return Math.Max(12, FontSize - 2); } }
-        public int ItemFontSize { get { if (int.TryParse(GetConfig("ItemSize"), out int s)) return s; return 14; } }
+        public int ItemFontSize { get { if (int.TryParse(GetConfig("ItemSize"), out int s)) return s; return FontSize; } }
+        public int HeaderFontSize { get { if (int.TryParse(GetConfig("HeaderSize"), out int s)) return s; return FontSize; } }
+        public int TotalHeaderFontSize { get { if (int.TryParse(GetConfig("TotalHeaderSize"), out int s)) return s; return FontSize; } }
+        public int ColumnSpacing { get { if (int.TryParse(GetConfig("ColumnSpacing"), out int s)) return s; return 10; } }
         public PrintElementViewModel(PrintElement origin)
         {
             // Copy dữ liệu từ Model sang ViewModel
@@ -302,11 +305,14 @@ namespace PosSystem.Main.Pages
 
                     case "Logo":
                     case "QRCode":
+                        newEl.ElementType = tag;
+                        newEl.Content = tag; // Gán content để DisplayPreview hoạt động
+                        break;
                     case "OrderDetails":
                     case "KitchenOrderDetails":
                     case "Total":
                         newEl.ElementType = tag;
-                        newEl.Content = tag; // Gán content để DisplayPreview hoạt động
+                        newEl.Content = ""; // Content sẽ chứa config string, không phải tag name
                         break;
                 }
 
@@ -354,9 +360,11 @@ namespace PosSystem.Main.Pages
                             pnlOptionProp.Visibility = Visibility.Visible;
                             if (optOrderDetails != null) optOrderDetails.Visibility = Visibility.Visible;
                             if (optTotal != null) optTotal.Visibility = Visibility.Collapsed;
+                            if (txtHeaderSize != null) txtHeaderSize.Text = el.HeaderFontSize.ToString();
                             if (txtItemSize != null) txtItemSize.Text = el.ItemFontSize.ToString();
                             if (chkShowNote != null) chkShowNote.IsChecked = el.ShowNote;
                             if (txtNoteSize != null) txtNoteSize.Text = el.NoteFontSize.ToString();
+                            if (txtColumnSpacing != null) txtColumnSpacing.Text = el.ColumnSpacing.ToString();
                         }
                         else if (el.ElementType == "Total")
                         {
@@ -365,6 +373,7 @@ namespace PosSystem.Main.Pages
                             if (optTotal != null) optTotal.Visibility = Visibility.Visible;
                             if (chkShowSubTotal != null) chkShowSubTotal.IsChecked = el.ShowSubTotal;
                             if (chkShowDiscount != null) chkShowDiscount.IsChecked = el.ShowDiscount;
+                            if (txtTotalHeaderSize != null) txtTotalHeaderSize.Text = el.TotalHeaderFontSize.ToString();
                             if (txtSubSize != null) txtSubSize.Text = el.SubFontSize.ToString();
                         }
                     }
@@ -384,25 +393,33 @@ namespace PosSystem.Main.Pages
             if (_isInternalUpdate || _selectedElement == null) return;
 
             // ViewModel tự động Notify, không cần Refresh() list nữa
-            if (txtContent != null) _selectedElement.Content = txtContent.Text;
+            // Chỉ cập nhật Content từ txtContent cho Text elements
+            if (_selectedElement.ElementType == "Text" && txtContent != null)
+            {
+                _selectedElement.Content = txtContent.Text;
+            }
+
             if (cboAlign != null) _selectedElement.Align = cboAlign.SelectedIndex == 0 ? "Left" : (cboAlign.SelectedIndex == 2 ? "Right" : "Center");
             if (txtFontSize != null && int.TryParse(txtFontSize.Text, out int size)) _selectedElement.FontSize = size;
             if (chkBold != null) _selectedElement.IsBold = chkBold.IsChecked == true;
             if (chkVisible != null) _selectedElement.IsVisible = chkVisible.IsChecked == true;
 
-            // Lưu cấu hình vào Content
+            // Lưu cấu hình vào Content cho các element đặc biệt
             List<string> configs = new List<string>();
             if (_selectedElement.ElementType == "OrderDetails" || _selectedElement.ElementType == "KitchenOrderDetails")
             {
+                if (txtHeaderSize != null && int.TryParse(txtHeaderSize.Text, out int hSize)) configs.Add($"HeaderSize={hSize}");
                 if (txtItemSize != null && int.TryParse(txtItemSize.Text, out int iSize)) configs.Add($"ItemSize={iSize}");
                 if (chkShowNote != null && chkShowNote.IsChecked == false) configs.Add("ShowNote=False");
                 if (txtNoteSize != null && int.TryParse(txtNoteSize.Text, out int nSize)) configs.Add($"NoteSize={nSize}");
+                if (txtColumnSpacing != null && int.TryParse(txtColumnSpacing.Text, out int cSpacing)) configs.Add($"ColumnSpacing={cSpacing}");
                 _selectedElement.Content = string.Join(";", configs);
             }
             else if (_selectedElement.ElementType == "Total")
             {
                 if (chkShowSubTotal != null && chkShowSubTotal.IsChecked == true) configs.Add("ShowSub=True");
                 if (chkShowDiscount != null && chkShowDiscount.IsChecked == true) configs.Add("ShowDisc=True");
+                if (txtTotalHeaderSize != null && int.TryParse(txtTotalHeaderSize.Text, out int tHSize)) configs.Add($"TotalHeaderSize={tHSize}");
                 if (txtSubSize != null && int.TryParse(txtSubSize.Text, out int sSize)) configs.Add($"SubSize={sSize}");
                 _selectedElement.Content = string.Join(";", configs);
             }

@@ -428,9 +428,19 @@
                                                           Margin="0,5"/>
                                                 <StackPanel Orientation="Horizontal"
                                                             Margin="0,5,0,0">
+                                                        <TextBlock Text="Cỡ chữ Header:"
+                                                                   VerticalAlignment="Center"
+                                                                   Width="100"/>
+                                                        <TextBox x:Name="txtHeaderSize"
+                                                                 Width="50"
+                                                                 Padding="3"
+                                                                 TextChanged="TxtContent_TextChanged"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal"
+                                                            Margin="0,5,0,0">
                                                         <TextBlock Text="Cỡ chữ món:"
                                                                    VerticalAlignment="Center"
-                                                                   Width="80"/>
+                                                                   Width="100"/>
                                                         <TextBox x:Name="txtItemSize"
                                                                  Width="50"
                                                                  Padding="3"
@@ -440,8 +450,18 @@
                                                             Margin="0,5,0,0">
                                                         <TextBlock Text="Cỡ chữ Note:"
                                                                    VerticalAlignment="Center"
-                                                                   Width="80"/>
+                                                                   Width="100"/>
                                                         <TextBox x:Name="txtNoteSize"
+                                                                 Width="50"
+                                                                 Padding="3"
+                                                                 TextChanged="TxtContent_TextChanged"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal"
+                                                            Margin="0,5,0,0">
+                                                        <TextBlock Text="Khoảng cách cột:"
+                                                                   VerticalAlignment="Center"
+                                                                   Width="100"/>
+                                                        <TextBox x:Name="txtColumnSpacing"
                                                                  Width="50"
                                                                  Padding="3"
                                                                  TextChanged="TxtContent_TextChanged"/>
@@ -461,9 +481,19 @@
                                                           Margin="0,5"/>
                                                 <StackPanel Orientation="Horizontal"
                                                             Margin="0,5,0,0">
+                                                        <TextBlock Text="Cỡ chữ Tổng:"
+                                                                   VerticalAlignment="Center"
+                                                                   Width="100"/>
+                                                        <TextBox x:Name="txtTotalHeaderSize"
+                                                                 Width="50"
+                                                                 Padding="3"
+                                                                 TextChanged="TxtContent_TextChanged"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal"
+                                                            Margin="0,5,0,0">
                                                         <TextBlock Text="Cỡ chữ phụ:"
                                                                    VerticalAlignment="Center"
-                                                                   Width="80"/>
+                                                                   Width="100"/>
                                                         <TextBox x:Name="txtSubSize"
                                                                  Width="50"
                                                                  Padding="3"
