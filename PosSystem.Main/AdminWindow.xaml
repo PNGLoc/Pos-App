@@ -82,10 +82,6 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="Menu"/>
-                <RadioButton Content="⚙️ Cấu hình hoá đơn"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="LayoutDesigner"/>
                 <RadioButton Content="📜 Lịch sử đơn hàng"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
@@ -114,7 +110,7 @@
                 Background="#F4F6F9"
                 Padding="20">
             <Frame x:Name="mainFrame"
-                    NavigationUIVisibility="Hidden"/>
+                   NavigationUIVisibility="Hidden"/>
         </Border>
     </Grid>
 </Window>

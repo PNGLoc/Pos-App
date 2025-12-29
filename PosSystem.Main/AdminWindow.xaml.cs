@@ -22,9 +22,6 @@ namespace PosSystem.Main
                     case "Printer":
                         mainFrame.Navigate(new Pages.PrinterSetupPage());
                         break;
-                    case "LayoutDesigner":
-                        mainFrame.Navigate(new Pages.LayoutDesignerPage());
-                        break;
                     case "Table":
                         mainFrame.Navigate(new Pages.TableSetupPage());
                         break;
