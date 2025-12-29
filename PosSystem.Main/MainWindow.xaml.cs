@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Database;
@@ -39,12 +40,18 @@ namespace PosSystem.Main
         private int _selectedTableId = 0;
         private List<Dish> _allDishes = new List<Dish>();
         private List<DishViewModel> _dishViewModels = new List<DishViewModel>();
+        private DispatcherTimer _tableTimeTimer = new DispatcherTimer();
+        private DateTime? _currentOrderTime = null;
 
         public MainWindow()
         {
             InitializeComponent();
             if (UserSession.IsLoggedIn) lblStaffName.Text = UserSession.AccName;
             if (UserSession.IsLoggedIn && UserSession.AccRole == "Admin") btnBackToAdmin.Visibility = Visibility.Visible;
+
+            // Setup timer to update table time every second
+            _tableTimeTimer.Interval = TimeSpan.FromSeconds(1);
+            _tableTimeTimer.Tick += TableTimeTimer_Tick;
 
             LoadTables();
             LoadMenu();
@@ -62,6 +69,15 @@ namespace PosSystem.Main
                 pnlTableList.Visibility = Visibility.Collapsed;
                 pnlMenu.Visibility = Visibility.Visible;
 
+                // Get order time
+                using (var db = new AppDbContext())
+                {
+                    var order = db.Orders.FirstOrDefault(o => o.TableID == selected.TableID && o.OrderStatus == "Pending");
+                    _currentOrderTime = order?.OrderTime;
+                }
+
+                // Start timer
+                _tableTimeTimer.Start();
                 LoadOrderDetails(selected.TableID);
             }
         }
@@ -69,9 +85,12 @@ namespace PosSystem.Main
         private void BtnBackToTables_Click(object sender, RoutedEventArgs e)
         {
             _selectedTableId = 0;
+            _currentOrderTime = null;
             lblSelectedTable.Text = "Chưa chọn bàn";
+            lblTableTime.Text = "";
             lstOrderDetails.ItemsSource = null;
 
+            _tableTimeTimer.Stop();
             pnlMenu.Visibility = Visibility.Collapsed;
             pnlTableList.Visibility = Visibility.Visible;
             LoadTables();
@@ -104,6 +123,9 @@ namespace PosSystem.Main
 
                 if (order != null)
                 {
+                    // Update order time for running timer (but don't start it - wait for first kitchen send)
+                    _currentOrderTime = order.OrderTime;
+
                     // SỬA ĐOẠN NÀY: Dùng OrderDetailViewModel thay vì new { ... }
                     var viewModels = order.OrderDetails.OrderBy(d => d.OrderDetailID).Select(d => new OrderDetailViewModel
                     {
@@ -157,6 +179,11 @@ namespace PosSystem.Main
                     btnCheckout.IsEnabled = false;
                     btnSendKitchen.IsEnabled = false;
                     btnSendKitchen.Content = "👨‍🍳 GỬI BẾP";
+
+                    // Reset table time
+                    _currentOrderTime = null;
+                    lblTableTime.Text = "";
+                    _tableTimeTimer.Stop();
                 }
             }
         }
@@ -220,6 +247,12 @@ namespace PosSystem.Main
                     db.Orders.Add(order);
                     var table = db.Tables.Find(tableId);
                     if (table != null) table.TableStatus = "Occupied";
+                }
+
+                // Update order time khi có order (mới tạo hoặc đã có)
+                if (_selectedTableId == tableId)
+                {
+                    _currentOrderTime = order.OrderTime;
                 }
 
                 // === SỬA LẠI ĐOẠN NÀY ===
@@ -428,6 +461,7 @@ namespace PosSystem.Main
                     if (!changedItems.Any()) return;
 
                     int currentMaxBatch = order.OrderDetails.Max(d => (int?)d.KitchenBatch) ?? 0;
+                    bool isFirstSend = (currentMaxBatch == 0); // Lần gửi đầu tiên
                     int nextBatch = currentMaxBatch + 1;
 
                     // --- 1. TẠO DANH SÁCH IN (ẢO) TRƯỚC KHI SỬA DB ---
@@ -467,7 +501,18 @@ namespace PosSystem.Main
                     }
                     db.SaveChanges(); // Lưu thay đổi (lúc này món hủy sẽ mất khỏi DB)
 
-                    // --- 3. GỌI IN (Dùng danh sách ảo itemsToPrint) ---
+                    // Start timer on first send
+                    if (isFirstSend)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            _currentOrderTime = order.OrderTime;
+                            if (!_tableTimeTimer.IsEnabled)
+                            {
+                                _tableTimeTimer.Start();
+                            }
+                        });
+                    }
                     if (itemsToPrint.Any())
                     {
                         // Gọi hàm PrintKitchen mới (đã sửa ở Bước 2)
@@ -609,6 +654,11 @@ namespace PosSystem.Main
                     ShowToast("💰 Thanh toán thành công (Không in)");
                 }
 
+                // Reset table time
+                _currentOrderTime = null;
+                lblTableTime.Text = "";
+                _tableTimeTimer.Stop();
+
                 LoadTables();
                 LoadOrderDetails(_selectedTableId);
             }
@@ -649,6 +699,30 @@ namespace PosSystem.Main
                         }
                     }
                 }
+            }
+        }
+
+        private void TableTimeTimer_Tick(object sender, EventArgs e)
+        {
+            if (_currentOrderTime.HasValue)
+            {
+                var elapsed = DateTime.Now - _currentOrderTime.Value;
+                string timeStr = "";
+
+                if (elapsed.TotalMinutes < 1)
+                {
+                    timeStr = $"{(int)elapsed.TotalSeconds}s";
+                }
+                else if (elapsed.TotalHours < 1)
+                {
+                    timeStr = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
+                }
+                else
+                {
+                    timeStr = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
+                }
+
+                lblTableTime.Text = timeStr;
             }
         }
 
