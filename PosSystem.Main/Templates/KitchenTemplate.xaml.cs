@@ -44,13 +44,13 @@ namespace PosSystem.Main.Templates
 
                     case "KitchenOrderDetails":
                         // QUAN TRỌNG: Truyền el.Content (chứa cấu hình NoteSize) vào hàm
-                        RenderKitchenDetails(order, el.FontSize, el.Content);
+                        RenderKitchenDetails(order, el.FontSize, el.Content, el.IsBold);
                         break;
                 }
             }
         }
 
-        private void RenderKitchenDetails(Order order, int fontSize, string config)
+        private void RenderKitchenDetails(Order order, int fontSize, string config, bool isBold = false)
         {
             // 1. Parse cấu hình
             bool showNote = !config.Contains("ShowNote=False");
@@ -118,7 +118,7 @@ namespace PosSystem.Main.Templates
                 string dishName = d.Dish?.DishName ?? "";
                 bool isCancel = d.Quantity < 0;
                 int absQuantity = Math.Abs(d.Quantity);
-                
+
                 var brush = isCancel ? Brushes.Red : Brushes.Black;
 
                 // Tên món
@@ -128,7 +128,7 @@ namespace PosSystem.Main.Templates
                     Text = nameText,
                     TextWrapping = TextWrapping.Wrap,
                     FontSize = itemSize,
-                    FontWeight = FontWeights.Bold,
+                    FontWeight = isBold ? FontWeights.Bold : FontWeights.Normal,
                     Foreground = brush
                 };
 
@@ -137,7 +137,7 @@ namespace PosSystem.Main.Templates
                 {
                     Text = absQuantity.ToString(),
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    FontWeight = FontWeights.Bold,
+                    FontWeight = isBold ? FontWeights.Bold : FontWeights.Normal,
                     FontSize = itemSize,
                     Foreground = brush
                 };

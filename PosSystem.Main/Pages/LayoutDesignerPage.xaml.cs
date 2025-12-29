@@ -366,6 +366,7 @@ namespace PosSystem.Main.Pages
                             if (chkShowNote != null) chkShowNote.IsChecked = el.ShowNote;
                             if (txtNoteSize != null) txtNoteSize.Text = el.NoteFontSize.ToString();
                             if (txtColumnSpacing != null) txtColumnSpacing.Text = el.ColumnSpacing.ToString();
+                            if (chkOrderDetailsBold != null) chkOrderDetailsBold.IsChecked = el.IsBold;
                         }
                         else if (el.ElementType == "Total")
                         {
@@ -374,6 +375,7 @@ namespace PosSystem.Main.Pages
                             if (optTotal != null) optTotal.Visibility = Visibility.Visible;
                             if (chkShowSubTotal != null) chkShowSubTotal.IsChecked = el.ShowSubTotal;
                             if (chkShowDiscount != null) chkShowDiscount.IsChecked = el.ShowDiscount;
+                            if (chkTotalBold != null) chkTotalBold.IsChecked = el.IsBold;
                             if (txtTotalHeaderSize != null) txtTotalHeaderSize.Text = el.TotalHeaderFontSize.ToString();
                             if (txtSubSize != null) txtSubSize.Text = el.SubFontSize.ToString();
                         }
@@ -422,6 +424,7 @@ namespace PosSystem.Main.Pages
                 if (txtNoteSize != null && int.TryParse(txtNoteSize.Text, out int nSize)) configs.Add($"NoteSize={nSize}");
                 if (txtColumnSpacing != null && int.TryParse(txtColumnSpacing.Text, out int cSpacing)) configs.Add($"ColumnSpacing={cSpacing}");
                 _selectedElement.Content = string.Join(";", configs);
+                if (chkOrderDetailsBold != null) _selectedElement.IsBold = chkOrderDetailsBold.IsChecked == true;
             }
             else if (_selectedElement.ElementType == "Total")
             {
@@ -430,6 +433,7 @@ namespace PosSystem.Main.Pages
                 if (txtTotalHeaderSize != null && int.TryParse(txtTotalHeaderSize.Text, out int tHSize)) configs.Add($"TotalHeaderSize={tHSize}");
                 if (txtSubSize != null && int.TryParse(txtSubSize.Text, out int sSize)) configs.Add($"SubSize={sSize}");
                 _selectedElement.Content = string.Join(";", configs);
+                if (chkTotalBold != null) _selectedElement.IsBold = chkTotalBold.IsChecked == true;
             }
         }
 

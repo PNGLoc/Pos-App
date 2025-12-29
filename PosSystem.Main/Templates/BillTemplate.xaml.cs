@@ -57,7 +57,7 @@ namespace PosSystem.Main.Templates
 
                     case "OrderDetails":
                         // Truyền el.Content (chứa cấu hình ShowNote, NoteSize) vào hàm
-                        RenderOrderDetails(order, el.FontSize, el.Content);
+                        RenderOrderDetails(order, el.FontSize, el.Content, el.IsBold);
                         break;
 
                     case "Total":
@@ -69,7 +69,7 @@ namespace PosSystem.Main.Templates
         }
 
         // --- HÀM VẼ DANH SÁCH MÓN (CẬP NHẬT: HeaderSize, ItemSize, ColumnSpacing) ---
-        private void RenderOrderDetails(Order order, int fontSize, string config)
+        private void RenderOrderDetails(Order order, int fontSize, string config, bool isBold = false)
         {
             // 1. Parse cấu hình
             bool showNote = !config.Contains("ShowNote=False");
@@ -161,9 +161,9 @@ namespace PosSystem.Main.Templates
                 setupColumns(row);
 
                 // Nội dung
-                var txtName = new TextBlock { Text = d.Dish?.DishName, TextWrapping = TextWrapping.Wrap, FontSize = itemSize };
-                var txtQty = new TextBlock { Text = d.Quantity.ToString(), HorizontalAlignment = HorizontalAlignment.Center, FontSize = itemSize };
-                var txtPrice = new TextBlock { Text = d.TotalAmount.ToString("N0"), HorizontalAlignment = HorizontalAlignment.Right, FontSize = itemSize };
+                var txtName = new TextBlock { Text = d.Dish?.DishName, TextWrapping = TextWrapping.Wrap, FontSize = itemSize, FontWeight = isBold ? FontWeights.Bold : FontWeights.Normal };
+                var txtQty = new TextBlock { Text = d.Quantity.ToString(), HorizontalAlignment = HorizontalAlignment.Center, FontSize = itemSize, FontWeight = isBold ? FontWeights.Bold : FontWeights.Normal };
+                var txtPrice = new TextBlock { Text = d.TotalAmount.ToString("N0"), HorizontalAlignment = HorizontalAlignment.Right, FontSize = itemSize, FontWeight = isBold ? FontWeights.Bold : FontWeights.Normal };
 
                 // Đường kẻ dọc - luôn hiển thị rõ để bao quanh cột số lượng
                 var vLine1 = new System.Windows.Shapes.Rectangle
@@ -272,9 +272,10 @@ namespace PosSystem.Main.Templates
 
             // 3. TỔNG CỘNG (Dùng cỡ chữ totalHeaderSize)
             var dock = new DockPanel { Margin = new Thickness(0, 5, 0, 0) };
-            var lbl = new TextBlock { Text = "TỔNG CỘNG:", FontWeight = FontWeights.Bold, FontSize = totalHeaderSize };
+            var fontWeight = el.IsBold ? FontWeights.Bold : FontWeights.Normal;
+            var lbl = new TextBlock { Text = "TỔNG CỘNG:", FontWeight = fontWeight, FontSize = totalHeaderSize };
             // Giá tiền tổng cộng làm to hơn chữ label 1 chút cho nổi
-            var val = new TextBlock { Text = order.FinalAmount.ToString("N0"), FontWeight = FontWeights.Bold, FontSize = totalHeaderSize + 4, HorizontalAlignment = HorizontalAlignment.Right };
+            var val = new TextBlock { Text = order.FinalAmount.ToString("N0"), FontWeight = fontWeight, FontSize = totalHeaderSize + 4, HorizontalAlignment = HorizontalAlignment.Right };
 
             DockPanel.SetDock(lbl, Dock.Left);
             dock.Children.Add(lbl);

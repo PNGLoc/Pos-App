@@ -426,6 +426,11 @@
                                                           Checked="Prop_Changed"
                                                           Unchecked="Prop_Changed"
                                                           Margin="0,5"/>
+                                                <CheckBox x:Name="chkOrderDetailsBold"
+                                                          Content="In đậm danh sách món"
+                                                          Checked="Prop_Changed"
+                                                          Unchecked="Prop_Changed"
+                                                          Margin="0,5"/>
                                                 <StackPanel Orientation="Horizontal"
                                                             Margin="0,5,0,0">
                                                         <TextBlock Text="Cỡ chữ Header:"
@@ -476,6 +481,11 @@
                                                           Margin="0,5"/>
                                                 <CheckBox x:Name="chkShowDiscount"
                                                           Content="In dòng Giảm giá / Thuế"
+                                                          Checked="Prop_Changed"
+                                                          Unchecked="Prop_Changed"
+                                                          Margin="0,5"/>
+                                                <CheckBox x:Name="chkTotalBold"
+                                                          Content="In đậm Tổng cộng"
                                                           Checked="Prop_Changed"
                                                           Unchecked="Prop_Changed"
                                                           Margin="0,5"/>
