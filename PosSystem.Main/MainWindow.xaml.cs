@@ -76,15 +76,23 @@ namespace PosSystem.Main
                 pnlTableList.Visibility = Visibility.Collapsed;
                 pnlMenu.Visibility = Visibility.Visible;
 
-                // Get order time
+                // Stop timer when entering a table (will start only when sending kitchen)
+                _tableTimeTimer.Stop();
+                _currentOrderTime = null;
+                lblTableTime.Text = "";
+
+                // Get order time (but don't start timer - wait for first kitchen send)
                 using (var db = new AppDbContext())
                 {
                     var order = db.Orders.FirstOrDefault(o => o.TableID == selected.TableID && o.OrderStatus == "Pending");
-                    _currentOrderTime = order?.OrderTime;
+                    if (order != null && order.FirstSentTime.HasValue)
+                    {
+                        // Order has been sent to kitchen - start timer from FirstSentTime
+                        _currentOrderTime = order.FirstSentTime;
+                        _tableTimeTimer.Start();
+                    }
                 }
 
-                // Start timer
-                _tableTimeTimer.Start();
                 LoadOrderDetails(selected.TableID);
             }
         }
@@ -109,7 +117,7 @@ namespace PosSystem.Main
         {
             using (var db = new AppDbContext())
             {
-                var tables = db.Tables.Include(t => t.Orders.Where(o => o.OrderStatus == "Pending")).ThenInclude(o => o.OrderDetails).ToList();
+                var tables = db.Tables.Include(t => t.Orders).ThenInclude(o => o.OrderDetails).ToList();
                 lstTables.ItemsSource = tables.Select(t =>
                 {
                     var vm = new TableViewModel
@@ -124,9 +132,10 @@ namespace PosSystem.Main
                     if (t.TableStatus == "Occupied" && t.Orders.Any())
                     {
                         var order = t.Orders.FirstOrDefault(o => o.OrderStatus == "Pending");
-                        if (order != null && order.OrderDetails.Any(d => d.KitchenBatch > 0))
+                        // Only show time if FirstSentTime has value (order has been sent to kitchen)
+                        if (order != null && order.FirstSentTime.HasValue)
                         {
-                            var elapsed = DateTime.Now - order.OrderTime;
+                            var elapsed = DateTime.Now - order.FirstSentTime.Value;
                             if (elapsed.TotalMinutes < 1)
                                 vm.TimeDisplay = $"{(int)elapsed.TotalSeconds}s";
                             else if (elapsed.TotalHours < 1)
@@ -152,8 +161,21 @@ namespace PosSystem.Main
 
                 if (order != null)
                 {
-                    // Update order time for running timer (but don't start it - wait for first kitchen send)
-                    _currentOrderTime = order.OrderTime;
+                    // Update order time - use FirstSentTime if available (order sent to kitchen), otherwise null
+                    if (order.FirstSentTime.HasValue)
+                    {
+                        _currentOrderTime = order.FirstSentTime;
+                        if (!_tableTimeTimer.IsEnabled)
+                        {
+                            _tableTimeTimer.Start();
+                        }
+                    }
+                    else
+                    {
+                        _currentOrderTime = null;
+                        _tableTimeTimer.Stop();
+                        lblTableTime.Text = "";
+                    }
 
                     // SỬA ĐOẠN NÀY: Dùng OrderDetailViewModel thay vì new { ... }
                     var viewModels = order.OrderDetails.OrderBy(d => d.OrderDetailID).Select(d => new OrderDetailViewModel
@@ -513,6 +535,12 @@ namespace PosSystem.Main
                     }
 
                     // --- 2. CẬP NHẬT DATABASE ---
+                    // Set FirstSentTime on first send
+                    if (isFirstSend)
+                    {
+                        order.FirstSentTime = DateTime.Now;
+                    }
+
                     foreach (var item in changedItems)
                     {
                         // Cập nhật số lượng đã in

@@ -12,6 +12,7 @@ namespace PosSystem.Main.Models
 
         public DateTime OrderTime { get; set; } = DateTime.Now;
         public DateTime? CheckoutTime { get; set; } // Thời điểm thanh toán xong
+        public DateTime? FirstSentTime { get; set; } // Thời điểm gửi bếp lần đầu tiên
 
         public string OrderStatus { get; set; } = "Pending"; // Pending (Đang phục vụ), Paid (Đã thanh toán), Cancelled
 
