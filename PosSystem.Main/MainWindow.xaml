@@ -351,22 +351,22 @@
                                  TextChanged="TxtDishSearch_TextChanged"/>
                         <TextBlock Grid.Row="1"
                                    Text="🔍 Search món (tên hoặc viết tắt)..."
-                                   Padding="15,12"
                                    FontSize="14"
                                    Foreground="#999"
                                    Margin="0"
                                    IsHitTestVisible="False"
+                                   TextAlignment="Center"
                                    Opacity="1">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}"
-                                                Value="">
+                                                     Value="">
                                             <Setter Property="Opacity"
                                                     Value="0.5"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}"
-                                                Value="{x:Null}">
+                                                     Value="{x:Null}">
                                             <Setter Property="Opacity"
                                                     Value="0.5"/>
                                         </DataTrigger>
