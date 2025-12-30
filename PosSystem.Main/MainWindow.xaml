@@ -490,6 +490,8 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock x:Name="lblSelectedTable"
                                    Text="Chưa chọn bàn"
@@ -506,7 +508,41 @@
                                    FontSize="16"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Right"
-                                   Margin="0,0,20,0"/>
+                                   Margin="0,0,15,0"/>
+                        <Button Grid.Column="2"
+                                Content="📤 Tách bàn"
+                                Click="BtnSplitTable_Click"
+                                Background="#FFC107"
+                                Foreground="Black"
+                                Height="36"
+                                Width="120"
+                                Margin="5,12"
+                                FontWeight="Bold"
+                                BorderThickness="0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius"
+                                            Value="4"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                        <Button Grid.Column="3"
+                                Content="🔄 Chuyển bàn"
+                                Click="BtnMoveTable_Click"
+                                Background="#28A745"
+                                Foreground="White"
+                                Height="36"
+                                Width="120"
+                                Margin="5,12,15,12"
+                                FontWeight="Bold"
+                                BorderThickness="0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius"
+                                            Value="4"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
                     </Grid>
 
                     <Grid Grid.Row="1"
@@ -643,6 +679,20 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Tách" Width="60" x:Name="colSplitQuantity" Visibility="Collapsed">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBox Text="{Binding SplitQuantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Tag="{Binding OrderDetailID}"
+                                                     TextAlignment="Center"
+                                                     MaxLength="3"
+                                                     PreviewTextInput="NumericOnly_PreviewTextInput"
+                                                     LostFocus="TxtSplitQty_LostFocus"
+                                                     ToolTip="Nhập số lượng cần tách"
+                                                     Padding="5"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -653,13 +703,26 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <Button Grid.Column="0"
-                                        Content="🎫 Giảm Bill"
-                                        HorizontalAlignment="Left"
-                                        Background="Transparent"
-                                        Foreground="#007BFF"
-                                        BorderThickness="0"
-                                        Click="BtnDiscountBill_Click"/>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <Button x:Name="btnDiscountBill"
+                                            Content="🎫 Giảm Bill"
+                                            HorizontalAlignment="Left"
+                                            Background="Transparent"
+                                            Foreground="#007BFF"
+                                            BorderThickness="0"
+                                            Click="BtnDiscountBill_Click"/>
+                                    <Button x:Name="btnTransferSplit"
+                                            Content="✓ Chuyển"
+                                            Background="#28A745"
+                                            Foreground="White"
+                                            Padding="15,5"
+                                            FontWeight="Bold"
+                                            BorderThickness="0"
+                                            Click="BtnTransferSplit_Click"
+                                            Margin="10,0,0,0"
+                                            Visibility="Collapsed"
+                                            ToolTip="Chuyển những món đã chọn sang bàn khác"/>
+                                </StackPanel>
                                 <StackPanel Grid.Column="1"
                                             HorizontalAlignment="Right">
                                     <StackPanel Orientation="Horizontal"

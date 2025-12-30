@@ -45,6 +45,12 @@ namespace PosSystem.Main
         private DispatcherTimer _tableListUpdateTimer = new DispatcherTimer();
         private DateTime? _currentOrderTime = null;
 
+        // Split mode variables
+        private bool _isSplitMode = false;
+        private Dictionary<long, int> _splitQuantities = new Dictionary<long, int>();  // OrderDetailID -> Qty to split
+        private bool _isWaitingForTargetTable = false;  // True when waiting for user to click target table
+        private Dictionary<long, int> _pendingSplitItems = new Dictionary<long, int>();  // Items to split when table selected
+
         public MainWindow()
         {
             InitializeComponent();
@@ -70,6 +76,15 @@ namespace PosSystem.Main
         {
             if (lstTables.SelectedItem is TableViewModel selected)
             {
+                // If waiting for target table in split mode, transfer items instead of opening menu
+                if (_isWaitingForTargetTable && _pendingSplitItems.Count > 0)
+                {
+                    int targetTableId = selected.TableID;
+                    lstTables.SelectedItem = null;  // Deselect to reset
+                    ExecuteSplitTransfer(targetTableId);
+                    return;
+                }
+
                 _selectedTableId = selected.TableID;
                 lblSelectedTable.Text = selected.TableName;
 
@@ -110,6 +125,66 @@ namespace PosSystem.Main
             pnlTableList.Visibility = Visibility.Visible;
             LoadTables();
             lstTables.SelectedItem = null;
+        }
+
+        // Helper method to switch to a specific table
+        private void SelectAndLoadTable(int tableId)
+        {
+            _selectedTableId = tableId;
+
+            using (var db = new AppDbContext())
+            {
+                var table = db.Tables.FirstOrDefault(t => t.TableID == tableId);
+                if (table != null)
+                {
+                    lblSelectedTable.Text = table.TableName;
+                }
+            }
+
+            pnlTableList.Visibility = Visibility.Collapsed;
+            pnlMenu.Visibility = Visibility.Visible;
+
+            // Stop timer when entering a table
+            _tableTimeTimer.Stop();
+            _currentOrderTime = null;
+            lblTableTime.Text = "";
+
+            // Check if order has been sent to kitchen
+            using (var db = new AppDbContext())
+            {
+                var order = db.Orders.FirstOrDefault(o => o.TableID == tableId && o.OrderStatus == "Pending");
+                if (order != null && order.FirstSentTime.HasValue)
+                {
+                    _currentOrderTime = order.FirstSentTime;
+                    _tableTimeTimer.Start();
+                    // Manually trigger timer tick to show time immediately
+                    TableTimeTimer_Tick(null, null);
+                }
+            }
+
+            LoadOrderDetails(tableId);
+
+            // Force UI refresh with proper rebinding
+            Dispatcher.Invoke(() =>
+            {
+                // Rebind to force UI update
+                var source = lstOrderDetails.ItemsSource;
+                lstOrderDetails.ItemsSource = null;
+                System.Threading.Thread.Sleep(10);
+                lstOrderDetails.ItemsSource = source;
+            }, System.Windows.Threading.DispatcherPriority.Render);
+        }
+
+        // Recalculate order totals based on order details
+        private void RecalculateOrderTotals(Order order)
+        {
+            if (order == null) return;
+
+            decimal subTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.Quantity * d.Dish.Price);
+            order.SubTotal = subTotal;
+
+            decimal discountValue = (order.DiscountPercent > 0) ? subTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
+            order.FinalAmount = subTotal - discountValue;
         }
 
         // --- 2. LOAD DATA ---
@@ -169,6 +244,8 @@ namespace PosSystem.Main
                         {
                             _tableTimeTimer.Start();
                         }
+                        // Immediately show time without waiting for timer tick
+                        TableTimeTimer_Tick(null, null);
                     }
                     else
                     {
@@ -194,6 +271,9 @@ namespace PosSystem.Main
                     }).ToList();
 
                     lstOrderDetails.ItemsSource = viewModels; // Gán list mới
+
+                    // Recalculate and update totals
+                    RecalculateOrderTotals(order);
 
                     lblSubTotal.Text = order.SubTotal.ToString("N0") + "đ";
 
@@ -861,30 +941,370 @@ namespace PosSystem.Main
             }
         }
 
+        private void BtnMoveTable_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedTableId == 0) return;
+
+            using (var db = new AppDbContext())
+            {
+                var currentOrder = db.Orders
+                    .Include(o => o.Table)
+                    .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+
+                if (currentOrder == null)
+                {
+                    MessageBox.Show("Không có đơn hàng nào để chuyển!", "Thông báo");
+                    return;
+                }
+
+                // Get all available tables except current
+                var availableTables = db.Tables.Where(t => t.TableID != _selectedTableId).ToList();
+
+                if (!availableTables.Any())
+                {
+                    MessageBox.Show("Không có bàn khác để chuyển!", "Thông báo");
+                    return;
+                }
+
+                // Create selection dialog
+                var dialog = new Window
+                {
+                    Title = "Chọn bàn để chuyển",
+                    Width = 400,
+                    Height = 300,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    Owner = this,
+                    Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(240, 242, 245))
+                };
+
+                var listBox = new ListBox
+                {
+                    Margin = new Thickness(15),
+                    FontSize = 14
+                };
+
+                foreach (var table in availableTables)
+                {
+                    listBox.Items.Add(new { TableID = table.TableID, TableName = table.TableName });
+                }
+
+                listBox.DisplayMemberPath = "TableName";
+
+                var btnConfirm = new Button
+                {
+                    Content = "✓ Chuyển bàn",
+                    Width = 100,
+                    Height = 40,
+                    Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#28A745"),
+                    Foreground = System.Windows.Media.Brushes.White,
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(5)
+                };
+
+                var btnCancel = new Button
+                {
+                    Content = "✗ Hủy",
+                    Width = 100,
+                    Height = 40,
+                    Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6c757d"),
+                    Foreground = System.Windows.Media.Brushes.White,
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(5)
+                };
+
+                btnCancel.Click += (s, args) => dialog.Close();
+
+                btnConfirm.Click += (s, args) =>
+                {
+                    if (listBox.SelectedItem != null)
+                    {
+                        dynamic selectedTable = listBox.SelectedItem;
+                        int targetTableId = selectedTable.TableID;
+                        dialog.Close();
+
+                        using (var updateDb = new AppDbContext())
+                        {
+                            var order = updateDb.Orders.FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+                            if (order != null)
+                            {
+                                order.TableID = targetTableId;
+                                updateDb.SaveChanges();
+
+                                // Back to table list and reload
+                                BtnBackToTables_Click(null, null);
+                                MessageBox.Show("Chuyển bàn thành công!", "Thông báo");
+                            }
+                        }
+                    }
+                };
+
+                var stackPanel = new StackPanel { Margin = new Thickness(15) };
+                stackPanel.Children.Add(new TextBlock { Text = "Chọn bàn để chuyển:", FontSize = 14, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 10) });
+                stackPanel.Children.Add(listBox);
+
+                var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 10, 0, 0) };
+                buttonPanel.Children.Add(btnConfirm);
+                buttonPanel.Children.Add(btnCancel);
+                stackPanel.Children.Add(buttonPanel);
+
+                dialog.Content = stackPanel;
+                dialog.ShowDialog();
+            }
+        }
+
+        private void BtnSplitTable_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedTableId == 0) return;
+
+            _isSplitMode = !_isSplitMode;
+            _splitQuantities.Clear();
+
+            if (_isSplitMode)
+            {
+                // Enter split mode
+                btnTransferSplit.Visibility = Visibility.Visible;
+                btnDiscountBill.Visibility = Visibility.Collapsed;
+                colSplitQuantity.Visibility = Visibility.Visible;  // Show split column
+                LoadOrderDetailsInSplitMode();
+            }
+            else
+            {
+                // Exit split mode
+                btnTransferSplit.Visibility = Visibility.Collapsed;
+                btnDiscountBill.Visibility = Visibility.Visible;
+                colSplitQuantity.Visibility = Visibility.Collapsed;  // Hide split column
+                LoadOrderDetails(_selectedTableId);
+            }
+        }
+
+        private void LoadOrderDetailsInSplitMode()
+        {
+            using (var db = new AppDbContext())
+            {
+                var order = db.Orders
+                    .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
+                    .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+
+                if (order != null)
+                {
+                    var viewModels = order.OrderDetails.OrderBy(d => d.OrderDetailID).Select(d => new OrderDetailViewModel
+                    {
+                        OrderDetailID = d.OrderDetailID,
+                        DishName = d.Dish != null ? d.Dish.DishName : "Unknown",
+                        Quantity = d.Quantity,
+                        TotalAmount = d.TotalAmount,
+                        DiscountRate = d.DiscountRate,
+                        ItemStatus = d.ItemStatus,
+                        Note = d.Note ?? "",
+                        BatchDisplay = d.PrintedQuantity == 0 ? "⏳" : (d.KitchenBatch > 0 ? $"Đợt {d.KitchenBatch}" : "---"),
+                        StatusDisplay = d.Quantity == 0 ? "❌ CHỜ HỦY" : (d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK"),
+                        RowColor = d.Quantity == 0 ? "#FFCCCC" : (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White"),
+                        SplitQuantity = 0
+                    }).ToList();
+
+                    lstOrderDetails.ItemsSource = viewModels;
+                }
+            }
+        }
+
+        private void NumericOnly_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            e.Handled = !int.TryParse(e.Text, out _);
+        }
+
+        private void TxtSplitQty_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox txt && txt.Tag is long orderDetailId)
+            {
+                if (int.TryParse(txt.Text, out int splitQty))
+                {
+                    // Find the corresponding order detail to validate
+                    if (lstOrderDetails.ItemsSource is System.Collections.IEnumerable items)
+                    {
+                        foreach (var item in items)
+                        {
+                            if (item is OrderDetailViewModel vm && vm.OrderDetailID == orderDetailId)
+                            {
+                                if (splitQty > vm.Quantity)
+                                {
+                                    MessageBox.Show($"Số lượng tách không thể vượt quá số lượng hiện có của món này!", "Lỗi");
+                                    txt.Text = "0";
+                                    vm.SplitQuantity = 0;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void BtnTransferSplit_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedTableId == 0) return;
+
+            // Collect all items with split quantity > 0
+            var itemsToTransfer = new Dictionary<long, int>();
+            if (lstOrderDetails.ItemsSource is System.Collections.IEnumerable items)
+            {
+                foreach (var item in items)
+                {
+                    if (item is OrderDetailViewModel vm && vm.SplitQuantity > 0)
+                    {
+                        itemsToTransfer[vm.OrderDetailID] = vm.SplitQuantity;
+                    }
+                }
+            }
+
+            if (itemsToTransfer.Count == 0)
+            {
+                MessageBox.Show("Vui lòng chọn ít nhất một món để chuyển!", "Thông báo");
+                return;
+            }
+
+            // Validate quantities
+            using (var db = new AppDbContext())
+            {
+                foreach (var kvp in itemsToTransfer)
+                {
+                    var detail = db.OrderDetails.FirstOrDefault(d => d.OrderDetailID == kvp.Key);
+                    if (detail != null && kvp.Value > detail.Quantity)
+                    {
+                        MessageBox.Show($"Số lượng chuyển vượt quá số lượng hiện có!", "Lỗi");
+                        return;
+                    }
+                }
+            }
+
+            // Set waiting mode and show message to select destination table
+            _isWaitingForTargetTable = true;
+            _pendingSplitItems = itemsToTransfer;
+
+            MessageBox.Show("Hãy chọn bàn đích từ danh sách bàn để chuyển!", "Thông báo");
+
+            // Switch back to table list view
+            pnlMenu.Visibility = Visibility.Collapsed;
+            pnlTableList.Visibility = Visibility.Visible;
+            _tableTimeTimer.Stop();
+        }
+
+        private void ExecuteSplitTransfer(int targetTableId)
+        {
+            if (targetTableId == _selectedTableId)
+            {
+                MessageBox.Show("Vui lòng chọn bàn khác!", "Lỗi");
+                _isWaitingForTargetTable = false;
+                _pendingSplitItems.Clear();
+                return;
+            }
+
+            using (var db = new AppDbContext())
+            {
+                var sourceOrder = db.Orders
+                    .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
+                    .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+
+                var targetOrder = db.Orders
+                    .Include(o => o.OrderDetails)
+                    .FirstOrDefault(o => o.TableID == targetTableId && o.OrderStatus == "Pending");
+
+                if (targetOrder == null)
+                {
+                    targetOrder = new Order
+                    {
+                        TableID = targetTableId,
+                        OrderTime = DateTime.Now,
+                        OrderStatus = "Pending",
+                        PaymentMethod = "Cash",
+                        FirstSentTime = sourceOrder?.FirstSentTime
+                    };
+                    db.Orders.Add(targetOrder);
+                    db.SaveChanges();
+                }
+
+                if (sourceOrder != null)
+                {
+                    // Transfer selected items
+                    foreach (var kvp in _pendingSplitItems)
+                    {
+                        var detail = sourceOrder.OrderDetails.FirstOrDefault(d => d.OrderDetailID == kvp.Key);
+                        if (detail != null)
+                        {
+                            if (kvp.Value == detail.Quantity)
+                            {
+                                // Move entire item
+                                detail.OrderID = targetOrder.OrderID;
+                            }
+                            else
+                            {
+                                // Split item: create new item for target table
+                                decimal dishPrice = detail.Dish?.Price ?? 0;
+
+                                // Calculate how many of the split items were already printed
+                                int printedToSplit = Math.Min(kvp.Value, detail.PrintedQuantity);
+
+                                var newDetail = new OrderDetail
+                                {
+                                    OrderID = targetOrder.OrderID,
+                                    DishID = detail.DishID,
+                                    Quantity = kvp.Value,
+                                    PrintedQuantity = printedToSplit,  // Split the printed quantity
+                                    KitchenBatch = detail.KitchenBatch,
+                                    TotalAmount = dishPrice * kvp.Value,
+                                    ItemStatus = detail.ItemStatus,  // Inherit status from original
+                                    Note = detail.Note
+                                };
+                                db.OrderDetails.Add(newDetail);
+
+                                // Reduce original item
+                                detail.Quantity -= kvp.Value;
+                                detail.PrintedQuantity -= printedToSplit;  // Also reduce printed quantity
+                                detail.TotalAmount = dishPrice * detail.Quantity;
+                            }
+                        }
+                    }
+
+                    // Update target table status
+                    var targetTable = db.Tables.FirstOrDefault(t => t.TableID == targetTableId);
+                    if (targetTable != null)
+                    {
+                        targetTable.TableStatus = "Occupied";
+                    }
+
+                    db.SaveChanges();
+
+                    // Recalculate totals for both source and target orders
+                    RecalculateOrder(db, sourceOrder.OrderID);
+                    RecalculateOrder(db, targetOrder.OrderID);
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        _isWaitingForTargetTable = false;
+                        _pendingSplitItems.Clear();
+
+                        LoadTables();
+                        SelectAndLoadTable(targetTableId);
+
+                        MessageBox.Show("Chuyển bàn thành công!\n\nĐã tự động chuyển sang bàn đích để xem chi tiết.", "Thông báo");
+                    });
+                }
+            }
+        }
+
+        // Timer handler to update table time display
         private void TableTimeTimer_Tick(object sender, EventArgs e)
         {
             if (_currentOrderTime.HasValue)
             {
                 var elapsed = DateTime.Now - _currentOrderTime.Value;
-                string timeStr = "";
-
                 if (elapsed.TotalMinutes < 1)
-                {
-                    timeStr = $"{(int)elapsed.TotalSeconds}s";
-                }
+                    lblTableTime.Text = $"{(int)elapsed.TotalSeconds}s";
                 else if (elapsed.TotalHours < 1)
-                {
-                    timeStr = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
-                }
+                    lblTableTime.Text = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
                 else
-                {
-                    timeStr = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
-                }
-
-                lblTableTime.Text = timeStr;
+                    lblTableTime.Text = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
             }
         }
-
     }
     // Class dùng để hiển thị lên DataGrid và hỗ trợ sửa Ghi chú
     public class OrderDetailViewModel
@@ -905,5 +1325,8 @@ namespace PosSystem.Main
         public string BatchDisplay { get; set; } = "";
         public string StatusDisplay { get; set; } = "";
         public string RowColor { get; set; } = "White";
+
+        // Split mode properties
+        public int SplitQuantity { get; set; } = 0;  // Quantity to split in split mode
     }
 }
