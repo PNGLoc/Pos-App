@@ -123,6 +123,16 @@ namespace PosSystem.Main
             _tableTimeTimer.Stop();
             pnlMenu.Visibility = Visibility.Collapsed;
             pnlTableList.Visibility = Visibility.Visible;
+            
+            // Reset split mode when returning to table list
+            _isSplitMode = false;
+            _splitQuantities.Clear();
+            _isWaitingForTargetTable = false;
+            _pendingSplitItems.Clear();
+            btnTransferSplit.Visibility = Visibility.Collapsed;
+            btnDiscountBill.Visibility = Visibility.Visible;
+            colSplitQuantity.Visibility = Visibility.Collapsed;
+            
             LoadTables();
             lstTables.SelectedItem = null;
         }
@@ -1281,6 +1291,13 @@ namespace PosSystem.Main
                     {
                         _isWaitingForTargetTable = false;
                         _pendingSplitItems.Clear();
+                        
+                        // Reset split mode UI when transfer completes
+                        _isSplitMode = false;
+                        _splitQuantities.Clear();
+                        btnTransferSplit.Visibility = Visibility.Collapsed;
+                        btnDiscountBill.Visibility = Visibility.Visible;
+                        colSplitQuantity.Visibility = Visibility.Collapsed;
 
                         LoadTables();
                         SelectAndLoadTable(targetTableId);
