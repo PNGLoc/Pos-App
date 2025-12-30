@@ -265,13 +265,51 @@ namespace PosSystem.Main
 
         private void UpdateDishListDisplay()
         {
-            if (lstCategories.SelectedItem is CategoryViewModel selected)
+            var filtered = _dishViewModels;
+            
+            // Filter by category
+            if (lstCategories.SelectedItem is CategoryViewModel selected && selected.CategoryID != 0)
             {
-                var filtered = selected.CategoryID == 0 ? _dishViewModels : _dishViewModels.Where(d => d.CategoryID == selected.CategoryID).ToList();
-                lstDishes.ItemsSource = filtered;
+                filtered = filtered.Where(d => d.CategoryID == selected.CategoryID).ToList();
             }
+            
+            // Filter by search
+            string searchText = txtDishSearch?.Text?.Trim().ToLower() ?? "";
+            if (!string.IsNullOrEmpty(searchText))
+            {
+                filtered = filtered.Where(d => MatchDishSearch(d.DishName, searchText)).ToList();
+            }
+            
+            lstDishes.ItemsSource = filtered;
         }
+
+        private bool MatchDishSearch(string dishName, string searchText)
+        {
+            string normalized = dishName.ToLower();
+            
+            // Full name match
+            if (normalized.Contains(searchText))
+                return true;
+            
+            // First letter abbreviation match (e.g., "mctc" for "mỳ cay thập cẩm")
+            var words = dishName.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+            string firstLetters = string.Concat(words.Select(w => w.Substring(0, 1).ToLower()));
+            if (firstLetters.Contains(searchText))
+                return true;
+            
+            // Partial first letter match (e.g., "tc" for "thập cẩm" in "mỳ cay thập cẩm")
+            foreach (var word in words)
+            {
+                if (word.ToLower().StartsWith(searchText))
+                    return true;
+            }
+            
+            return false;
+        }
+
         private void lstCategories_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateDishListDisplay();
+
+        private void TxtDishSearch_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) => UpdateDishListDisplay();
 
         // --- 3. THAO TÁC NHANH TRÊN MÓN ĂN ---
 
