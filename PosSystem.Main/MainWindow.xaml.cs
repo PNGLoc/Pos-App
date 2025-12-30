@@ -266,44 +266,106 @@ namespace PosSystem.Main
         private void UpdateDishListDisplay()
         {
             var filtered = _dishViewModels;
-            
+
             // Filter by category
             if (lstCategories.SelectedItem is CategoryViewModel selected && selected.CategoryID != 0)
             {
                 filtered = filtered.Where(d => d.CategoryID == selected.CategoryID).ToList();
             }
-            
+
             // Filter by search
             string searchText = txtDishSearch?.Text?.Trim().ToLower() ?? "";
             if (!string.IsNullOrEmpty(searchText))
             {
                 filtered = filtered.Where(d => MatchDishSearch(d.DishName, searchText)).ToList();
             }
-            
+
             lstDishes.ItemsSource = filtered;
+        }
+
+        private string RemoveDiacritics(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+
+            // Map Vietnamese characters to non-accented versions
+            var replacements = new Dictionary<char, char>
+            {
+                // Lowercase a
+                {'à', 'a'}, {'á', 'a'}, {'ả', 'a'}, {'ã', 'a'}, {'ạ', 'a'},
+                {'ă', 'a'}, {'ằ', 'a'}, {'ắ', 'a'}, {'ẳ', 'a'}, {'ẵ', 'a'}, {'ặ', 'a'},
+                {'â', 'a'}, {'ầ', 'a'}, {'ấ', 'a'}, {'ẩ', 'a'}, {'ẫ', 'a'}, {'ậ', 'a'},
+                // Lowercase d
+                {'đ', 'd'},
+                // Lowercase e
+                {'è', 'e'}, {'é', 'e'}, {'ẻ', 'e'}, {'ẽ', 'e'}, {'ẹ', 'e'},
+                {'ê', 'e'}, {'ề', 'e'}, {'ế', 'e'}, {'ể', 'e'}, {'ễ', 'e'}, {'ệ', 'e'},
+                // Lowercase i
+                {'ì', 'i'}, {'í', 'i'}, {'ỉ', 'i'}, {'ĩ', 'i'}, {'ị', 'i'},
+                // Lowercase o
+                {'ò', 'o'}, {'ó', 'o'}, {'ỏ', 'o'}, {'õ', 'o'}, {'ọ', 'o'},
+                {'ô', 'o'}, {'ồ', 'o'}, {'ố', 'o'}, {'ổ', 'o'}, {'ỗ', 'o'}, {'ộ', 'o'},
+                {'ơ', 'o'}, {'ờ', 'o'}, {'ớ', 'o'}, {'ở', 'o'}, {'ỡ', 'o'}, {'ợ', 'o'},
+                // Lowercase u
+                {'ù', 'u'}, {'ú', 'u'}, {'ủ', 'u'}, {'ũ', 'u'}, {'ụ', 'u'},
+                {'ư', 'u'}, {'ừ', 'u'}, {'ứ', 'u'}, {'ử', 'u'}, {'ữ', 'u'}, {'ự', 'u'},
+                // Lowercase y
+                {'ỳ', 'y'}, {'ý', 'y'}, {'ỷ', 'y'}, {'ỹ', 'y'}, {'ỵ', 'y'},
+                // Uppercase A
+                {'À', 'A'}, {'Á', 'A'}, {'Ả', 'A'}, {'Ã', 'A'}, {'Ạ', 'A'},
+                {'Ă', 'A'}, {'Ằ', 'A'}, {'Ắ', 'A'}, {'Ẳ', 'A'}, {'Ẵ', 'A'}, {'Ặ', 'A'},
+                {'Â', 'A'}, {'Ầ', 'A'}, {'Ấ', 'A'}, {'Ẩ', 'A'}, {'Ẫ', 'A'}, {'Ậ', 'A'},
+                // Uppercase D
+                {'Đ', 'D'},
+                // Uppercase E
+                {'È', 'E'}, {'É', 'E'}, {'Ẻ', 'E'}, {'Ẽ', 'E'}, {'Ẹ', 'E'},
+                {'Ê', 'E'}, {'Ề', 'E'}, {'Ế', 'E'}, {'Ể', 'E'}, {'Ễ', 'E'}, {'Ệ', 'E'},
+                // Uppercase I
+                {'Ì', 'I'}, {'Í', 'I'}, {'Ỉ', 'I'}, {'Ĩ', 'I'}, {'Ị', 'I'},
+                // Uppercase O
+                {'Ò', 'O'}, {'Ó', 'O'}, {'Ỏ', 'O'}, {'Õ', 'O'}, {'Ọ', 'O'},
+                {'Ô', 'O'}, {'Ồ', 'O'}, {'Ố', 'O'}, {'Ổ', 'O'}, {'Ỗ', 'O'}, {'Ộ', 'O'},
+                {'Ơ', 'O'}, {'Ờ', 'O'}, {'Ớ', 'O'}, {'Ở', 'O'}, {'Ỡ', 'O'}, {'Ợ', 'O'},
+                // Uppercase U
+                {'Ù', 'U'}, {'Ú', 'U'}, {'Ủ', 'U'}, {'Ũ', 'U'}, {'Ụ', 'U'},
+                {'Ư', 'U'}, {'Ừ', 'U'}, {'Ứ', 'U'}, {'Ử', 'U'}, {'Ữ', 'U'}, {'Ự', 'U'},
+                // Uppercase Y
+                {'Ỳ', 'Y'}, {'Ý', 'Y'}, {'Ỷ', 'Y'}, {'Ỹ', 'Y'}, {'Ỵ', 'Y'}
+            };
+
+            var result = new System.Text.StringBuilder();
+            foreach (char c in text)
+            {
+                if (replacements.ContainsKey(c))
+                    result.Append(replacements[c]);
+                else
+                    result.Append(c);
+            }
+            return result.ToString();
         }
 
         private bool MatchDishSearch(string dishName, string searchText)
         {
-            string normalized = dishName.ToLower();
-            
-            // Full name match
-            if (normalized.Contains(searchText))
+            string normalized = RemoveDiacritics(dishName).ToLower();
+            string normalizedSearch = RemoveDiacritics(searchText).ToLower();
+
+            // Full name match (handles diacritical marks)
+            if (normalized.Contains(normalizedSearch))
                 return true;
-            
+
             // First letter abbreviation match (e.g., "mctc" for "mỳ cay thập cẩm")
             var words = dishName.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
-            string firstLetters = string.Concat(words.Select(w => w.Substring(0, 1).ToLower()));
-            if (firstLetters.Contains(searchText))
+            string firstLetters = string.Concat(words.Select(w => RemoveDiacritics(w.Substring(0, 1)).ToLower()));
+            if (firstLetters.Contains(normalizedSearch))
                 return true;
-            
+
             // Partial first letter match (e.g., "tc" for "thập cẩm" in "mỳ cay thập cẩm")
             foreach (var word in words)
             {
-                if (word.ToLower().StartsWith(searchText))
+                if (RemoveDiacritics(word).ToLower().StartsWith(normalizedSearch))
                     return true;
             }
-            
+
             return false;
         }
 
@@ -319,6 +381,8 @@ namespace PosSystem.Main
             if (sender is Border border && border.Tag is int dishId)
             {
                 AddDishToOrder(_selectedTableId, dishId);
+                // Reset search after selecting dish
+                txtDishSearch.Clear();
             }
         }
 

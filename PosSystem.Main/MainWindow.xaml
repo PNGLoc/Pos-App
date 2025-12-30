@@ -360,11 +360,15 @@
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}" Value="">
-                                            <Setter Property="Opacity" Value="0.5"/>
+                                        <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}"
+                                                Value="">
+                                            <Setter Property="Opacity"
+                                                    Value="0.5"/>
                                         </DataTrigger>
-                                        <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}" Value="{x:Null}">
-                                            <Setter Property="Opacity" Value="0.5"/>
+                                        <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}"
+                                                Value="{x:Null}">
+                                            <Setter Property="Opacity"
+                                                    Value="0.5"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
