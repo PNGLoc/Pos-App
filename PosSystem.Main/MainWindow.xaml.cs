@@ -964,11 +964,22 @@ namespace PosSystem.Main
             db.SaveChanges();
         }
 
-        private async void ShowToast(string message)
+        private async void ShowToast(string message, int durationMs = 1500)
         {
             lblToastMessage.Text = message;
             bdToast.Visibility = Visibility.Visible;
-            await Task.Delay(1500);
+            await Task.Delay(durationMs);
+            bdToast.Visibility = Visibility.Collapsed;
+        }
+
+        private void ShowToastPersistent(string message)
+        {
+            lblToastMessage.Text = message;
+            bdToast.Visibility = Visibility.Visible;
+        }
+
+        private void HideToast()
+        {
             bdToast.Visibility = Visibility.Collapsed;
         }
 
@@ -1120,7 +1131,7 @@ namespace PosSystem.Main
 
                 if (currentOrder == null)
                 {
-                    MessageBox.Show("Không có đơn hàng nào để chuyển!", "Thông báo");
+                    ShowToast("❌ Không có đơn hàng để chuyển!", 2000);
                     return;
                 }
 
@@ -1128,7 +1139,7 @@ namespace PosSystem.Main
                 var availableTables = db.Tables.Where(t => t.TableID != _selectedTableId).ToList();
                 if (!availableTables.Any())
                 {
-                    MessageBox.Show("Không có bàn khác để chuyển!", "Thông báo");
+                    ShowToast("❌ Không có bàn khác để chuyển!", 2000);
                     return;
                 }
             }
@@ -1136,7 +1147,7 @@ namespace PosSystem.Main
             // Enter move mode
             _isWaitingForMoveTargetTable = true;
 
-            MessageBox.Show("Hãy chọn bàn đích từ danh sách bàn để chuyển!", "Thông báo");
+            ShowToastPersistent("📍 Chọn bàn đích để chuyển...");
 
             // Switch back to table list view
             pnlMenu.Visibility = Visibility.Collapsed;
@@ -1148,7 +1159,7 @@ namespace PosSystem.Main
         {
             if (targetTableId == _selectedTableId)
             {
-                MessageBox.Show("Vui lòng chọn bàn khác!", "Lỗi");
+                ShowToast("❌ Vui lòng chọn bàn khác!", 2000);
                 _isWaitingForMoveTargetTable = false;
                 return;
             }
@@ -1220,11 +1231,12 @@ namespace PosSystem.Main
                     Dispatcher.Invoke(() =>
                     {
                         _isWaitingForMoveTargetTable = false;
+                        HideToast();
 
                         LoadTables();
                         SelectAndLoadTable(targetTableId);
 
-                        MessageBox.Show("Chuyển bàn thành công!\n\nĐã tự động chuyển sang bàn đích để xem chi tiết.", "Thông báo");
+                        ShowToast("✅ Chuyển bàn thành công!", 2000);
                     });
                 }
             }
@@ -1321,7 +1333,7 @@ namespace PosSystem.Main
                             {
                                 if (splitQty > vm.Quantity)
                                 {
-                                    MessageBox.Show($"Số lượng tách không thể vượt quá số lượng hiện có của món này!", "Lỗi");
+                                    ShowToast("❌ Số lượng tách không vượt quá hiện có!", 2000);
                                     txt.Text = "0";
                                     vm.SplitQuantity = 0;
                                 }
@@ -1352,7 +1364,7 @@ namespace PosSystem.Main
 
             if (itemsToTransfer.Count == 0)
             {
-                MessageBox.Show("Vui lòng chọn ít nhất một món để chuyển!", "Thông báo");
+                ShowToast("❌ Vui lòng chọn ít nhất một món để tách!", 2000);
                 return;
             }
 
@@ -1364,17 +1376,17 @@ namespace PosSystem.Main
                     var detail = db.OrderDetails.FirstOrDefault(d => d.OrderDetailID == kvp.Key);
                     if (detail != null && kvp.Value > detail.Quantity)
                     {
-                        MessageBox.Show($"Số lượng chuyển vượt quá số lượng hiện có!", "Lỗi");
+                        ShowToast("❌ Số lượng tách vượt quá hiện có!", 2000);
                         return;
                     }
                 }
             }
 
-            // Set waiting mode and show message to select destination table
+            // Set waiting mode and show persistent popup to select destination table
             _isWaitingForTargetTable = true;
             _pendingSplitItems = itemsToTransfer;
 
-            MessageBox.Show("Hãy chọn bàn đích từ danh sách bàn để chuyển!", "Thông báo");
+            ShowToastPersistent("📍 Chọn bàn đích để tách...");
 
             // Switch back to table list view
             pnlMenu.Visibility = Visibility.Collapsed;
@@ -1386,7 +1398,7 @@ namespace PosSystem.Main
         {
             if (targetTableId == _selectedTableId)
             {
-                MessageBox.Show("Vui lòng chọn bàn khác!", "Lỗi");
+                ShowToast("❌ Vui lòng chọn bàn khác!", 2000);
                 _isWaitingForTargetTable = false;
                 _pendingSplitItems.Clear();
                 return;
@@ -1475,6 +1487,7 @@ namespace PosSystem.Main
                     {
                         _isWaitingForTargetTable = false;
                         _pendingSplitItems.Clear();
+                        HideToast();
 
                         // Reset split mode UI when transfer completes
                         _isSplitMode = false;
@@ -1486,7 +1499,7 @@ namespace PosSystem.Main
                         LoadTables();
                         SelectAndLoadTable(targetTableId);
 
-                        MessageBox.Show("Chuyển bàn thành công!\n\nĐã tự động chuyển sang bàn đích để xem chi tiết.", "Thông báo");
+                        ShowToast("✅ Tách bàn thành công!", 2000);
                     });
                 }
             }
