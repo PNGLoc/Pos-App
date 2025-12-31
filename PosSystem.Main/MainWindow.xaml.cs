@@ -135,6 +135,14 @@ namespace PosSystem.Main
             btnDiscountBill.Visibility = Visibility.Visible;
             colSplitQuantity.Visibility = Visibility.Collapsed;
 
+            // Reset buttons và labels
+            btnCheckout.IsEnabled = false;
+            btnSendKitchen.IsEnabled = false;
+            btnSendKitchen.Background = new SolidColorBrush(Color.FromRgb(108, 117, 125));  // Màu xám
+            lblSubTotal.Text = "0đ";
+            lblTotal.Text = "0đ";
+            pnlDiscount.Visibility = Visibility.Collapsed;
+
             LoadTables();
             lstTables.SelectedItem = null;
         }

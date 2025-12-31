@@ -720,9 +720,9 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTemplateColumn Header="Tách"
-                                        Width="60"
-                                        x:Name="colSplitQuantity"
-                                        Visibility="Collapsed">
+                                                        Width="60"
+                                                        x:Name="colSplitQuantity"
+                                                        Visibility="Collapsed">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBox Text="{Binding SplitQuantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -747,7 +747,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0"
-                                        Orientation="Horizontal">
+                                            Orientation="Horizontal">
                                     <Button x:Name="btnDiscountBill"
                                             Content="🎫 Giảm Bill"
                                             HorizontalAlignment="Left"
