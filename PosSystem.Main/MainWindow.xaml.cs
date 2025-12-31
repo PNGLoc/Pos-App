@@ -1479,8 +1479,33 @@ namespace PosSystem.Main
 
                     db.SaveChanges();
 
-                    // Recalculate totals for both source and target orders
-                    RecalculateOrder(db, sourceOrder.OrderID);
+                    // Reload source order to get updated OrderDetails
+                    db.Entry(sourceOrder).Reload();
+
+                    // Check if source order still has items with quantity > 0
+                    bool sourceOrderHasItems = sourceOrder.OrderDetails.Any(d => d.Quantity > 0);
+
+                    // If source order has no items left, delete it and mark table as empty
+                    if (!sourceOrderHasItems)
+                    {
+                        // Delete source order
+                        db.Orders.Remove(sourceOrder);
+
+                        var sourceTable = db.Tables.FirstOrDefault(t => t.TableID == _selectedTableId);
+                        if (sourceTable != null)
+                        {
+                            sourceTable.TableStatus = "Empty";
+                        }
+
+                        db.SaveChanges();
+                    }
+                    else
+                    {
+                        // Recalculate totals for source order if it still has items
+                        RecalculateOrder(db, sourceOrder.OrderID);
+                    }
+
+                    // Recalculate totals for target order
                     RecalculateOrder(db, targetOrder.OrderID);
 
                     Dispatcher.Invoke(() =>
