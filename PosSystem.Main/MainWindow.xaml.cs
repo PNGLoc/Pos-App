@@ -72,6 +72,15 @@ namespace PosSystem.Main
             _tableListUpdateTimer.Tick += (s, e) => LoadTables();
             _tableListUpdateTimer.Start();
 
+            // Reset buttons on startup
+            btnCheckout.IsEnabled = false;
+            btnSendKitchen.IsEnabled = false;
+            btnSendKitchen.Background = new SolidColorBrush(Color.FromRgb(108, 117, 125));  // Màu xám
+            btnSendKitchen.Content = "👨‍🍳 GỬI BẾP (In Đợt Mới)";
+            lblSubTotal.Text = "0đ";
+            lblTotal.Text = "0đ";
+            pnlDiscount.Visibility = Visibility.Collapsed;
+
             LoadTables();
             LoadMenu();
             SetupRealtime();
