@@ -53,6 +53,9 @@ namespace PosSystem.Main
         private bool _isWaitingForTargetTable = false;  // True when waiting for user to click target table
         private Dictionary<long, int> _pendingSplitItems = new Dictionary<long, int>();  // Items to split when table selected
 
+        // Move table mode variables
+        private bool _isWaitingForMoveTargetTable = false;  // True when waiting for user to click target table for move
+
         public MainWindow()
         {
             InitializeComponent();
@@ -84,6 +87,15 @@ namespace PosSystem.Main
                     int targetTableId = selected.TableID;
                     lstTables.SelectedItem = null;  // Deselect to reset
                     ExecuteSplitTransfer(targetTableId);
+                    return;
+                }
+
+                // If waiting for target table in move mode, move entire order instead of opening menu
+                if (_isWaitingForMoveTargetTable)
+                {
+                    int targetTableId = selected.TableID;
+                    lstTables.SelectedItem = null;  // Deselect to reset
+                    ExecuteMoveTable(targetTableId);
                     return;
                 }
 
@@ -134,6 +146,9 @@ namespace PosSystem.Main
             btnTransferSplit.Visibility = Visibility.Collapsed;
             btnDiscountBill.Visibility = Visibility.Visible;
             colSplitQuantity.Visibility = Visibility.Collapsed;
+
+            // Reset move mode when returning to table list
+            _isWaitingForMoveTargetTable = false;
 
             // Reset buttons và labels
             btnCheckout.IsEnabled = false;
@@ -1108,98 +1123,97 @@ namespace PosSystem.Main
                     return;
                 }
 
-                // Get all available tables except current
+                // Check if there are any available tables
                 var availableTables = db.Tables.Where(t => t.TableID != _selectedTableId).ToList();
-
                 if (!availableTables.Any())
                 {
                     MessageBox.Show("Không có bàn khác để chuyển!", "Thông báo");
                     return;
                 }
+            }
 
-                // Create selection dialog
-                var dialog = new Window
+            // Enter move mode
+            _isWaitingForMoveTargetTable = true;
+
+            MessageBox.Show("Hãy chọn bàn đích từ danh sách bàn để chuyển!", "Thông báo");
+
+            // Switch back to table list view
+            pnlMenu.Visibility = Visibility.Collapsed;
+            pnlTableList.Visibility = Visibility.Visible;
+            _tableTimeTimer.Stop();
+        }
+
+        private void ExecuteMoveTable(int targetTableId)
+        {
+            if (targetTableId == _selectedTableId)
+            {
+                MessageBox.Show("Vui lòng chọn bàn khác!", "Lỗi");
+                _isWaitingForMoveTargetTable = false;
+                return;
+            }
+
+            using (var db = new AppDbContext())
+            {
+                var sourceOrder = db.Orders
+                    .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
+                    .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+
+                var targetOrder = db.Orders
+                    .FirstOrDefault(o => o.TableID == targetTableId && o.OrderStatus == "Pending");
+
+                if (sourceOrder != null)
                 {
-                    Title = "Chọn bàn để chuyển",
-                    Width = 400,
-                    Height = 300,
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                    Owner = this,
-                    Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(240, 242, 245))
-                };
-
-                var listBox = new ListBox
-                {
-                    Margin = new Thickness(15),
-                    FontSize = 14
-                };
-
-                foreach (var table in availableTables)
-                {
-                    listBox.Items.Add(new { TableID = table.TableID, TableName = table.TableName });
-                }
-
-                listBox.DisplayMemberPath = "TableName";
-
-                var btnConfirm = new Button
-                {
-                    Content = "✓ Chuyển bàn",
-                    Width = 100,
-                    Height = 40,
-                    Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#28A745"),
-                    Foreground = System.Windows.Media.Brushes.White,
-                    FontWeight = FontWeights.Bold,
-                    Margin = new Thickness(5)
-                };
-
-                var btnCancel = new Button
-                {
-                    Content = "✗ Hủy",
-                    Width = 100,
-                    Height = 40,
-                    Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6c757d"),
-                    Foreground = System.Windows.Media.Brushes.White,
-                    FontWeight = FontWeights.Bold,
-                    Margin = new Thickness(5)
-                };
-
-                btnCancel.Click += (s, args) => dialog.Close();
-
-                btnConfirm.Click += (s, args) =>
-                {
-                    if (listBox.SelectedItem != null)
+                    // If target table already has an order, merge them
+                    if (targetOrder != null)
                     {
-                        dynamic selectedTable = listBox.SelectedItem;
-                        int targetTableId = selectedTable.TableID;
-                        dialog.Close();
-
-                        using (var updateDb = new AppDbContext())
+                        // Move all order details from source to target
+                        foreach (var detail in sourceOrder.OrderDetails)
                         {
-                            var order = updateDb.Orders.FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
-                            if (order != null)
-                            {
-                                order.TableID = targetTableId;
-                                updateDb.SaveChanges();
-
-                                // Back to table list and reload
-                                BtnBackToTables_Click(null, null);
-                                MessageBox.Show("Chuyển bàn thành công!", "Thông báo");
-                            }
+                            detail.OrderID = targetOrder.OrderID;
                         }
                     }
-                };
+                    else
+                    {
+                        // Move entire order to target table
+                        sourceOrder.TableID = targetTableId;
+                    }
 
-                var stackPanel = new StackPanel { Margin = new Thickness(15) };
-                stackPanel.Children.Add(new TextBlock { Text = "Chọn bàn để chuyển:", FontSize = 14, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 10) });
-                stackPanel.Children.Add(listBox);
+                    // Update source table status to empty
+                    var sourceTable = db.Tables.FirstOrDefault(t => t.TableID == _selectedTableId);
+                    if (sourceTable != null)
+                    {
+                        sourceTable.TableStatus = "Empty";
+                    }
 
-                var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 10, 0, 0) };
-                buttonPanel.Children.Add(btnConfirm);
-                buttonPanel.Children.Add(btnCancel);
-                stackPanel.Children.Add(buttonPanel);
+                    // Update target table status to occupied
+                    var targetTable = db.Tables.FirstOrDefault(t => t.TableID == targetTableId);
+                    if (targetTable != null)
+                    {
+                        targetTable.TableStatus = "Occupied";
+                    }
 
-                dialog.Content = stackPanel;
-                dialog.ShowDialog();
+                    db.SaveChanges();
+
+                    // Recalculate totals
+                    if (targetOrder != null)
+                    {
+                        RecalculateOrder(db, targetOrder.OrderID);
+                    }
+                    else
+                    {
+                        RecalculateOrder(db, sourceOrder.OrderID);
+                    }
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        _isWaitingForMoveTargetTable = false;
+
+                        LoadTables();
+                        SelectAndLoadTable(targetTableId);
+
+                        MessageBox.Show("Chuyển bàn thành công!\n\nĐã tự động chuyển sang bàn đích để xem chi tiết.", "Thông báo");
+                    });
+                }
             }
         }
 
