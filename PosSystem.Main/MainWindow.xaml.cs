@@ -1157,6 +1157,7 @@ namespace PosSystem.Main
             {
                 var sourceOrder = db.Orders
                     .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
+                    .Include(o => o.Table)
                     .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
 
                 var targetOrder = db.Orders
@@ -1164,6 +1165,9 @@ namespace PosSystem.Main
 
                 if (sourceOrder != null)
                 {
+                    // Lưu tên bàn cũ trước khi cập nhật
+                    string oldTableName = sourceOrder.Table?.TableName ?? $"Bàn {_selectedTableId}";
+                    
                     // If target table already has an order, merge them
                     if (targetOrder != null)
                     {
@@ -1205,9 +1209,13 @@ namespace PosSystem.Main
                         RecalculateOrder(db, sourceOrder.OrderID);
                     }
 
+                    // Lấy tên bàn mới
+                    var newTableInfo = db.Tables.FirstOrDefault(t => t.TableID == targetTableId);
+                    string newTableName = newTableInfo?.TableName ?? $"Bàn {targetTableId}";
+
                     // In thông báo chuyển bàn cho các máy in tương ứng
                     var orderToNotify = targetOrder ?? sourceOrder;
-                    PrintService.PrintMoveTableNotification(orderToNotify, targetTableId);
+                    PrintService.PrintMoveTableNotification(orderToNotify, oldTableName, newTableName);
 
                     Dispatcher.Invoke(() =>
                     {

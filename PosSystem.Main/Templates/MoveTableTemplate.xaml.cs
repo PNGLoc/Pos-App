@@ -11,9 +11,9 @@ namespace PosSystem.Main.Templates
 
         public void SetData(string oldTableName, string newTableName)
         {
-            txtOldTable.Text = oldTableName;
-            txtNewTable.Text = newTableName;
-            txtTime.Text = $"Thời gian: {System.DateTime.Now:HH:mm:ss}";
+            txtMoveInfo.Text = $"{oldTableName} chuyển đến {newTableName}";
+            txtTime.Text = $"{System.DateTime.Now:HH:mm:ss}";
         }
     }
 }
+

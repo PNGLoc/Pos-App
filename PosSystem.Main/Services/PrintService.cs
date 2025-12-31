@@ -200,15 +200,12 @@ namespace PosSystem.Main.Services
         }
 
         // 3. HÀM IN THÔNG BÁO CHUYỂN BÀN
-        public static void PrintMoveTableNotification(Order orderInfo, int newTableId)
+        public static void PrintMoveTableNotification(Order orderInfo, string oldTableName, string newTableName)
         {
             if (orderInfo == null) return;
 
             using (var db = new AppDbContext())
             {
-                var newTable = db.Tables.FirstOrDefault(t => t.TableID == newTableId);
-                string newTableName = newTable?.TableName ?? $"Bàn {newTableId}";
-
                 // Lấy danh sách tất cả các OrderDetail của order
                 var orderDetails = db.OrderDetails
                     .Include(od => od.Dish).ThenInclude(d => d.Category)
@@ -229,7 +226,7 @@ namespace PosSystem.Main.Services
                     var allActivePrinters = db.Printers.Where(p => p.IsActive && !p.IsBillPrinter).ToList();
                     foreach (var printer in allActivePrinters)
                     {
-                        PrintMoveNotificationToPrinter(printer, orderInfo.Table?.TableName ?? $"Bàn {orderInfo.TableID}", newTableName);
+                        PrintMoveNotificationToPrinter(printer, oldTableName, newTableName);
                     }
                     return;
                 }
@@ -243,7 +240,7 @@ namespace PosSystem.Main.Services
                     var printer = db.Printers.Find(printerId);
                     if (printer == null || !printer.IsActive) continue;
 
-                    PrintMoveNotificationToPrinter(printer, orderInfo.Table?.TableName ?? $"Bàn {orderInfo.TableID}", newTableName);
+                    PrintMoveNotificationToPrinter(printer, oldTableName, newTableName);
                 }
             }
         }

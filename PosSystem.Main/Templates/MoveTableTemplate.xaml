@@ -6,85 +6,22 @@
              FontFamily="Arial">
     <!-- Width 550px phù hợp với máy in 80mm -->
 
-    <StackPanel Margin="10"
-            VerticalAlignment="Top">
-        <!-- Tiêu đề -->
-        <TextBlock Text="═══════════════════════════"
-                   FontSize="12"
+    <StackPanel Margin="20" VerticalAlignment="Center" HorizontalAlignment="Center">
+        <!-- Nội dung chuyển bàn: Bàn X chuyển đến Bàn Y -->
+        <TextBlock x:Name="txtMoveInfo"
+                   Text="Bàn X chuyển đến Bàn Y"
+                   FontSize="40"
                    FontWeight="Bold"
                    Foreground="Black"
                    TextAlignment="Center"
-                   Margin="0,0,0,10"/>
-
-        <TextBlock Text="CHUYỂN BÀN"
-                   FontSize="20"
-                   FontWeight="Bold"
-                   Foreground="Black"
-                   TextAlignment="Center"
-                   Margin="0,0,0,10"/>
-
-        <TextBlock Text="═══════════════════════════"
-                   FontSize="12"
-                   FontWeight="Bold"
-                   Foreground="Black"
-                   TextAlignment="Center"
-                   Margin="0,0,0,20"/>
-
-        <!-- Nội dung chuyển bàn -->
-        <Grid Margin="0,0,0,15">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Grid.Column="0"
-                       Text="Từ: "
-                       FontSize="14"
-                       FontWeight="Bold"
-                       Foreground="Black"/>
-            <TextBlock Grid.Column="1"
-                       x:Name="txtOldTable"
-                       Text="Bàn 0"
-                       FontSize="14"
-                       FontWeight="Bold"
-                       Foreground="Black"
-                       Margin="5,0,0,0"/>
-        </Grid>
-
-        <Grid Margin="0,0,0,15">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Grid.Column="0"
-                       Text="Sang: "
-                       FontSize="14"
-                       FontWeight="Bold"
-                       Foreground="Black"/>
-            <TextBlock Grid.Column="1"
-                       x:Name="txtNewTable"
-                       Text="Bàn 0"
-                       FontSize="14"
-                       FontWeight="Bold"
-                       Foreground="Black"
-                       Margin="5,0,0,0"/>
-        </Grid>
+                   Margin="0,0,0,20"
+                   TextWrapping="Wrap"/>
 
         <!-- Thời gian -->
         <TextBlock x:Name="txtTime"
-                   Text="Thời gian: 00:00:00"
-                   FontSize="12"
+                   Text="00:00:00"
+                   FontSize="24"
                    Foreground="Black"
-                   TextAlignment="Center"
-                   Margin="0,0,0,20"/>
-
-        <!-- Footer -->
-        <TextBlock Text="═══════════════════════════"
-                   FontSize="12"
-                   FontWeight="Bold"
-                   Foreground="Black"
-                   TextAlignment="Center"
-                   Margin="0,0,0,10"/>
+                   TextAlignment="Center"/>
     </StackPanel>
 </UserControl>
