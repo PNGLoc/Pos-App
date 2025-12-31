@@ -1,6 +1,7 @@
 ﻿<Window x:Class="PosSystem.Main.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PosSystem.Main"
         Title="POS SYSTEM - QUẢN LÝ BÀN"
         Height="768"
         Width="1366"
@@ -9,6 +10,7 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <local:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
 
         <Style x:Key="PrinterToggleStyle"
                TargetType="ToggleButton">
@@ -566,6 +568,13 @@
                                 <Style TargetType="DataGridRow">
                                     <Setter Property="Background"
                                             Value="{Binding RowColor}"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsSelected"
+                                                 Value="True">
+                                            <Setter Property="Background"
+                                                    Value="{Binding RowColor}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
@@ -612,7 +621,8 @@
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal"
                                                         HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center">
+                                                        VerticalAlignment="Center"
+                                                        x:Name="pnlQuantityControls">
                                                 <Button Content="-"
                                                         Click="BtnDecrease_Click"
                                                         Tag="{Binding OrderDetailID}"
@@ -624,13 +634,30 @@
                                                         FontWeight="Bold"
                                                         Foreground="#DC3545"
                                                         Cursor="Hand"
-                                                        Margin="0,0,5,0"/>
-                                                <TextBlock Text="{Binding Quantity}"
+                                                        Margin="0,0,5,0"
+                                                        x:Name="btnDecreaseControl"
+                                                        Visibility="{Binding IsInSplitMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                <TextBlock x:Name="txtQuantityDisplay"
+                                                           Text="{Binding Quantity}"
                                                            Width="30"
                                                            TextAlignment="Center"
                                                            VerticalAlignment="Center"
                                                            FontWeight="Bold"
-                                                           FontSize="16"/>
+                                                           FontSize="16"
+                                                           Cursor="Hand"
+                                                           MouseLeftButtonDown="TxtQuantity_MouseLeftButtonDown"
+                                                           ToolTip="Nhấn để nhập số lượng trực tiếp"/>
+                                                <TextBox x:Name="txtQuantityInput"
+                                                         Text="{Binding Quantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         Tag="{Binding OrderDetailID}"
+                                                         Visibility="Collapsed"
+                                                         Width="30"
+                                                         TextAlignment="Center"
+                                                         MaxLength="3"
+                                                         PreviewTextInput="QuantityInput_PreviewTextInput"
+                                                         LostFocus="TxtQuantityInput_LostFocus"
+                                                         KeyDown="TxtQuantityInput_KeyDown"
+                                                         Padding="2"/>
                                                 <Button Content="+"
                                                         Click="BtnIncrease_Click"
                                                         Tag="{Binding OrderDetailID}"
@@ -642,7 +669,9 @@
                                                         FontWeight="Bold"
                                                         Foreground="#28A745"
                                                         Cursor="Hand"
-                                                        Margin="5,0,0,0"/>
+                                                        Margin="5,0,0,0"
+                                                        x:Name="btnIncreaseControl"
+                                                        Visibility="{Binding IsInSplitMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                                             </StackPanel>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>

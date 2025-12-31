@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -10,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 using System.Threading.Tasks;
+using System.Globalization;
 
 namespace PosSystem.Main
 {
@@ -277,7 +279,8 @@ namespace PosSystem.Main
 
                         BatchDisplay = d.PrintedQuantity == 0 ? "⏳" : (d.KitchenBatch > 0 ? $"Đợt {d.KitchenBatch}" : "---"),
                         StatusDisplay = d.Quantity == 0 ? "❌ CHỜ HỦY" : (d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK"),
-                        RowColor = d.Quantity == 0 ? "#FFCCCC" : (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White")
+                        RowColor = d.Quantity == 0 ? "#FFCCCC" : (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White"),
+                        IsInSplitMode = false  // Chế độ bình thường - hiện nút +/-
                     }).ToList();
 
                     lstOrderDetails.ItemsSource = viewModels; // Gán list mới
@@ -626,6 +629,136 @@ namespace PosSystem.Main
                 }
             }
         }
+
+        // --- NHẬP TRỰC TIẾP SỐ LƯỢNG ---
+        private void TxtQuantity_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is TextBlock txtQuantity && 
+                txtQuantity.Parent is StackPanel stackPanel)
+            {
+                // Tìm TextBlock hiện tại và TextBox tương ứng
+                var textBox = stackPanel.Children.OfType<TextBox>().FirstOrDefault();
+                if (textBox != null)
+                {
+                    txtQuantity.Visibility = Visibility.Collapsed;
+                    textBox.Visibility = Visibility.Visible;
+                    textBox.Focus();
+                    textBox.SelectAll();
+                }
+            }
+        }
+
+        private void QuantityInput_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            // Chỉ cho phép nhập số
+            e.Handled = !int.TryParse(e.Text, out _);
+        }
+
+        private void TxtQuantityInput_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Return || e.Key == System.Windows.Input.Key.Enter)
+            {
+                // Enter: Lưu thay đổi
+                if (sender is TextBox textBox)
+                {
+                    SaveQuantityChange(textBox);
+                }
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                // Escape: Hủy bỏ
+                if (sender is TextBox textBox)
+                {
+                    CancelQuantityEdit(textBox);
+                }
+                e.Handled = true;
+            }
+        }
+
+        private void TxtQuantityInput_LostFocus(object sender, RoutedEventArgs e)
+        {
+            // Khi mất focus: Lưu thay đổi
+            if (sender is TextBox textBox)
+            {
+                SaveQuantityChange(textBox);
+            }
+        }
+
+        private void SaveQuantityChange(TextBox textBox)
+        {
+            if (textBox == null || !(textBox.Tag is long detailId)) return;
+
+            if (!int.TryParse(textBox.Text, out int newQuantity) || newQuantity < 0)
+            {
+                newQuantity = 0;
+            }
+
+            using (var db = new AppDbContext())
+            {
+                var detail = db.OrderDetails.Find(detailId);
+                if (detail == null) return;
+
+                long currentOrderId = detail.OrderID;
+                int oldQuantity = detail.Quantity;
+                detail.Quantity = newQuantity;
+                detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100);
+
+                if (newQuantity != oldQuantity && detail.ItemStatus == "Sent")
+                {
+                    detail.ItemStatus = "Modified";
+                }
+
+                bool isRemoved = false;
+
+                // Nếu về 0: Xóa hoặc giữ lại để báo hủy
+                if (detail.Quantity == 0 && detail.PrintedQuantity == 0)
+                {
+                    db.OrderDetails.Remove(detail);
+                    isRemoved = true;
+                }
+
+                db.SaveChanges();
+
+                // Kiểm tra xem có xóa dòng hay không
+                if (isRemoved)
+                {
+                    bool hasAnyItem = db.OrderDetails.Any(d => d.OrderID == currentOrderId);
+                    if (!hasAnyItem)
+                    {
+                        var order = db.Orders.Find(currentOrderId);
+                        if (order != null)
+                        {
+                            var table = db.Tables.Find(order.TableID);
+                            if (table != null) table.TableStatus = "Empty";
+                            db.Orders.Remove(order);
+                            db.SaveChanges();
+                            LoadTables();
+                            LoadOrderDetails(_selectedTableId);
+                            return;
+                        }
+                    }
+                }
+
+                RecalculateOrder(db, detail.OrderID);
+                LoadOrderDetails(_selectedTableId);
+                ShowToast($"Đã cập nhật số lượng");
+            }
+        }
+
+        private void CancelQuantityEdit(TextBox textBox)
+        {
+            if (textBox == null || !(textBox.Parent is StackPanel stackPanel)) return;
+
+            // Tìm TextBlock tương ứng
+            var textBlock = stackPanel.Children.OfType<TextBlock>().FirstOrDefault();
+            if (textBlock != null)
+            {
+                textBox.Visibility = Visibility.Collapsed;
+                textBlock.Visibility = Visibility.Visible;
+            }
+        }
+
         // --- C. NÚT SỬA (✎) -> MỞ DISCOUNT WINDOW ---
         private void BtnEditItem_Click(object sender, RoutedEventArgs e)
         {
@@ -1087,6 +1220,21 @@ namespace PosSystem.Main
             }
         }
 
+        private void HideQuantityControls()
+        {
+            // Hàm này không còn cần thiết - sử dụng binding thay thế
+        }
+
+        private void ShowQuantityControls()
+        {
+            // Hàm này không còn cần thiết - sử dụng binding thay thế
+        }
+
+        private void UpdateQuantityControlsVisibility(System.Windows.Controls.DataGridRow row, Visibility visibility)
+        {
+            // Hàm này không còn cần thiết - sử dụng binding thay thế
+        }
+
         private void LoadOrderDetailsInSplitMode()
         {
             using (var db = new AppDbContext())
@@ -1109,7 +1257,8 @@ namespace PosSystem.Main
                         BatchDisplay = d.PrintedQuantity == 0 ? "⏳" : (d.KitchenBatch > 0 ? $"Đợt {d.KitchenBatch}" : "---"),
                         StatusDisplay = d.Quantity == 0 ? "❌ CHỜ HỦY" : (d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK"),
                         RowColor = d.Quantity == 0 ? "#FFCCCC" : (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White"),
-                        SplitQuantity = 0
+                        SplitQuantity = 0,
+                        IsInSplitMode = true  // Set để ẩn nút +/-
                     }).ToList();
 
                     lstOrderDetails.ItemsSource = viewModels;
@@ -1343,7 +1492,68 @@ namespace PosSystem.Main
         public string StatusDisplay { get; set; } = "";
         public string RowColor { get; set; } = "White";
 
+        // Split mode property - để kiểm soát visibility nút +/-
+        public bool IsInSplitMode { get; set; } = false;
+
         // Split mode properties
         public int SplitQuantity { get; set; } = 0;  // Quantity to split in split mode
+    }
+
+    // Extension methods để tìm visual children
+    public static class VisualTreeHelper_Extensions
+    {
+        public static T FindVisualChild<T>(this DependencyObject parent) where T : DependencyObject
+        {
+            if (parent == null) return null;
+            int childCount = System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < childCount; i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is T childOfType)
+                    return childOfType;
+                var result = child.FindVisualChild<T>();
+                if (result != null)
+                    return result;
+            }
+            return null;
+        }
+
+        public static IEnumerable<T> FindVisualChildren<T>(this DependencyObject parent) where T : DependencyObject
+        {
+            if (parent == null) yield break;
+            int childCount = System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < childCount; i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is T childOfType)
+                    yield return childOfType;
+                foreach (var descendant in child.FindVisualChildren<T>())
+                    yield return descendant;
+            }
+        }
+    }
+
+    // Converter để convert boolean thành visibility (Inverse)
+    public class InverseBooleanToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool boolValue)
+            {
+                // Nếu true (split mode) -> Collapsed (ẩn nút)
+                // Nếu false (normal mode) -> Visible (hiện nút)
+                return boolValue ? Visibility.Collapsed : Visibility.Visible;
+            }
+            return Visibility.Visible;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is Visibility visibility)
+            {
+                return visibility != Visibility.Visible;
+            }
+            return false;
+        }
     }
 }
