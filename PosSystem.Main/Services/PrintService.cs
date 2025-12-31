@@ -198,5 +198,87 @@ namespace PosSystem.Main.Services
                 }
             }
         }
+
+        // 3. HÀM IN THÔNG BÁO CHUYỂN BÀN
+        public static void PrintMoveTableNotification(Order orderInfo, int newTableId)
+        {
+            if (orderInfo == null) return;
+
+            using (var db = new AppDbContext())
+            {
+                var newTable = db.Tables.FirstOrDefault(t => t.TableID == newTableId);
+                string newTableName = newTable?.TableName ?? $"Bàn {newTableId}";
+
+                // Lấy danh sách tất cả các OrderDetail của order
+                var orderDetails = db.OrderDetails
+                    .Include(od => od.Dish).ThenInclude(d => d.Category)
+                    .Where(od => od.OrderID == orderInfo.OrderID)
+                    .ToList();
+
+                if (!orderDetails.Any()) return;
+
+                // Gom nhóm theo PrinterID của Category
+                var printerGroups = orderDetails
+                    .Where(od => od.Dish?.Category?.PrinterID != null)
+                    .GroupBy(od => od.Dish!.Category!.PrinterID)
+                    .ToList();
+
+                // Nếu không có nhóm nào, in cho tất cả các printer
+                if (!printerGroups.Any())
+                {
+                    var allActivePrinters = db.Printers.Where(p => p.IsActive && !p.IsBillPrinter).ToList();
+                    foreach (var printer in allActivePrinters)
+                    {
+                        PrintMoveNotificationToPrinter(printer, orderInfo.Table?.TableName ?? $"Bàn {orderInfo.TableID}", newTableName);
+                    }
+                    return;
+                }
+
+                // In thông báo cho từng máy in
+                foreach (var group in printerGroups)
+                {
+                    if (group.Key == null) continue;
+                    int printerId = group.Key.Value;
+
+                    var printer = db.Printers.Find(printerId);
+                    if (printer == null || !printer.IsActive) continue;
+
+                    PrintMoveNotificationToPrinter(printer, orderInfo.Table?.TableName ?? $"Bàn {orderInfo.TableID}", newTableName);
+                }
+            }
+        }
+
+        private static void PrintMoveNotificationToPrinter(Printer printer, string oldTableName, string newTableName)
+        {
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    try
+                    {
+                        var template = new Templates.MoveTableTemplate();
+                        template.SetData(oldTableName, newTableName);
+
+                        int width = printer.PaperSize == 58 ? 380 : 550;
+                        using (var bmp = EscPosImageHelper.RenderVisualToBitmap(template, width))
+                        {
+                            byte[] imgBytes = EscPosImageHelper.ConvertBitmapToEscPosBytes(bmp);
+                            List<byte> cmd = new List<byte>();
+                            cmd.AddRange(EscPos.Init);
+                            cmd.AddRange(EscPos.AlignCenter);
+                            cmd.AddRange(imgBytes);
+                            cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
+                            cmd.AddRange(EscPos.CutPaper);
+                            SendBytesToPrinter(printer, cmd);
+                        }
+                    }
+                    catch (Exception ex) { Console.WriteLine($"Lỗi in thông báo chuyển bàn: {ex.Message}"); }
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi in thông báo chuyển bàn: {ex.Message}");
+            }
+        }
     }
 }

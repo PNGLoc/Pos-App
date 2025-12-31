@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
+using PosSystem.Main.Services;
 using System.Threading.Tasks;
 using System.Globalization;
 
@@ -1203,6 +1204,10 @@ namespace PosSystem.Main
                     {
                         RecalculateOrder(db, sourceOrder.OrderID);
                     }
+
+                    // In thông báo chuyển bàn cho các máy in tương ứng
+                    var orderToNotify = targetOrder ?? sourceOrder;
+                    PrintService.PrintMoveTableNotification(orderToNotify, targetTableId);
 
                     Dispatcher.Invoke(() =>
                     {
