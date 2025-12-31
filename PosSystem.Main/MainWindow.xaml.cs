@@ -77,6 +77,8 @@ namespace PosSystem.Main
             btnSendKitchen.IsEnabled = false;
             btnSendKitchen.Background = new SolidColorBrush(Color.FromRgb(108, 117, 125));  // Màu xám
             btnSendKitchen.Content = "👨‍🍳 GỬI BẾP (In Đợt Mới)";
+            btnSplitTable.Visibility = Visibility.Collapsed;
+            btnMoveTable.Visibility = Visibility.Collapsed;
             lblSubTotal.Text = "0đ";
             lblTotal.Text = "0đ";
             pnlDiscount.Visibility = Visibility.Collapsed;
@@ -115,6 +117,10 @@ namespace PosSystem.Main
                 pnlTableList.Visibility = Visibility.Collapsed;
                 pnlMenu.Visibility = Visibility.Visible;
 
+                // Show split and move buttons when selecting a table
+                btnSplitTable.Visibility = Visibility.Visible;
+                btnMoveTable.Visibility = Visibility.Visible;
+
                 // Stop timer when entering a table (will start only when sending kitchen)
                 _tableTimeTimer.Stop();
                 _currentOrderTime = null;
@@ -147,6 +153,10 @@ namespace PosSystem.Main
             _tableTimeTimer.Stop();
             pnlMenu.Visibility = Visibility.Collapsed;
             pnlTableList.Visibility = Visibility.Visible;
+
+            // Hide split and move buttons when returning to table list
+            btnSplitTable.Visibility = Visibility.Collapsed;
+            btnMoveTable.Visibility = Visibility.Collapsed;
 
             // Reset split mode when returning to table list
             _isSplitMode = false;
@@ -188,6 +198,8 @@ namespace PosSystem.Main
 
             pnlTableList.Visibility = Visibility.Collapsed;
             pnlMenu.Visibility = Visibility.Visible;
+            btnSplitTable.Visibility = Visibility.Visible;
+            btnMoveTable.Visibility = Visibility.Visible;
 
             // Stop timer when entering a table
             _tableTimeTimer.Stop();

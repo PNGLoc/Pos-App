@@ -513,6 +513,7 @@
                                    HorizontalAlignment="Right"
                                    Margin="0,0,15,0"/>
                         <Button Grid.Column="2"
+                                x:Name="btnSplitTable"
                                 Content="📤 Tách bàn"
                                 Click="BtnSplitTable_Click"
                                 Background="#FFC107"
@@ -530,6 +531,7 @@
                             </Button.Resources>
                         </Button>
                         <Button Grid.Column="3"
+                                x:Name="btnMoveTable"
                                 Content="🔄 Chuyển bàn"
                                 Click="BtnMoveTable_Click"
                                 Background="#28A745"
