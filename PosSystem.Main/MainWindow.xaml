@@ -11,6 +11,7 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <local:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+        <local:EmptyStringToVisibilityConverter x:Key="EmptyStringToVisibilityConverter"/>
 
         <Style x:Key="PrinterToggleStyle"
                TargetType="ToggleButton">
@@ -589,11 +590,21 @@
                                                            TextWrapping="Wrap"
                                                            Margin="0,0,0,3"/>
 
-                                                <TextBox Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Tag="{Binding OrderDetailID}"
-                                                         Style="{StaticResource NoteTextBoxStyle}"
-                                                         LostFocus="TxtNote_LostFocus"
-                                                         ToolTip="Nhấn để nhập ghi chú (Ví dụ: Ít đường, Không đá...)"/>
+                                                <Grid>
+                                                    <TextBox Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             Tag="{Binding OrderDetailID}"
+                                                             Style="{StaticResource NoteTextBoxStyle}"
+                                                             LostFocus="TxtNote_LostFocus"
+                                                             ToolTip="Nhấn để nhập ghi chú (Ví dụ: Ít đường, Không đá...)"/>
+                                                    <TextBlock Text="Ghi chú"
+                                                               FontSize="12"
+                                                               Foreground="#BBB"
+                                                               FontStyle="Italic"
+                                                               Margin="5,2"
+                                                               IsHitTestVisible="False"
+                                                               VerticalAlignment="Center"
+                                                               Visibility="{Binding Note, Converter={StaticResource EmptyStringToVisibilityConverter}}"/>
+                                                </Grid>
                                             </StackPanel>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
@@ -708,7 +719,10 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="Tách" Width="60" x:Name="colSplitQuantity" Visibility="Collapsed">
+                                <DataGridTemplateColumn Header="Tách"
+                                        Width="60"
+                                        x:Name="colSplitQuantity"
+                                        Visibility="Collapsed">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBox Text="{Binding SplitQuantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -732,7 +746,8 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                <StackPanel Grid.Column="0"
+                                        Orientation="Horizontal">
                                     <Button x:Name="btnDiscountBill"
                                             Content="🎫 Giảm Bill"
                                             HorizontalAlignment="Left"

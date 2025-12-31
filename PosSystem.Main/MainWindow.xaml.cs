@@ -633,7 +633,7 @@ namespace PosSystem.Main
         // --- NHẬP TRỰC TIẾP SỐ LƯỢNG ---
         private void TxtQuantity_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (sender is TextBlock txtQuantity && 
+            if (sender is TextBlock txtQuantity &&
                 txtQuantity.Parent is StackPanel stackPanel)
             {
                 // Tìm TextBlock hiện tại và TextBox tương ứng
@@ -1554,6 +1554,26 @@ namespace PosSystem.Main
                 return visibility != Visibility.Visible;
             }
             return false;
+        }
+    }
+
+    // Converter để hiển thị placeholder khi text rỗng
+    public class EmptyStringToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is string text)
+            {
+                // Nếu text rỗng hoặc null → Hiện placeholder (Visible)
+                // Nếu có text → Ẩn placeholder (Collapsed)
+                return string.IsNullOrEmpty(text) ? Visibility.Visible : Visibility.Collapsed;
+            }
+            return Visibility.Visible;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return null;
         }
     }
 }
