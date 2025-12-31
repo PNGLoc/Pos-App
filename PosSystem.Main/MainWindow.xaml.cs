@@ -1167,7 +1167,7 @@ namespace PosSystem.Main
                 {
                     // Lưu tên bàn cũ trước khi cập nhật
                     string oldTableName = sourceOrder.Table?.TableName ?? $"Bàn {_selectedTableId}";
-                    
+
                     // If target table already has an order, merge them
                     if (targetOrder != null)
                     {

@@ -6,7 +6,9 @@
              FontFamily="Arial">
     <!-- Width 550px phù hợp với máy in 80mm -->
 
-    <StackPanel Margin="20" VerticalAlignment="Center" HorizontalAlignment="Center">
+    <StackPanel Margin="20"
+            VerticalAlignment="Center"
+            HorizontalAlignment="Center">
         <!-- Nội dung chuyển bàn: Bàn X chuyển đến Bàn Y -->
         <TextBlock x:Name="txtMoveInfo"
                    Text="Bàn X chuyển đến Bàn Y"
