@@ -218,6 +218,21 @@ body {
     animation: slideUp 0.3s ease;
 }
 
+/* Full screen modal for menu selection */
+#modal-menu {
+    background: white;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+#modal-menu .modal-content {
+    border-radius: 0;
+    max-height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
 @keyframes slideUp {
     from {
         opacity: 0;
