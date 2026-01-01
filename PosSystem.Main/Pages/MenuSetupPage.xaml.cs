@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32; // Để dùng OpenFileDialog
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
+using PosSystem.Main.Services;
 
 namespace PosSystem.Main.Pages
 {
@@ -308,6 +309,77 @@ namespace PosSystem.Main.Pages
             _currentImgPath = "default.png";
             imgPreview.Source = null;
             dgDishes.SelectedItem = null;
+        }
+        // ==========================================
+        // PHẦN 4: IMPORT/EXPORT EXCEL
+        // ==========================================
+
+        private void BtnExportExcel_Click(object sender, RoutedEventArgs e)
+        {
+            var saveDialog = new SaveFileDialog
+            {
+                Filter = "Excel Files (*.xlsx)|*.xlsx",
+                DefaultExt = ".xlsx",
+                FileName = $"DanhSachMon_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
+            };
+
+            if (saveDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    ExcelService.ExportDishesToExcel(saveDialog.FileName);
+                    var window = Window.GetWindow(this);
+                    if (window is MainWindow mainWindow)
+                    {
+                        mainWindow.ShowToast($"✅ Xuất Excel thành công: {Path.GetFileName(saveDialog.FileName)}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void BtnImportExcel_Click(object sender, RoutedEventArgs e)
+        {
+            var openDialog = new OpenFileDialog
+            {
+                Filter = "Excel Files (*.xlsx)|*.xlsx",
+                DefaultExt = ".xlsx"
+            };
+
+            if (openDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var (importedCount, errors) = ExcelService.ImportDishesFromExcel(openDialog.FileName);
+
+                    if (importedCount > 0)
+                    {
+                        LoadDishes(); // Reload the dish list
+                    }
+
+                    // Show result message
+                    string message = $"✅ Nhập thành công: {importedCount} món\n";
+                    if (errors.Count > 0)
+                    {
+                        message += $"\n⚠️ {errors.Count} lỗi:\n";
+                        message += string.Join("\n", errors.Take(10)); // Show first 10 errors
+                        if (errors.Count > 10)
+                        {
+                            message += $"\n... và {errors.Count - 10} lỗi khác";
+                        }
+                    }
+
+                    MessageBox.Show(message, "Kết quả nhập Excel", MessageBoxButton.OK,
+                        errors.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi khi nhập Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
         }
     }
 }
