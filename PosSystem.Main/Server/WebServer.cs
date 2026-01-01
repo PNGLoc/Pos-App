@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection; // Cần cái này
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using PosSystem.Main.Database; // <--- QUAN TRỌNG: Phải using thư mục Database
 using PosSystem.Main.Server.Hubs;
 using System;
@@ -12,6 +13,12 @@ namespace PosSystem.Main.Server
     {
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .ConfigureLogging(logging =>
+                {
+                    // Ẩn log console của ASP.NET Core
+                    logging.ClearProviders();
+                    logging.AddFilter(level => false); // Tắt tất cả log
+                })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     // Cấu hình IP và Port

@@ -18,21 +18,16 @@ namespace PosSystem.Main
 
             try
             {
-                Console.WriteLine(">>> DANG KHOI DONG WEB SERVER..."); // Log thủ công để check
-
                 // 2. Build Server
                 _host = WebServer.CreateHostBuilder(e.Args).Build();
 
                 // 3. Start Server (Quan trọng: phải có await)
                 await _host.StartAsync();
-
-                Console.WriteLine(">>> WEB SERVER DA CHAY THANH CONG!");
             }
             catch (Exception ex)
             {
                 // Nếu lỗi, nó sẽ hiện ra đây
                 MessageBox.Show($"Lỗi khởi động Server: {ex.Message}");
-                Console.WriteLine(ex.ToString());
             }
         }
 
