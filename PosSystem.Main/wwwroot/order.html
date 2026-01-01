@@ -370,9 +370,10 @@
         }
 
         // ===== OPEN MENU MODAL =====
-        function openMenuModal() {
+        async function openMenuModal() {
             document.getElementById('modal-menu').classList.remove('d-none');
             document.body.style.overflow = 'hidden';
+            await loadMenu(); // Reload menu mỗi lần mở modal để lấy categories mới
             filterDishes(); // Show current cart state
         }
 
