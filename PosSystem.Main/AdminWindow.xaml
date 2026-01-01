@@ -61,6 +61,26 @@
                            FontWeight="Bold"
                            Margin="20"/>
 
+                <!-- IP Address Display -->
+                <Border Background="#555555"
+                        Padding="10"
+                        Margin="10,0,10,15"
+                        CornerRadius="3">
+                    <StackPanel>
+                        <TextBlock Text="Đường dẫn web điện thoại:"
+                                   Foreground="#AAA"
+                                   FontSize="12"
+                                   Margin="0,0,0,5"/>
+                        <TextBlock x:Name="lblIPAddress"
+                                   Text="Đang tải..."
+                                   Foreground="#00FF00"
+                                   FontSize="13"
+                                   FontFamily="Courier New"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Lúc này StaticResource đã được định nghĩa ở trên nên sẽ không lỗi nữa -->
                 <RadioButton Content="🖨 Cấu hình Máy in"
                              Style="{StaticResource AdminMenuButton}"

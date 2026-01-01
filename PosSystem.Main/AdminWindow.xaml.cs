@@ -1,3 +1,6 @@
+using System;
+using System.Net;
+using System.Net.Sockets;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -10,6 +13,36 @@ namespace PosSystem.Main
             InitializeComponent();
             // Mặc định load trang Printer
             mainFrame.Navigate(new Pages.PrinterSetupPage());
+
+            // Hiển thị IP Address
+            DisplayIPAddress();
+        }
+
+        private void DisplayIPAddress()
+        {
+            try
+            {
+                // Cách 1: Lấy tất cả IP của máy
+                string hostname = Dns.GetHostName();
+                IPAddress[] addresses = Dns.GetHostAddresses(hostname);
+
+                // Lấy IPv4 đầu tiên
+                string ipAddress = "Không tìm thấy";
+                foreach (var addr in addresses)
+                {
+                    if (addr.AddressFamily == AddressFamily.InterNetwork)
+                    {
+                        ipAddress = addr.ToString();
+                        break;
+                    }
+                }
+
+                lblIPAddress.Text = ipAddress +":5000";
+            }
+            catch (Exception ex)
+            {
+                lblIPAddress.Text = $"Lỗi: {ex.Message}";
+            }
         }
 
         private void Menu_Click(object sender, RoutedEventArgs e)
