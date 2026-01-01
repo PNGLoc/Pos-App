@@ -43,8 +43,8 @@ namespace PosSystem.Main.Database
             modelBuilder.Entity<Dish>().HasData(
                 new Dish { DishID = 1, DishName = "Cà phê đen", Price = 20000, Unit = "Ly", CategoryID = 1, ImagePath = "cfden.png" },
                 new Dish { DishID = 2, DishName = "Cà phê sữa", Price = 25000, Unit = "Ly", CategoryID = 1, ImagePath = "cfsua.png" },
-                new Dish { DishID = 3, DishName = "Sinh tố bơ", Price = 40000, Unit = "Ly", CategoryID = 2, DishType = "Drink", ImagePath = "stbo.png" },
-                new Dish { DishID = 4, DishName = "Khoai tây chiên", Price = 30000, Unit = "Dĩa", CategoryID = 3, DishType = "Food", ImagePath = "khoaitay.png" }
+                new Dish { DishID = 3, DishName = "Sinh tố bơ", Price = 40000, Unit = "Ly", CategoryID = 2, ImagePath = "stbo.png" },
+                new Dish { DishID = 4, DishName = "Khoai tây chiên", Price = 30000, Unit = "Dĩa", CategoryID = 3, ImagePath = "khoaitay.png" }
             );
 
             // Seed Table & Account giữ nguyên như cũ...

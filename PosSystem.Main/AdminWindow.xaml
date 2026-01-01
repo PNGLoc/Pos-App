@@ -82,11 +82,11 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="Menu"/>
-                <RadioButton Content="� Quản lý Giá"
+                <RadioButton Content="💰 Quản lý Giá"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="PriceRule"/>
-                <RadioButton Content="�📜 Lịch sử đơn hàng"
+                <RadioButton Content="📜 Lịch sử đơn hàng"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="OrderHistory"/>

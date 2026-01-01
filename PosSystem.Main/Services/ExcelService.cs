@@ -37,11 +37,10 @@ namespace PosSystem.Main.Services
                     worksheet.Cells[1, 3].Value = "Danh mục";
                     worksheet.Cells[1, 4].Value = "Giá";
                     worksheet.Cells[1, 5].Value = "Đơn vị";
-                    worksheet.Cells[1, 6].Value = "Loại";
-                    worksheet.Cells[1, 7].Value = "Trạng thái";
+                    worksheet.Cells[1, 6].Value = "Trạng thái";
 
                     // Style header row
-                    using (var headerRange = worksheet.Cells[1, 1, 1, 7])
+                    using (var headerRange = worksheet.Cells[1, 1, 1, 6])
                     {
                         headerRange.Style.Font.Bold = true;
                         headerRange.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
@@ -59,8 +58,7 @@ namespace PosSystem.Main.Services
                         worksheet.Cells[row, 3].Value = category?.CategoryName ?? "";
                         worksheet.Cells[row, 4].Value = dish.Price;
                         worksheet.Cells[row, 5].Value = dish.Unit;
-                        worksheet.Cells[row, 6].Value = dish.DishType;
-                        worksheet.Cells[row, 7].Value = dish.DishStatus;
+                        worksheet.Cells[row, 6].Value = dish.DishStatus;
 
                         row++;
                     }
@@ -113,8 +111,7 @@ namespace PosSystem.Main.Services
                             var categoryName = worksheet.Cells[row, 3].Value?.ToString()?.Trim();
                             var priceStr = worksheet.Cells[row, 4].Value?.ToString()?.Trim();
                             var unit = worksheet.Cells[row, 5].Value?.ToString()?.Trim() ?? "Cốc";
-                            var dishType = worksheet.Cells[row, 6].Value?.ToString()?.Trim() ?? "Food";
-                            var status = worksheet.Cells[row, 7].Value?.ToString()?.Trim() ?? "Active";
+                            var status = worksheet.Cells[row, 6].Value?.ToString()?.Trim() ?? "Active";
 
                             // Validate required fields
                             if (string.IsNullOrEmpty(dishName))
@@ -153,7 +150,6 @@ namespace PosSystem.Main.Services
                                 CategoryID = category?.CategoryID ?? 0,
                                 Price = price,
                                 Unit = unit,
-                                DishType = dishType,
                                 DishStatus = status,
                                 ImagePath = "default.png"
                             };

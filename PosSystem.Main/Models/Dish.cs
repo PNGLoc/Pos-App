@@ -17,8 +17,6 @@ namespace PosSystem.Main.Models
 
         public string ImagePath { get; set; } = "default.png"; // Đường dẫn ảnh (lưu trong wwwroot/images)
 
-        public string DishType { get; set; } = "Food"; // Food (Bếp), Drink (Bar)
-
         public string DishStatus { get; set; } = "Active";
 
         // Liên kết Category

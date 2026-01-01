@@ -149,9 +149,6 @@ namespace PosSystem.Main.Pages
 
                 cboDishCat.SelectedValue = d.CategoryID;
 
-                // Chọn Food/Drink
-                cboDishType.SelectedIndex = d.DishType == "Drink" ? 1 : 0;
-
                 chkActive.IsChecked = d.DishStatus == "Active";
 
                 // Load ảnh
@@ -225,16 +222,12 @@ namespace PosSystem.Main.Pages
 
             using (var db = new AppDbContext())
             {
-                // Lấy nội dung text từ ComboBoxItem
-                string type = ((ComboBoxItem)cboDishType.SelectedItem).Content.ToString() ?? "Food";
-
                 var dish = new Dish
                 {
                     DishName = txtDishName.Text,
                     Price = decimal.TryParse(txtPrice.Text, out decimal p) ? p : 0,
                     Unit = txtUnit.Text,
                     CategoryID = (int)cboDishCat.SelectedValue,
-                    DishType = type == "Drink" ? "Drink" : "Food",
                     DishStatus = chkActive.IsChecked == true ? "Active" : "Inactive",
                     ImagePath = _currentImgPath
                 };
@@ -255,13 +248,10 @@ namespace PosSystem.Main.Pages
                 var dish = db.Dishes.Find(_selectedDish.DishID);
                 if (dish != null)
                 {
-                    string type = ((ComboBoxItem)cboDishType.SelectedItem).Content.ToString() ?? "Food";
-
                     dish.DishName = txtDishName.Text;
                     dish.Price = decimal.TryParse(txtPrice.Text, out decimal p) ? p : 0;
                     dish.Unit = txtUnit.Text;
                     dish.CategoryID = (int)cboDishCat.SelectedValue;
-                    dish.DishType = type == "Drink" ? "Drink" : "Food";
                     dish.DishStatus = chkActive.IsChecked == true ? "Active" : "Inactive";
                     dish.ImagePath = _currentImgPath;
 
@@ -304,7 +294,6 @@ namespace PosSystem.Main.Pages
             txtPrice.Text = "0";
             txtUnit.Text = "";
             cboDishCat.SelectedIndex = -1;
-            cboDishType.SelectedIndex = 0;
             chkActive.IsChecked = true;
             _currentImgPath = "default.png";
             imgPreview.Source = null;

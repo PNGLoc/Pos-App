@@ -127,9 +127,6 @@
                                                         <DataGridTextColumn Header="Nhóm"
                                                                             Binding="{Binding Category.CategoryName}"
                                                                             Width="100"/>
-                                                        <DataGridTextColumn Header="Loại"
-                                                                            Binding="{Binding DishType}"
-                                                                            Width="60"/>
                                                         <DataGridTextColumn Header="Trạng thái"
                                                                             Binding="{Binding DishStatus}"
                                                                             Width="80"/>
@@ -171,15 +168,6 @@
                                                                   DisplayMemberPath="CategoryName"
                                                                   SelectedValuePath="CategoryID"
                                                                   Margin="0,5,0,10"/>
-
-                                                        <TextBlock Text="Loại chế biến:"/>
-                                                        <ComboBox x:Name="cboDishType"
-                                                                  Height="35"
-                                                                  Margin="0,5,0,10"
-                                                                  SelectedIndex="0">
-                                                                <ComboBoxItem Content="Food"/>
-                                                                <ComboBoxItem Content="Drink"/>
-                                                        </ComboBox>
 
                                                         <CheckBox x:Name="chkActive"
                                                                   Content="Đang kinh doanh (Active)"
