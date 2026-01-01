@@ -1012,7 +1012,7 @@ namespace PosSystem.Main
             db.SaveChanges();
         }
 
-        private async void ShowToast(string message, int durationMs = 1500)
+        public async void ShowToast(string message, int durationMs = 1500)
         {
             lblToastMessage.Text = message;
             bdToast.Visibility = Visibility.Visible;
