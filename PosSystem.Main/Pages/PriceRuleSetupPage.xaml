@@ -1,0 +1,202 @@
+<UserControl x:Class="PosSystem.Main.Pages.PriceRuleSetupPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="White">
+        <TabControl>
+            <!-- TAB 1: QUẢN LÝ LOẠI GIÁ -->
+            <TabItem Header="Quản lý Loại Giá" Padding="15,5">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="350"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Danh sách loại giá -->
+                    <DataGrid x:Name="dgRuleTypes"
+                              Grid.Column="0"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              Margin="10"
+                              SelectionChanged="dgRuleTypes_SelectionChanged">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Loại Giá"
+                                                Binding="{Binding RuleType}"
+                                                Width="150"/>
+                            <DataGridTextColumn Header="Số Sản Phẩm"
+                                                Binding="{Binding ProductCount}"
+                                                Width="100"/>
+                            <DataGridCheckBoxColumn Header="Hoạt động"
+                                                    Binding="{Binding IsActive}"
+                                                    Width="80"/>
+                            <DataGridTemplateColumn Header="Hành động" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="5">
+                                            <Button Content="Sửa"
+                                                    Width="50"
+                                                    Height="30"
+                                                    Background="#FFC107"
+                                                    Foreground="White"
+                                                    Click="BtnEditRuleType_Click"
+                                                    Margin="0,0,5,0"/>
+                                            <Button Content="Xóa"
+                                                    Width="50"
+                                                    Height="30"
+                                                    Background="#DC3545"
+                                                    Foreground="White"
+                                                    Click="BtnDeleteRuleType_Click"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Form thêm/sửa loại giá -->
+                    <Border Grid.Column="1"
+                            Background="#F8F9FA"
+                            Padding="15"
+                            Margin="10">
+                        <StackPanel>
+                            <TextBlock Text="QUẢN LÝ LOẠI GIÁ"
+                                       FontWeight="Bold"
+                                       FontSize="16"
+                                       Margin="0,0,0,15"/>
+
+                            <TextBlock Text="Loại Giá (holiday, event, vip):"/>
+                            <TextBox x:Name="txtRuleType"
+                                     Height="35"
+                                     Margin="0,5,0,15"/>
+
+                            <CheckBox x:Name="chkRuleTypeActive"
+                                      Content="Hoạt động"
+                                      IsChecked="True"
+                                      Margin="0,0,0,15"/>
+
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        Margin="0,20,0,0">
+                                <Button Content="Thêm"
+                                        Width="70"
+                                        Height="35"
+                                        Background="#28A745"
+                                        Foreground="White"
+                                        Click="BtnAddRuleType_Click"
+                                        Margin="0,0,5,0"/>
+                                <Button Content="Sửa"
+                                        Width="70"
+                                        Height="35"
+                                        Background="#FFC107"
+                                        Foreground="White"
+                                        Click="BtnUpdateRuleType_Click"
+                                        Margin="0,0,5,0"/>
+                                <Button Content="Xóa"
+                                        Width="70"
+                                        Height="35"
+                                        Background="#DC3545"
+                                        Foreground="White"
+                                        Click="BtnDeleteRuleTypeForm_Click"/>
+                            </StackPanel>
+
+                            <Separator Margin="0,20"/>
+
+                            <TextBlock Text="ÁP DỤNG GIÁ"
+                                       FontWeight="Bold"
+                                       Margin="0,15,0,10"/>
+
+                            <TextBlock Text="Chọn loại giá:"/>
+                            <ComboBox x:Name="cboActiveRule"
+                                      Height="35"
+                                      Margin="0,5,0,15"/>
+
+                            <Button Content="Lưu"
+                                    Width="100"
+                                    Height="35"
+                                    Background="#007BFF"
+                                    Foreground="White"
+                                    Click="BtnSaveActiveRule_Click"
+                                    HorizontalAlignment="Right"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: CHI TIẾT LOẠI GIÁ -->
+            <TabItem Header="Chi Tiết Loại Giá" Padding="15,5">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Border Grid.Row="0"
+                            Background="#E9ECEF"
+                            Padding="15"
+                            Margin="10,10,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Loại giá:"
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,0"/>
+                            <TextBlock x:Name="lblSelectedRuleType"
+                                       Text="Chưa chọn"
+                                       VerticalAlignment="Center"
+                                       FontSize="16"
+                                       Foreground="#007BFF"
+                                       FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Danh sách sản phẩm -->
+                    <DataGrid x:Name="dgRuleDetails"
+                              Grid.Row="1"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              Margin="10"
+                              ItemsSource="{Binding}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Tên Sản Phẩm"
+                                                Binding="{Binding DishName}"
+                                                Width="200"
+                                                IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Giá Gốc"
+                                                Binding="{Binding BasePrice, StringFormat=N0}"
+                                                Width="120"
+                                                IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Giá Mới"
+                                                Binding="{Binding NewPrice, UpdateSourceTrigger=PropertyChanged}"
+                                                Width="120"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Button Lưu -->
+                    <Border Grid.Row="2"
+                            Background="#F8F9FA"
+                            Padding="15"
+                            BorderThickness="0,1,0,0"
+                            BorderBrush="#DDD">
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                            <Button Content="Quay lại"
+                                    Width="100"
+                                    Height="35"
+                                    Background="#6C757D"
+                                    Foreground="White"
+                                    Click="BtnBackToRuleList_Click"
+                                    Margin="0,0,10,0"/>
+                            <Button Content="Lưu"
+                                    Width="100"
+                                    Height="35"
+                                    Background="#28A745"
+                                    Foreground="White"
+                                    Click="BtnSaveRuleDetails_Click"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>
+

@@ -31,6 +31,9 @@ namespace PosSystem.Main
                     case "Menu":
                         mainFrame.Navigate(new Pages.MenuSetupPage());
                         break;
+                    case "PriceRule":
+                        mainFrame.Navigate(new Pages.PriceRuleSetupPage());
+                        break;
                     // Case mới cho Lịch sử đơn hàng
                     case "OrderHistory":
                         mainFrame.Navigate(new Pages.OrderHistoryPage());

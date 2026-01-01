@@ -7,7 +7,7 @@ namespace PosSystem.Main.Database
 {
     public class AppDbContext : DbContext
     {
-        public DbSet<Category> Categories { get; set; } // Mới
+        public DbSet<Category> Categories { get; set; }
         public DbSet<Dish> Dishes { get; set; }
         public DbSet<Account> Accounts { get; set; }
         public DbSet<Table> Tables { get; set; }
@@ -15,6 +15,9 @@ namespace PosSystem.Main.Database
         public DbSet<OrderDetail> OrderDetails { get; set; }
         public DbSet<Printer> Printers { get; set; }
         public DbSet<PrintTemplate> PrintTemplates { get; set; }
+        public DbSet<DishPriceRule> DishPriceRules { get; set; }
+        public DbSet<GlobalSetting> GlobalSettings { get; set; }
+        public DbSet<PriceRuleType> PriceRuleTypes { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             string dbPath = Path.Combine(AppContext.BaseDirectory, "pos_data.db");

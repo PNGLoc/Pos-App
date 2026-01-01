@@ -256,7 +256,7 @@ namespace PosSystem.Main
         {
             if (order == null) return;
 
-            decimal subTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.Quantity * d.Dish.Price);
+            decimal subTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.Quantity * d.UnitPrice);
             order.SubTotal = subTotal;
 
             decimal discountValue = (order.DiscountPercent > 0) ? subTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
@@ -418,7 +418,7 @@ namespace PosSystem.Main
                 {
                     DishID = d.DishID,
                     DishName = d.DishName,
-                    Price = d.Price,
+                    Price = Services.PriceService.GetCurrentPrice(d.DishID),
                     CategoryID = d.CategoryID
                 }).ToList();
 
@@ -590,14 +590,15 @@ namespace PosSystem.Main
                 else
                 {
                     // Không tìm thấy (tức là các dòng món này hiện tại đều ĐANG CÓ ghi chú) -> TẠO DÒNG MỚI
+                    decimal currentPrice = PriceService.GetCurrentPrice(dishId);
                     order.OrderDetails.Add(new OrderDetail
                     {
                         DishID = dishId,
                         Quantity = 1,
-                        UnitPrice = dishInfo.Price,
+                        UnitPrice = currentPrice,
                         ItemStatus = "New",
                         PrintedQuantity = 0,
-                        TotalAmount = dishInfo.Price,
+                        TotalAmount = currentPrice,
                         Note = "" // Món mới mặc định Note rỗng
                     });
                 }
