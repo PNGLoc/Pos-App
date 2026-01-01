@@ -47,6 +47,7 @@ namespace PosSystem.Main
         private DispatcherTimer _tableTimeTimer = new DispatcherTimer();
         private DispatcherTimer _tableListUpdateTimer = new DispatcherTimer();
         private DateTime? _currentOrderTime = null;
+        private string _tableTypeFilter = "All";  // Track current filter
 
         // Split mode variables
         private bool _isSplitMode = false;
@@ -86,6 +87,24 @@ namespace PosSystem.Main
             LoadTables();
             LoadMenu();
             SetupRealtime();
+        }
+
+        private void BtnFilterTable_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is string filterType)
+            {
+                _tableTypeFilter = filterType;
+
+                // Update button colors
+                btnFilterAll.Background = new SolidColorBrush(filterType == "All" ? Color.FromRgb(0, 123, 255) : Color.FromRgb(108, 117, 125));
+                btnFilterDineIn.Background = new SolidColorBrush(filterType == "DineIn" ? Color.FromRgb(0, 123, 255) : Color.FromRgb(108, 117, 125));
+                btnFilterTakeAway.Background = new SolidColorBrush(filterType == "TakeAway" ? Color.FromRgb(0, 123, 255) : Color.FromRgb(108, 117, 125));
+                btnFilterPickup.Background = new SolidColorBrush(filterType == "Pickup" ? Color.FromRgb(0, 123, 255) : Color.FromRgb(108, 117, 125));
+                btnFilterDelivery.Background = new SolidColorBrush(filterType == "Delivery" ? Color.FromRgb(0, 123, 255) : Color.FromRgb(108, 117, 125));
+
+                // Reload tables with new filter
+                LoadTables();
+            }
         }
 
         // --- 1. CHUYỂN ĐỔI VIEW ---
@@ -250,6 +269,13 @@ namespace PosSystem.Main
             using (var db = new AppDbContext())
             {
                 var tables = db.Tables.Include(t => t.Orders).ThenInclude(o => o.OrderDetails).ToList();
+
+                // Apply filter
+                if (_tableTypeFilter != "All")
+                {
+                    tables = tables.Where(t => t.TableType == _tableTypeFilter).ToList();
+                }
+
                 lstTables.ItemsSource = tables.Select(t =>
                 {
                     var vm = new TableViewModel

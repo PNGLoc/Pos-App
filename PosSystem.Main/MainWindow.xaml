@@ -242,11 +242,105 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <TextBlock Text="SƠ ĐỒ PHÒNG BÀN"
-                                   FontSize="22"
-                                   FontWeight="Bold"
-                                   Foreground="#333"
-                                   Margin="20,15"/>
+                        <!-- Title + Filter Bar in same row -->
+                        <Border Grid.Row="0"
+                                Background="White"
+                                Padding="20,15"
+                                BorderThickness="0,0,0,1"
+                                BorderBrush="#E0E0E0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Title -->
+                                <TextBlock Grid.Column="0"
+                                           Text="SƠ ĐỒ PHÒNG BÀN"
+                                           FontSize="22"
+                                           FontWeight="Bold"
+                                           Foreground="#333"
+                                           VerticalAlignment="Center"/>
+
+                                <!-- Filter Bar -->
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            Margin="20,0,0,0">
+                                    <TextBlock Text="Lọc:"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,0"
+                                               FontWeight="Bold"
+                                               Foreground="#666"/>
+                                    <Button x:Name="btnFilterAll"
+                                            Content="Tất cả"
+                                            Width="90"
+                                            Height="30"
+                                            Margin="3,0"
+                                            Padding="5"
+                                            Background="#007BFF"
+                                            Foreground="White"
+                                            FontSize="12"
+                                            FontWeight="Bold"
+                                            Cursor="Hand"
+                                            Click="BtnFilterTable_Click"
+                                            Tag="All"/>
+                                    <Button x:Name="btnFilterDineIn"
+                                            Content="Bàn"
+                                            Width="90"
+                                            Height="30"
+                                            Margin="3,0"
+                                            Padding="5"
+                                            Background="#6C757D"
+                                            Foreground="White"
+                                            FontSize="12"
+                                            FontWeight="Bold"
+                                            Cursor="Hand"
+                                            Click="BtnFilterTable_Click"
+                                            Tag="DineIn"/>
+                                    <Button x:Name="btnFilterTakeAway"
+                                            Content="Mang về"
+                                            Width="90"
+                                            Height="30"
+                                            Margin="3,0"
+                                            Padding="5"
+                                            Background="#6C757D"
+                                            Foreground="White"
+                                            FontSize="12"
+                                            FontWeight="Bold"
+                                            Cursor="Hand"
+                                            Click="BtnFilterTable_Click"
+                                            Tag="TakeAway"/>
+                                    <Button x:Name="btnFilterPickup"
+                                            Content="Khách lấy"
+                                            Width="90"
+                                            Height="30"
+                                            Margin="3,0"
+                                            Padding="5"
+                                            Background="#6C757D"
+                                            Foreground="White"
+                                            FontSize="12"
+                                            FontWeight="Bold"
+                                            Cursor="Hand"
+                                            Click="BtnFilterTable_Click"
+                                            Tag="Pickup"/>
+                                    <Button x:Name="btnFilterDelivery"
+                                            Content="Ship"
+                                            Width="90"
+                                            Height="30"
+                                            Margin="3,0"
+                                            Padding="5"
+                                            Background="#6C757D"
+                                            Foreground="White"
+                                            FontSize="12"
+                                            FontWeight="Bold"
+                                            Cursor="Hand"
+                                            Click="BtnFilterTable_Click"
+                                            Tag="Delivery"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
 
                         <ScrollViewer Grid.Row="1"
                                       VerticalScrollBarVisibility="Auto">
