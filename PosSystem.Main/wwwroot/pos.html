@@ -17,6 +17,15 @@
 
     <div class="container">
         <h3 style="margin-bottom: 10px;">Sơ đồ bàn</h3>
+
+        <!-- Bộ lọc bàn theo loại -->
+        <div style="display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px;">
+            <button class="filter-btn active" onclick="filterTables('all')">Tất cả</button>
+            <button class="filter-btn" onclick="filterTables('DineIn')">Bàn ăn</button>
+            <button class="filter-btn" onclick="filterTables('Takeaway')">Mang về</button>
+            <button class="filter-btn" onclick="filterTables('Delivery')">Giao hàng</button>
+        </div>
+
         <!-- Nơi danh sách bàn sẽ hiện ra -->
         <div id="table-list" class="table-grid"></div>
     </div>
@@ -27,35 +36,67 @@
         if (!user) window.location.href = '/index.html';
         document.getElementById('staff-name').innerText = user.accName;
 
+        let allTables = [];
+        let currentFilter = 'all';
+
         // 2. Hàm tải danh sách bàn từ API
         async function loadTables() {
             try {
                 const res = await fetch('/api/table');
-                const tables = await res.json();
-
-                const container = document.getElementById('table-list');
-                container.innerHTML = ''; // Xóa cũ
-
-                tables.forEach(t => {
-                    const div = document.createElement('div');
-                    // Gắn class css dựa vào trạng thái bàn (Empty/Occupied)
-                    div.className = `table-card ${t.tableStatus.toLowerCase()}`;
-                    div.innerHTML = `
-                        <div style="font-size: 20px;">${t.tableName}</div>
-                        <small>${t.tableStatus === 'Occupied' ? 'Có khách' : 'Trống'}</small>
-                    `;
-
-                    // Sự kiện click vào bàn
-                    div.onclick = () => {
-                        // Chuyển sang trang Order, truyền ID bàn trên thanh địa chỉ
-                        window.location.href = `/order.html?id=${t.tableID}&name=${encodeURIComponent(t.tableName)}`;
-                    };
-
-                    container.appendChild(div);
-                });
+                allTables = await res.json();
+                renderTableList();
             } catch (err) {
                 alert('Không tải được danh sách bàn!');
             }
+        }
+
+        // 3. Hàm render danh sách bàn với bộ lọc
+        function renderTableList() {
+            const container = document.getElementById('table-list');
+            container.innerHTML = ''; // Xóa cũ
+
+            // Lọc dựa vào currentFilter
+            let filteredTables = allTables;
+            if (currentFilter !== 'all') {
+                filteredTables = allTables.filter(t => t.tableType === currentFilter);
+            }
+
+            if (filteredTables.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">Không có bàn nào</div>';
+                return;
+            }
+
+            filteredTables.forEach(t => {
+                const div = document.createElement('div');
+                // Gắn class css dựa vào trạng thái bàn (Empty/Occupied)
+                div.className = `table-card ${t.tableStatus.toLowerCase()}`;
+                div.innerHTML = `
+                    <div style="font-size: 20px; font-weight: bold;">${t.tableName}</div>
+                    <small>${t.tableStatus === 'Occupied' ? 'Có khách' : 'Trống'}</small>
+                    ${t.tableType ? `<small style="display: block; margin-top: 5px; color: #666;">${t.tableType}</small>` : ''}
+                `;
+
+                // Sự kiện click vào bàn
+                div.onclick = () => {
+                    // Chuyển sang trang Order, truyền ID bàn trên thanh địa chỉ
+                    window.location.href = `/order.html?id=${t.tableID}&name=${encodeURIComponent(t.tableName)}`;
+                };
+
+                container.appendChild(div);
+            });
+        }
+
+        // 4. Hàm lọc bàn
+        function filterTables(type) {
+            currentFilter = type;
+
+            // Cập nhật trạng thái button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            renderTableList();
         }
 
         function logout() {

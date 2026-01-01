@@ -6,6 +6,10 @@
     --light: #f8f9fa;
 }
 
+* {
+    box-sizing: border-box;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     margin: 0;
@@ -15,7 +19,7 @@ body {
     /* Chặn bôi đen văn bản khi chạm */
 }
 
-/* Tiện ích */
+/* ===== UTILITIES ===== */
 .d-none {
     display: none !important;
 }
@@ -46,7 +50,14 @@ body {
     color: white;
 }
 
-/* Login Form */
+.empty-state {
+    text-align: center;
+    color: #999;
+    margin-top: 50px;
+    font-size: 14px;
+}
+
+/* ===== LOGIN PAGE ===== */
 .login-box {
     max-width: 400px;
     margin: 50px auto;
@@ -69,7 +80,7 @@ body {
     font-size: 16px;
 }
 
-/* Màn hình Bàn (Dashboard) */
+/* ===== HEADER (POS PAGE) ===== */
 .header {
     background: var(--primary);
     color: white;
@@ -82,10 +93,10 @@ body {
     z-index: 100;
 }
 
+/* ===== TABLE GRID (POS PAGE) ===== */
 .table-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    /* 3 bàn 1 hàng */
     gap: 10px;
     padding: 10px;
 }
@@ -112,105 +123,87 @@ body {
     border-color: var(--danger);
 }
 
-/* --- PHẦN MỚI CHO TRANG ORDER --- */
-
-/* Menu Tabs (Nhóm món ngang) */
-.menu-tabs {
-    display: flex;
-    overflow-x: auto;
-    background: white;
-    padding: 10px;
-    position: sticky;
-    top: 60px;
-    /* Dưới Header */
-    z-index: 90;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-.tab-item {
-    padding: 8px 15px;
-    margin-right: 10px;
-    background: #eee;
+/* ===== FILTER BUTTONS (POS PAGE) ===== */
+.filter-btn {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
     border-radius: 20px;
-    white-space: nowrap;
-    font-weight: bold;
+    background: white;
     color: #666;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 13px;
 }
 
-.tab-item.active {
+.filter-btn.active {
     background: var(--primary);
     color: white;
+    border-color: var(--primary);
 }
 
-/* Danh sách món ăn */
-.dish-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    /* 2 món 1 hàng */
-    gap: 10px;
-    padding: 10px;
-    padding-bottom: 80px;
-    /* Để không bị nút giỏ hàng che */
-}
-
-.dish-card {
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.dish-img {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-    background: #ddd;
-}
-
-.dish-info {
-    padding: 10px;
-}
-
-.dish-name {
-    font-weight: bold;
-    font-size: 14px;
-    margin-bottom: 5px;
-    height: 40px;
-    overflow: hidden;
-}
-
-.dish-price {
-    color: var(--danger);
-    font-weight: bold;
-}
-
-/* Nút Giỏ hàng nổi */
-.cart-floating {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: white;
-    padding: 15px;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+/* ===== ORDER PAGE - HEADER ===== */
+.header-order {
+    background: var(--primary);
+    color: white;
+    padding: 12px 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 10px;
 }
 
-.cart-total {
-    font-size: 18px;
+/* ===== ORDER PAGE - TAB NAVIGATION ===== */
+.tab-navigation {
+    display: flex;
+    background: white;
+    border-bottom: 2px solid #ddd;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 15px;
+    text-align: center;
     font-weight: bold;
-    color: var(--danger);
+    color: #666;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
 }
 
-.btn-order {
-    width: 150px;
-    background: var(--success);
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
 }
 
-/* Popup xác nhận */
+/* ===== TAB PANELS ===== */
+.tab-panel {
+    display: none;
+    padding-bottom: 20px;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* ===== ORDER ITEMS ===== */
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    background: white;
+    gap: 10px;
+}
+
+.order-item:first-child {
+    border-top: 1px solid #eee;
+}
+
+/* ===== MODAL ===== */
 .modal {
     position: fixed;
     top: 0;
@@ -220,157 +213,151 @@ body {
     background: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-end;
     z-index: 200;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .modal-content {
     background: white;
-    padding: 20px;
-    border-radius: 10px;
-    width: 80%;
-    max-height: 80vh;
+    border-radius: 12px 12px 0 0;
+    width: 100%;
+    max-height: 90vh;
     overflow-y: auto;
+    animation: modalSlideUp 0.3s ease;
 }
 
-/* --- PHẦN GIAO DIỆN TAB CHUYỂN ĐỔI --- */
-.nav-segment {
-    display: flex;
+@keyframes modalSlideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* ===== SEARCH INPUT ===== */
+.search-input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    background: #f9f9f9;
+}
+
+.search-input::placeholder {
+    color: #999;
+}
+
+/* ===== CATEGORY FILTER (MENU MODAL) ===== */
+.category-btn {
+    padding: 8px 15px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
     background: white;
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-}
-
-.segment-btn {
-    flex: 1;
-    padding: 10px;
-    text-align: center;
-    border: 1px solid var(--primary);
-    color: var(--primary);
+    color: #666;
     font-weight: bold;
     cursor: pointer;
+    white-space: nowrap;
+    font-size: 13px;
+    transition: all 0.2s ease;
 }
 
-.segment-btn:first-child {
-    border-radius: 8px 0 0 8px;
-}
-
-.segment-btn:last-child {
-    border-radius: 0 8px 8px 0;
-}
-
-.segment-btn.active {
+.category-btn.active {
     background: var(--primary);
     color: white;
+    border-color: var(--primary);
 }
 
-/* Danh sách món đã gọi (Dạng list đơn giản) */
-.ordered-list {
-    padding: 10px;
-    background: white;
-    min-height: calc(100vh - 150px);
-}
-
-.order-item {
+/* ===== DISH CARD (MENU MODAL) ===== */
+.dish-card {
     display: flex;
-    justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid #eee;
     align-items: center;
-}
-
-.item-badge {
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    color: white;
-    font-weight: bold;
-}
-
-.status-new {
-    background: #17a2b8;
-}
-
-/* Mới gọi */
-.status-sent {
-    background: #28a745;
-}
-
-/* Đã gửi bếp */
-
-.empty-state {
-    text-align: center;
-    color: #999;
-    margin-top: 50px;
-}
-
-/* --- PHẦN GIAO DIỆN TAB CHUYỂN ĐỔI --- */
-.nav-segment {
-    display: flex;
+    padding: 12px;
     background: white;
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-}
-
-.segment-btn {
-    flex: 1;
-    padding: 10px;
-    text-align: center;
-    border: 1px solid var(--primary);
-    color: var(--primary);
-    font-weight: bold;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 10px;
     cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
 }
 
-.segment-btn:first-child {
-    border-radius: 8px 0 0 8px;
+.dish-card:active {
+    background: #f5f5f5;
 }
 
-.segment-btn:last-child {
-    border-radius: 0 8px 8px 0;
+.dish-card.in-cart {
+    border-color: var(--primary);
+    background: #f0f7ff;
 }
 
-.segment-btn.active {
-    background: var(--primary);
+.dish-card:first-child {
+    margin-top: 0;
+}
+
+/* ===== QUANTITY BADGE ===== */
+.qty-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--danger);
     color: white;
-}
-
-/* Danh sách món đã gọi (Dạng list đơn giản) */
-.ordered-list {
-    padding: 10px;
-    background: white;
-    min-height: calc(100vh - 150px);
-}
-
-.order-item {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
     display: flex;
-    justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid #eee;
     align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 12px;
 }
 
-.item-badge {
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    color: white;
+/* ===== DISH DETAIL MODAL ===== */
+.qty-btn {
+    width: 50px;
+    height: 50px;
+    border: 1px solid #ddd;
+    background: white;
+    font-size: 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #333;
+}
+
+.qty-btn:active {
+    background: #f5f5f5;
+}
+
+.qty-input {
+    width: 70px;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 18px;
     font-weight: bold;
 }
 
-.status-new {
-    background: #17a2b8;
-}
-
-/* Mới gọi */
-.status-sent {
-    background: #28a745;
-}
-
-/* Đã gửi bếp */
-
-.empty-state {
-    text-align: center;
-    color: #999;
-    margin-top: 50px;
+.note-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 16px;
+    resize: vertical;
 }

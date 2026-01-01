@@ -349,8 +349,13 @@ namespace PosSystem.Main
                         Note = d.Note ?? "", // Lấy ghi chú, nếu null thì thành rỗng
 
                         BatchDisplay = d.PrintedQuantity == 0 ? "⏳" : (d.KitchenBatch > 0 ? $"Đợt {d.KitchenBatch}" : "---"),
-                        StatusDisplay = d.Quantity == 0 ? "❌ CHỜ HỦY" : (d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK"),
-                        RowColor = d.Quantity == 0 ? "#FFCCCC" : (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White"),
+                        // Kiểm tra ItemStatus từ mobile: Nếu 'Sent' thì đã gửi từ điện thoại
+                        StatusDisplay = d.Quantity == 0 ? "❌ CHỜ HỦY" :
+                                       (d.ItemStatus == "Sent" ? "✓ Từ Mobile" :
+                                       (d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK")),
+                        RowColor = d.Quantity == 0 ? "#FFCCCC" :
+                                  (d.ItemStatus == "Sent" ? "#D4EDDA" :  // Green cho items từ mobile
+                                  (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White")),  // Yellow cho items chưa gửi
                         IsInSplitMode = false  // Chế độ bình thường - hiện nút +/-
                     }).ToList();
 
@@ -607,6 +612,9 @@ namespace PosSystem.Main
                 RecalculateOrder(db, order.OrderID);
                 if (_selectedTableId == tableId) LoadOrderDetails(tableId);
                 ShowToast($"Đã chọn: {dishInfo.DishName}");
+
+                // ⭐ Notify mobile via SignalR
+                if (_selectedTableId == tableId) NotifyTableUpdated(tableId);
             }
         }
 
@@ -628,6 +636,9 @@ namespace PosSystem.Main
                     db.SaveChanges();
                     RecalculateOrder(db, detail.OrderID);
                     LoadOrderDetails(_selectedTableId);
+
+                    // ⭐ Notify mobile via SignalR
+                    NotifyTableUpdated(_selectedTableId);
                 }
             }
         }
@@ -698,6 +709,9 @@ namespace PosSystem.Main
                     // Nếu đơn vẫn còn món -> Tính lại tiền bình thường
                     RecalculateOrder(db, detail.OrderID);
                     LoadOrderDetails(_selectedTableId);
+
+                    // ⭐ Notify mobile via SignalR
+                    NotifyTableUpdated(_selectedTableId);
                 }
             }
         }
@@ -973,6 +987,9 @@ namespace PosSystem.Main
                         Services.PrintService.PrintKitchen(order, itemsToPrint, nextBatch);
                     }
 
+                    // ⭐ Notify mobile via SignalR
+                    Dispatcher.Invoke(() => NotifyTableUpdated(_selectedTableId));
+
                     // --- 4. KIỂM TRA ĐƠN RỖNG ---
                     bool isOrderEmpty = !db.OrderDetails.Any(d => d.OrderID == order.OrderID);
                     if (isOrderEmpty)
@@ -1068,6 +1085,22 @@ namespace PosSystem.Main
             _connection = new HubConnectionBuilder().WithUrl("http://localhost:5000/posHub").WithAutomaticReconnect().Build();
             _connection.On<int>("TableUpdated", (id) => Dispatcher.Invoke(() => { LoadTables(); if (_selectedTableId == id) LoadOrderDetails(id); }));
             try { await _connection.StartAsync(); } catch { }
+        }
+
+        // ⭐ Helper: Gửi sự kiện cập nhật bàn cho mobile (via SignalR)
+        private async void NotifyTableUpdated(int tableId)
+        {
+            try
+            {
+                if (_connection != null && _connection.State.ToString() == "Connected")
+                {
+                    await _connection.SendAsync("TableUpdated", tableId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SignalR send error: {ex.Message}");
+            }
         }
 
         private void btnCheckout_Click(object sender, RoutedEventArgs e)
@@ -1350,8 +1383,13 @@ namespace PosSystem.Main
                         ItemStatus = d.ItemStatus,
                         Note = d.Note ?? "",
                         BatchDisplay = d.PrintedQuantity == 0 ? "⏳" : (d.KitchenBatch > 0 ? $"Đợt {d.KitchenBatch}" : "---"),
-                        StatusDisplay = d.Quantity == 0 ? "❌ CHỜ HỦY" : (d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK"),
-                        RowColor = d.Quantity == 0 ? "#FFCCCC" : (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White"),
+                        // Kiểm tra ItemStatus từ mobile: Nếu 'Sent' thì đã gửi từ điện thoại
+                        StatusDisplay = d.Quantity == 0 ? "❌ CHỜ HỦY" :
+                                       (d.ItemStatus == "Sent" ? "✓ Từ Mobile" :
+                                       (d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK")),
+                        RowColor = d.Quantity == 0 ? "#FFCCCC" :
+                                  (d.ItemStatus == "Sent" ? "#D4EDDA" :  // Green cho items từ mobile
+                                  (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White")),  // Yellow cho items chưa gửi
                         SplitQuantity = 0,
                         IsInSplitMode = true  // Set để ẩn nút +/-
                     }).ToList();

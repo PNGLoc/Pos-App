@@ -15,4 +15,10 @@ namespace PosSystem.Main.Server.Dtos
         public int Quantity { get; set; }
         public string Note { get; set; } = "";
     }
+
+    // DTO cho Mobile API POST /api/order/{tableId}
+    public class AddOrderItemsRequest
+    {
+        public List<OrderItemDto> Details { get; set; } = new();
+    }
 }
