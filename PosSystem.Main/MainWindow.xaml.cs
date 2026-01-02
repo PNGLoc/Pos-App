@@ -13,7 +13,11 @@ using PosSystem.Main.Models;
 using PosSystem.Main.Services;
 using System.Threading.Tasks;
 using System.Globalization;
-
+// [THÊM] Namespace quan trọng
+using Microsoft.AspNetCore.SignalR.Client; // Cho Client (Lắng nghe)
+using Microsoft.AspNetCore.SignalR;        // Cho Server (Gửi đi)
+using Microsoft.Extensions.DependencyInjection;
+using PosSystem.Main.Server.Hubs;
 namespace PosSystem.Main
 {
     // ViewModels
@@ -1088,11 +1092,24 @@ namespace PosSystem.Main
         }
 
         // ⭐ Helper: Gửi sự kiện cập nhật bàn cho mobile (via SignalR)
+        // [SỬA] Hàm gửi thông báo: Dùng Server Host trực tiếp (Tin cậy hơn)
         private async void NotifyTableUpdated(int tableId)
         {
             try
             {
-                if (_connection != null && _connection.State.ToString() == "Connected")
+                // Cách 1 (Tối ưu): Dùng Hub của Server đang chạy trên App
+                if (App.WebHost != null)
+                {
+                    var hubContext = App.WebHost.Services.GetService<IHubContext<PosHub>>();
+                    if (hubContext != null)
+                    {
+                        await hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+                        return;
+                    }
+                }
+
+                // Cách 2 (Fallback): Dùng Client connection nếu không lấy được Server Hub
+                if (_connection != null && _connection.State == HubConnectionState.Connected)
                 {
                     await _connection.SendAsync("TableUpdated", tableId);
                 }

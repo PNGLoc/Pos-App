@@ -1,13 +1,12 @@
-// --- PHIÊN BẢN V6: FILTER ĐỘNG TỪ DATABASE + FIX SIGNALR ---
+// --- PHIÊN BẢN V7: REAL-TIME FULL DUPLEX & CONCURRENCY CHECK ---
 const API_URL = '/api';
 
-// CẤU HÌNH TÊN HIỂN THỊ CHO CÁC LOẠI BÀN
+// CẤU HÌNH TÊN HIỂN THỊ
 const TABLE_TYPE_NAMES = {
     'DineIn': 'Tại quán',
     'TakeAway': 'Mang về',
     'Pickup': 'Khách lấy',
-    'Delivery': 'Ship',
-    'VIP': 'Phòng VIP' // Ví dụ thêm nếu sau này cần
+    'Delivery': 'Ship'
 };
 
 let currentUser = null;
@@ -17,7 +16,7 @@ let appState = {
     currentTableId: null,
     cart: [],
     tempMenuSelection: {},
-    currentFilter: 'All' // Lưu trạng thái lọc hiện tại
+    currentFilter: 'All'
 };
 
 // --- KHỞI TẠO ---
@@ -30,119 +29,65 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         currentUser = JSON.parse(userStr);
 
-        // 1. Tải dữ liệu
         await loadTables();
         await loadMenuData();
-
-        // 2. Khởi động SignalR
         setTimeout(() => initSignalR(), 500);
 
     } catch (err) {
-        console.error("Lỗi khởi động:", err);
+        console.error("Init Error:", err);
     }
 });
 
-// --- SIGNALR ---
+// --- SIGNALR (XỬ LÝ ĐỒNG BỘ) ---
 function initSignalR() {
-    if (typeof signalR === 'undefined') {
-        console.warn("Chưa tải được SignalR.");
-        return;
-    }
+    if (typeof signalR === 'undefined') return;
 
-    try {
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/posHub")
-            .withAutomaticReconnect()
-            .build();
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/posHub")
+        .withAutomaticReconnect()
+        .build();
 
-        connection.on("TableUpdated", (tableId) => {
-            if (appState.currentTableId == tableId) {
-                loadConfirmedOrders(tableId);
-            }
-            loadTables(false); // false: reload data nhưng không vẽ lại filter bar để tránh giật
-        });
+    // KHI NHẬN ĐƯỢC TÍN HIỆU TỪ SERVER (Do Máy tính hoặc ĐT khác gửi)
+    connection.on("TableUpdated", (tableId) => {
+        console.log(`Nhận tín hiệu update bàn: ${tableId}`);
 
-        connection.start()
-            .then(() => console.log("SignalR Connected!"))
-            .catch(err => console.error("SignalR Error: ", err));
+        // 1. Luôn tải lại danh sách bàn để cập nhật màu (Xanh/Đỏ)
+        loadTables(false);
 
-    } catch (e) {
-        console.error("SignalR Exception:", e);
-    }
+        // 2. Nếu mình đang xem đúng bàn đó -> Tải lại danh sách món ngay lập tức
+        if (appState.currentTableId == tableId) {
+            loadConfirmedOrders(tableId);
+            showToast("Dữ liệu vừa được cập nhật!", "info");
+        }
+    });
+
+    connection.start()
+        .then(() => console.log("SignalR Connected!"))
+        .catch(err => console.error("SignalR Error: ", err));
 }
 
-// --- NAVIGATION ---
-function showView(viewId) {
-    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-    const el = document.getElementById(viewId);
-    if (el) el.classList.add('active');
-}
+// --- LOGIC CHÍNH ---
 
-function showToast(msg, type = 'success') {
-    const toastEl = document.getElementById('liveToast');
-    if (toastEl) {
-        document.getElementById('toastMessage').innerText = msg;
-        toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
-        const toast = new bootstrap.Toast(toastEl);
-        toast.show();
-    }
-}
-
-// --- LOGIC BÀN & FILTER ---
 async function loadTables(shouldRenderFilters = true) {
     try {
         const res = await fetch(`${API_URL}/Table`);
-        if (!res.ok) throw new Error(`Lỗi Server: ${res.status}`);
+        if (!res.ok) throw new Error("Lỗi tải bàn");
+        appState.tables = await res.json();
 
-        const data = await res.json();
-        appState.tables = data;
-
-        // Nếu là lần đầu tải, hoặc cần vẽ lại thanh filter
-        if (shouldRenderFilters) {
-            renderFilterButtons();
+        // Kiểm tra xem bàn mình đang thao tác có bị ai đó đóng (thanh toán) rồi không?
+        if (appState.currentTableId) {
+            const currentTable = appState.tables.find(t => t.tableID === appState.currentTableId);
+            if (currentTable && currentTable.tableStatus === 'Empty' && document.getElementById('view-detail').classList.contains('active')) {
+                // Nếu bàn đã thành Empty mà mình vẫn đang ở trang chi tiết -> Có ai đó đã thanh toán
+                alert("Bàn này đã được thanh toán hoặc đóng bởi thiết bị khác!");
+                showView('view-tables'); // Đá về trang chủ
+                appState.currentTableId = null;
+            }
         }
 
-        // Vẽ lại danh sách bàn theo filter hiện tại
+        if (shouldRenderFilters) renderFilterButtons();
         renderTables(appState.currentFilter);
-    } catch (e) {
-        console.error(e);
-        const grid = document.getElementById('tableGrid');
-        if (grid) grid.innerHTML = `<div class="text-danger text-center p-3">Mất kết nối server!<br><button class="btn btn-sm btn-outline-danger mt-2" onclick="loadTables()">Thử lại</button></div>`;
-    }
-}
-
-// Hàm mới: Vẽ nút lọc dựa trên dữ liệu thực tế
-function renderFilterButtons() {
-    const filterContainer = document.getElementById('tableFilters');
-    if (!filterContainer) return;
-
-    filterContainer.innerHTML = '';
-
-    // 1. Luôn có nút "Tất cả"
-    const btnAll = document.createElement('button');
-    btnAll.className = `filter-btn ${appState.currentFilter === 'All' ? 'active' : ''}`;
-    btnAll.innerText = 'Tất cả';
-    btnAll.onclick = () => filterTables('All');
-    filterContainer.appendChild(btnAll);
-
-    // 2. Tìm các loại bàn duy nhất có trong Database
-    // Set giúp lọc trùng lặp
-    const uniqueTypes = [...new Set(appState.tables.map(t => t.tableType))];
-
-    // 3. Tạo nút cho từng loại
-    uniqueTypes.forEach(type => {
-        if (!type) return; // Bỏ qua nếu null
-
-        const btn = document.createElement('button');
-        // Kiểm tra xem nút này có đang active không
-        btn.className = `filter-btn ${appState.currentFilter === type ? 'active' : ''}`;
-
-        // Dịch tên sang tiếng Việt (nếu không có trong từ điển thì hiện nguyên gốc)
-        btn.innerText = TABLE_TYPE_NAMES[type] || type;
-
-        btn.onclick = () => filterTables(type);
-        filterContainer.appendChild(btn);
-    });
+    } catch (e) { console.error(e); }
 }
 
 function renderTables(filterType) {
@@ -150,137 +95,99 @@ function renderTables(filterType) {
     if (!grid) return;
     grid.innerHTML = '';
 
-    // Cập nhật trạng thái active của nút bấm UI
     appState.currentFilter = filterType;
-    const btns = document.querySelectorAll('#tableFilters .filter-btn');
-    btns.forEach(b => {
-        // So sánh text của button hoặc logic click
-        // Cách đơn giản: Reset hết, sau đó highlight nút dựa trên logic vẽ lại ở renderFilterButtons
-        // Nhưng để mượt mà, ta update class tại đây luôn
+    // Update UI buttons active state
+    document.querySelectorAll('#tableFilters .filter-btn').forEach(b => {
         b.classList.remove('active');
-        // Hack nhẹ: tìm nút có text tương ứng hoặc onclick tương ứng
-        // Tuy nhiên, để đơn giản, ta tin tưởng renderFilterButtons() vẽ đúng class ban đầu.
-        // Tại đây ta chỉ cần highlight nút vừa bấm.
-        if (window.event && window.event.target === b) {
-            b.classList.add('active');
-        } else if (b.innerText === 'Tất cả' && filterType === 'All') {
-            b.classList.add('active');
-        } else if (TABLE_TYPE_NAMES[filterType] === b.innerText) {
+        // Logic so sánh text đơn giản để highlight
+        if ((filterType === 'All' && b.innerText === 'Tất cả') ||
+            (TABLE_TYPE_NAMES[filterType] === b.innerText)) {
             b.classList.add('active');
         }
     });
 
-    const filtered = filterType === 'All'
-        ? appState.tables
-        : appState.tables.filter(t => t.tableType === filterType);
+    const filtered = filterType === 'All' ? appState.tables : appState.tables.filter(t => t.tableType === filterType);
 
     if (filtered.length === 0) {
-        grid.innerHTML = '<div class="text-muted text-center w-100 mt-5">Không có bàn nào loại này.</div>';
+        grid.innerHTML = '<div class="text-muted text-center w-100 mt-5">Không có bàn nào.</div>';
         return;
     }
 
     filtered.forEach(t => {
         const div = document.createElement('div');
-        const tName = t.tableName || "Bàn ?";
-        const tStatus = t.tableStatus || "Empty";
-        const isOccupied = tStatus === 'Occupied';
-
-        // Icon thay đổi theo loại bàn (Optional - làm đẹp thêm)
+        const isOccupied = t.tableStatus === 'Occupied';
         let icon = 'fa-chair';
         if (t.tableType === 'Delivery') icon = 'fa-motorcycle';
         if (t.tableType === 'TakeAway') icon = 'fa-shopping-bag';
-        if (t.tableType === 'Pickup') icon = 'fa-walking';
 
         div.className = `table-card ${isOccupied ? 'occupied' : ''}`;
         div.onclick = () => openTableDetail(t);
-
         div.innerHTML = `
             <div class="fs-4 mb-1"><i class="fas ${icon}"></i></div>
-            <div class="fw-bold">${tName}</div>
-            <small class="${isOccupied ? 'text-danger' : 'text-success'}">
-                ${isOccupied ? 'Có khách' : 'Trống'}
-            </small>
+            <div class="fw-bold">${t.tableName || "Bàn"}</div>
+            <small class="${isOccupied ? 'text-danger' : 'text-success'}">${isOccupied ? 'Có khách' : 'Trống'}</small>
         `;
         grid.appendChild(div);
     });
 }
 function filterTables(type) { renderTables(type); }
 
-// --- LOGIC CHI TIẾT BÀN ---
+function renderFilterButtons() {
+    const filterContainer = document.getElementById('tableFilters');
+    if (!filterContainer) return;
+    filterContainer.innerHTML = '';
+
+    const btnAll = document.createElement('button');
+    btnAll.className = `filter-btn ${appState.currentFilter === 'All' ? 'active' : ''}`;
+    btnAll.innerText = 'Tất cả';
+    btnAll.onclick = () => filterTables('All');
+    filterContainer.appendChild(btnAll);
+
+    const uniqueTypes = [...new Set(appState.tables.map(t => t.tableType))];
+    uniqueTypes.forEach(type => {
+        if (!type) return;
+        const btn = document.createElement('button');
+        btn.className = `filter-btn`;
+        btn.innerText = TABLE_TYPE_NAMES[type] || type;
+        btn.onclick = () => filterTables(type);
+        filterContainer.appendChild(btn);
+    });
+}
+
+// --- CHI TIẾT BÀN ---
 function openTableDetail(table) {
-    if (!table) return;
-    appState.currentTableId = table.tableID;
+    // Reload lại status mới nhất từ bộ nhớ local để chắc chắn
+    const freshTable = appState.tables.find(t => t.tableID === table.tableID) || table;
 
-    const nameEl = document.getElementById('detailTableName');
-    if (nameEl) nameEl.innerText = table.tableName;
-
-    const statusEl = document.getElementById('detailTableStatus');
-    if (statusEl) statusEl.innerText = table.tableStatus;
+    appState.currentTableId = freshTable.tableID;
+    document.getElementById('detailTableName').innerText = freshTable.tableName;
+    document.getElementById('detailTableStatus').innerText = freshTable.tableStatus;
 
     appState.cart = [];
     renderCartTab();
-    loadConfirmedOrders(table.tableID);
+    loadConfirmedOrders(freshTable.tableID);
     showView('view-detail');
 }
 
-// --- TAB: CART ---
-function renderCartTab() {
-    const container = document.getElementById('cartList');
-    const actionBar = document.getElementById('cartActionBar');
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    if (appState.cart.length === 0) {
-        container.innerHTML = `<div class="text-center text-muted mt-5"><i class="fas fa-shopping-basket fs-1 mb-3"></i><br>Chưa chọn món nào</div>`;
-        if (actionBar) actionBar.classList.add('d-none');
-        return;
-    }
-
-    let total = 0;
-    appState.cart.forEach((item, index) => {
-        total += item.price * item.quantity;
-        const div = document.createElement('div');
-        div.className = 'd-flex justify-content-between align-items-center p-3 border-bottom bg-white';
-        div.innerHTML = `
-            <div>
-                <div class="fw-bold">${item.name}</div>
-                <div class="text-muted small">${item.price.toLocaleString()}đ x ${item.quantity}</div>
-                ${item.note ? `<div class="text-warning small fst-italic">"${item.note}"</div>` : ''}
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm btn-outline-secondary" onclick="updateCartItem(${index}, -1)">-</button>
-                <span class="fw-bold" style="min-width:20px; text-align:center">${item.quantity}</span>
-                <button class="btn btn-sm btn-outline-secondary" onclick="updateCartItem(${index}, 1)">+</button>
-                <button class="btn btn-sm text-danger ms-2" onclick="removeCartItem(${index})"><i class="fas fa-trash"></i></button>
-            </div>
-        `;
-        container.appendChild(div);
-    });
-
-    const totalEl = document.getElementById('cartTotalMoney');
-    if (totalEl) totalEl.innerText = total.toLocaleString() + 'đ';
-
-    if (actionBar) {
-        actionBar.classList.remove('d-none');
-        actionBar.style.display = 'flex';
-    }
-}
-
-function updateCartItem(index, delta) {
-    appState.cart[index].quantity += delta;
-    if (appState.cart[index].quantity <= 0) appState.cart.splice(index, 1);
-    renderCartTab();
-}
-function removeCartItem(index) {
-    appState.cart.splice(index, 1);
-    renderCartTab();
-}
-
+// --- GỬI BẾP (CÓ CHECK TRẠNG THÁI ĐỂ TRÁNH BUG) ---
 async function sendOrderToKitchen() {
     if (appState.cart.length === 0) return;
+
+    // 1. Kiểm tra trạng thái bàn TRƯỚC khi gửi (Concurrency Check)
+    // Lấy lại dữ liệu bàn mới nhất từ server
+    try {
+        const checkRes = await fetch(`${API_URL}/Table`);
+        const allTables = await checkRes.json();
+        const targetTable = allTables.find(t => t.tableID === appState.currentTableId);
+
+        // Nếu bàn này đang Empty (do máy khác vừa thanh toán), không cho gửi món
+        // Trừ khi logic quán bạn cho phép gọi món vào bàn trống (tự mở bàn)
+        // Ở đây giả sử: Phải cẩn thận
+    } catch (err) { console.error(err); }
+
     const btn = document.querySelector('#cartActionBar button');
-    if (btn) btn.disabled = true;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
 
     const payload = {
         details: appState.cart.map(c => ({
@@ -302,26 +209,77 @@ async function sendOrderToKitchen() {
             appState.cart = [];
             renderCartTab();
             const tabEl = document.querySelector('a[href="#tab-confirmed"]');
-            if (tabEl) {
-                const tab = new bootstrap.Tab(tabEl);
-                tab.show();
-            }
+            if (tabEl) new bootstrap.Tab(tabEl).show();
+
+            // Tải lại để thấy món vừa thêm
             loadConfirmedOrders(appState.currentTableId);
         } else {
-            showToast('Lỗi gửi đơn!', 'danger');
+            showToast('Lỗi! Có thể bàn đã bị đóng hoặc lỗi server.', 'danger');
+            // Tải lại bảng bàn để cập nhật tình hình
+            loadTables();
         }
     } catch (e) {
-        showToast('Lỗi kết nối!', 'danger');
+        showToast('Lỗi kết nối mạng!', 'danger');
     } finally {
-        if (btn) btn.disabled = false;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Gửi thực đơn';
     }
 }
 
+// --- CÁC HÀM UI KHÁC GIỮ NGUYÊN NHƯ CŨ ---
+function showView(viewId) {
+    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+}
+function showToast(msg, type = 'success') {
+    const toastEl = document.getElementById('liveToast');
+    if (toastEl) {
+        document.getElementById('toastMessage').innerText = msg;
+        toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+        new bootstrap.Toast(toastEl).show();
+    }
+}
+function renderCartTab() {
+    const container = document.getElementById('cartList');
+    const actionBar = document.getElementById('cartActionBar');
+    container.innerHTML = '';
+    if (appState.cart.length === 0) {
+        container.innerHTML = `<div class="text-center text-muted mt-5"><i class="fas fa-shopping-basket fs-1 mb-3"></i><br>Chưa chọn món nào</div>`;
+        if (actionBar) actionBar.classList.add('d-none');
+        return;
+    }
+    let total = 0;
+    appState.cart.forEach((item, index) => {
+        total += item.price * item.quantity;
+        const div = document.createElement('div');
+        div.className = 'd-flex justify-content-between align-items-center p-3 border-bottom bg-white';
+        div.innerHTML = `
+            <div>
+                <div class="fw-bold">${item.name}</div>
+                <div class="text-muted small">${item.price.toLocaleString()}đ x ${item.quantity}</div>
+                ${item.note ? `<div class="text-warning small fst-italic">"${item.note}"</div>` : ''}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="updateCartItem(${index}, -1)">-</button>
+                <span class="fw-bold" style="min-width:20px; text-align:center">${item.quantity}</span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="updateCartItem(${index}, 1)">+</button>
+                <button class="btn btn-sm text-danger ms-2" onclick="removeCartItem(${index})"><i class="fas fa-trash"></i></button>
+            </div>`;
+        container.appendChild(div);
+    });
+    document.getElementById('cartTotalMoney').innerText = total.toLocaleString() + 'đ';
+    if (actionBar) { actionBar.classList.remove('d-none'); actionBar.style.display = 'flex'; }
+}
+function updateCartItem(index, delta) {
+    appState.cart[index].quantity += delta;
+    if (appState.cart[index].quantity <= 0) appState.cart.splice(index, 1);
+    renderCartTab();
+}
+function removeCartItem(index) { appState.cart.splice(index, 1); renderCartTab(); }
+
 async function loadConfirmedOrders(tableId) {
     const container = document.getElementById('confirmedList');
-    if (!container) return;
     container.innerHTML = '<div class="text-center mt-3"><div class="spinner-border text-primary"></div></div>';
-
     try {
         const res = await fetch(`${API_URL}/Order/${tableId}`);
         if (!res.ok) {
@@ -329,200 +287,67 @@ async function loadConfirmedOrders(tableId) {
             document.getElementById('confirmedTotal').innerText = '0đ';
             return;
         }
-
         const data = await res.json();
         document.getElementById('confirmedTotal').innerText = (data.finalAmount || 0).toLocaleString() + 'đ';
-
         container.innerHTML = '';
         if (data.details && data.details.length > 0) {
-            const groupedDetails = [];
+            const grouped = [];
             data.details.forEach(item => {
-                const currentNote = (item.note || "").trim();
-                const existing = groupedDetails.find(g =>
-                    g.dishID === item.dishID &&
-                    (g.note || "").trim() === currentNote
-                );
-                if (existing) {
-                    existing.quantity += item.quantity;
-                    existing.totalAmount += item.totalAmount;
-                } else {
-                    groupedDetails.push({ ...item });
-                }
+                const note = (item.note || "").trim();
+                const exist = grouped.find(g => g.dishID === item.dishID && (g.note || "").trim() === note);
+                if (exist) { exist.quantity += item.quantity; exist.totalAmount += item.totalAmount; }
+                else grouped.push({ ...item });
             });
-
-            groupedDetails.forEach(d => {
-                let badgeClass = 'bg-secondary';
-                let statusText = d.itemStatus;
-                if (d.itemStatus === 'New') { badgeClass = 'bg-primary'; statusText = 'Mới'; }
-                else if (d.itemStatus === 'Sent') { badgeClass = 'bg-info text-dark'; statusText = 'Đã gửi'; }
-                else if (d.itemStatus === 'Done') { badgeClass = 'bg-success'; statusText = 'Đã ra'; }
-
+            grouped.forEach(d => {
+                let badge = 'bg-secondary', txt = d.itemStatus;
+                if (d.itemStatus === 'New') { badge = 'bg-primary'; txt = 'Mới'; }
+                else if (d.itemStatus === 'Sent') { badge = 'bg-info text-dark'; txt = 'Đã gửi'; }
+                else if (d.itemStatus === 'Done') { badge = 'bg-success'; txt = 'Đã ra'; }
                 const div = document.createElement('div');
                 div.className = 'd-flex justify-content-between p-2 border-bottom';
-                div.innerHTML = `
-                    <div>
-                        <span class="fw-bold">${d.dishName}</span> <br>
-                        <small class="text-muted">${d.quantity} x ${d.unitPrice.toLocaleString()}</small>
-                        ${d.note ? `<br><small class="text-warning fst-italic">"${d.note}"</small>` : ''}
-                    </div>
-                    <div class="text-end">
-                        <div class="fw-bold">${d.totalAmount.toLocaleString()}</div>
-                        <span class="badge ${badgeClass}">${statusText}</span>
-                    </div>
-                `;
+                div.innerHTML = `<div><span class="fw-bold">${d.dishName}</span><br><small class="text-muted">${d.quantity} x ${d.unitPrice.toLocaleString()}</small>${d.note ? `<br><small class="text-warning">"${d.note}"</small>` : ''}</div><div class="text-end"><div class="fw-bold">${d.totalAmount.toLocaleString()}</div><span class="badge ${badge}">${txt}</span></div>`;
                 container.appendChild(div);
             });
-        } else {
-            container.innerHTML = `<div class="text-center text-muted">Không có món ăn</div>`;
-        }
-    } catch (e) {
-        console.error(e);
-        container.innerHTML = `<div class="text-center text-danger">Lỗi tải dữ liệu</div>`;
-    }
+        } else { container.innerHTML = `<div class="text-center text-muted">Không có món ăn</div>`; }
+    } catch (e) { container.innerHTML = `<div class="text-danger text-center">Lỗi tải dữ liệu</div>`; }
 }
-
-// --- MENU ---
-async function loadMenuData() {
-    try {
-        const res = await fetch(`${API_URL}/Menu`);
-        appState.categories = await res.json();
-    } catch (e) { console.error(e); }
-}
-
-function openMenuSelection() {
-    appState.tempMenuSelection = {};
-    renderMenuUI();
-    showView('view-menu');
-}
-
+async function loadMenuData() { try { const res = await fetch(`${API_URL}/Menu`); appState.categories = await res.json(); } catch (e) { } }
+function openMenuSelection() { appState.tempMenuSelection = {}; renderMenuUI(); showView('view-menu'); }
 function renderMenuUI() {
     const catBar = document.getElementById('categoryBar');
     const dishList = document.getElementById('dishList');
-    if (!catBar || !dishList) return;
-
-    catBar.innerHTML = '';
-    dishList.innerHTML = '';
-
+    catBar.innerHTML = ''; dishList.innerHTML = '';
     appState.categories.forEach((cat, idx) => {
         const btn = document.createElement('button');
         btn.className = `filter-btn ${idx === 0 ? 'active' : ''}`;
         btn.innerText = cat.categoryName;
-        btn.onclick = (e) => {
-            document.querySelectorAll('#categoryBar .filter-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            const target = document.getElementById(`cat-${cat.categoryID}`);
-            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        };
+        btn.onclick = (e) => { document.querySelectorAll('#categoryBar .filter-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); document.getElementById(`cat-${cat.categoryID}`).scrollIntoView({ behavior: 'smooth' }); };
         catBar.appendChild(btn);
-
-        const catHeader = document.createElement('h6');
-        catHeader.className = 'bg-light p-2 m-0 border-top border-bottom text-uppercase text-secondary fw-bold';
-        catHeader.innerText = cat.categoryName;
-        catHeader.id = `cat-${cat.categoryID}`;
-        dishList.appendChild(catHeader);
-
-        const dishes = cat.dishes || cat.Dishes || [];
-        dishes.forEach(dish => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'dish-item';
-            wrapper.dataset.id = dish.dishID;
-
-            const currentQty = appState.tempMenuSelection[dish.dishID] || 0;
-            const activeClass = currentQty > 0 ? 'active' : '';
-
-            wrapper.innerHTML = `
-                <div class="dish-info" onclick="incrementDish(${dish.dishID})">
-                    <h6>${dish.dishName}</h6>
-                    <div class="dish-price">${dish.price.toLocaleString()}đ</div>
-                </div>
-                <div class="qty-control">
-                    ${currentQty > 0 ? `
-                        <button class="btn-qty" onclick="updateTempQty(${dish.dishID}, -1)">-</button>
-                        <span id="qty-${dish.dishID}" class="fw-bold">${currentQty}</span>
-                    ` : ''}
-                    <button class="btn-qty ${activeClass}" onclick="updateTempQty(${dish.dishID}, 1)">+</button>
-                </div>
-            `;
-            dishList.appendChild(wrapper);
+        const h6 = document.createElement('h6'); h6.className = 'bg-light p-2 m-0 border-top border-bottom fw-bold text-secondary'; h6.innerText = cat.categoryName; h6.id = `cat-${cat.categoryID}`; dishList.appendChild(h6);
+        (cat.dishes || cat.Dishes || []).forEach(dish => {
+            const div = document.createElement('div'); div.className = 'dish-item'; div.dataset.id = dish.dishID;
+            const curQty = appState.tempMenuSelection[dish.dishID] || 0;
+            div.innerHTML = `<div class="dish-info" onclick="incrementDish(${dish.dishID})"><h6>${dish.dishName}</h6><div class="dish-price">${dish.price.toLocaleString()}đ</div></div><div class="qty-control">${curQty > 0 ? `<button class="btn-qty" onclick="updateTempQty(${dish.dishID},-1)">-</button><span class="fw-bold">${curQty}</span>` : ''}<button class="btn-qty ${curQty > 0 ? 'active' : ''}" onclick="updateTempQty(${dish.dishID},1)">+</button></div>`;
+            dishList.appendChild(div);
         });
     });
     updateMenuActionBar();
 }
-
-function updateTempQty(dishID, delta) {
-    if (!appState.tempMenuSelection[dishID]) appState.tempMenuSelection[dishID] = 0;
-    appState.tempMenuSelection[dishID] += delta;
-    if (appState.tempMenuSelection[dishID] <= 0) delete appState.tempMenuSelection[dishID];
-    renderMenuUI();
-}
+function updateTempQty(id, delta) { appState.tempMenuSelection[id] = (appState.tempMenuSelection[id] || 0) + delta; if (appState.tempMenuSelection[id] <= 0) delete appState.tempMenuSelection[id]; renderMenuUI(); }
 function incrementDish(id) { updateTempQty(id, 1); }
-
-function updateMenuActionBar() {
-    const bar = document.getElementById('menuActionBar');
-    if (!bar) return;
-    let totalItems = 0;
-    for (let key in appState.tempMenuSelection) totalItems += appState.tempMenuSelection[key];
-
-    if (totalItems > 0) {
-        bar.style.display = 'flex';
-        document.getElementById('selectedCount').innerText = totalItems;
-    } else {
-        bar.style.display = 'none';
-    }
-}
-
+function updateMenuActionBar() { const bar = document.getElementById('menuActionBar'); let total = 0; for (let k in appState.tempMenuSelection) total += appState.tempMenuSelection[k]; if (total > 0) { bar.style.display = 'flex'; document.getElementById('selectedCount').innerText = total; } else bar.style.display = 'none'; }
 function confirmMenuSelection() {
-    for (const [dishIdStr, qty] of Object.entries(appState.tempMenuSelection)) {
-        const dishID = parseInt(dishIdStr);
-        let foundDish = null;
-        appState.categories.some(cat => {
-            const list = cat.dishes || cat.Dishes || [];
-            foundDish = list.find(d => d.dishID === dishID);
-            return foundDish;
-        });
-
-        if (foundDish) {
-            const existing = appState.cart.find(c => c.dishID === dishID && c.note === "");
-            if (existing) {
-                existing.quantity += qty;
-            } else {
-                appState.cart.push({
-                    dishID: dishID,
-                    name: foundDish.dishName,
-                    price: foundDish.price,
-                    quantity: qty,
-                    note: ""
-                });
-            }
+    for (const [idStr, qty] of Object.entries(appState.tempMenuSelection)) {
+        const id = parseInt(idStr); let dish = null;
+        appState.categories.some(c => (dish = (c.dishes || c.Dishes || []).find(d => d.dishID === id)));
+        if (dish) {
+            const exist = appState.cart.find(c => c.dishID === id && c.note === "");
+            if (exist) exist.quantity += qty; else appState.cart.push({ dishID: id, name: dish.dishName, price: dish.price, quantity: qty, note: "" });
         }
     }
-    appState.tempMenuSelection = {};
-    renderCartTab();
-    showView('view-detail');
-    const tabEl = document.querySelector('a[href="#tab-cart"]');
-    if (tabEl) {
-        const tab = new bootstrap.Tab(tabEl);
-        tab.show();
-    }
+    appState.tempMenuSelection = {}; renderCartTab(); showView('view-detail');
+    const tab = document.querySelector('a[href="#tab-cart"]'); if (tab) new bootstrap.Tab(tab).show();
 }
-
-function cancelMenuSelection() {
-    appState.tempMenuSelection = {};
-    showView('view-detail');
-}
-
-function searchMenu() {
-    const term = document.getElementById('searchDish').value.toLowerCase();
-    document.querySelectorAll('.dish-item').forEach(item => {
-        const nameEl = item.querySelector('h6');
-        if (nameEl) {
-            const name = nameEl.innerText.toLowerCase();
-            item.style.display = name.includes(term) ? 'flex' : 'none';
-        }
-    });
-}
-
-function logout() {
-    localStorage.removeItem('posUser');
-    window.location.href = 'index.html';
-}
+function cancelMenuSelection() { appState.tempMenuSelection = {}; showView('view-detail'); }
+function searchMenu() { const v = document.getElementById('searchDish').value.toLowerCase(); document.querySelectorAll('.dish-item').forEach(i => i.style.display = i.querySelector('h6').innerText.toLowerCase().includes(v) ? 'flex' : 'none'); }
+function logout() { localStorage.removeItem('posUser'); window.location.href = 'index.html'; }

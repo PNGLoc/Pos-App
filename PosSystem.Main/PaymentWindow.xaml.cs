@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 using PosSystem.Main.Services;
-
+using Microsoft.AspNetCore.SignalR;
+using PosSystem.Main.Server.Hubs;
+using Microsoft.Extensions.DependencyInjection;
 namespace PosSystem.Main
 {
     public partial class PaymentWindow : Window
@@ -104,7 +106,7 @@ namespace PosSystem.Main
         }
 
         // 2. THANH TOÁN & ĐÓNG BÀN
-        private void BtnPay_Click(object sender, RoutedEventArgs e)
+        private async void BtnPay_Click(object sender, RoutedEventArgs e)
         {
             using (var db = new AppDbContext())
             {
@@ -125,9 +127,18 @@ namespace PosSystem.Main
                 }
 
                 db.SaveChanges();
-
-                // In hóa đơn chính thức , nhưng chuyển qua mainwindow in luôn rồi
-                // PrintService.PrintBill(_orderId);
+                // --- [THÊM ĐOẠN SIGNALR NÀY] ---
+                // Bắn tín hiệu cho Web/Mobile biết bàn này đã thay đổi (đã trống)
+                if (App.WebHost != null)
+                {
+                    var hubContext = App.WebHost.Services.GetService<IHubContext<PosHub>>();
+                    if (hubContext != null)
+                    {
+                        // _tableId là biến có sẵn trong class của bạn
+                        await hubContext.Clients.All.SendAsync("TableUpdated", _tableId);
+                    }
+                }
+                // -------------------------------
 
                 IsPaidSuccess = true;
                 this.Close();

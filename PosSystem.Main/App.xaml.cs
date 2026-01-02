@@ -3,12 +3,12 @@ using Microsoft.Extensions.Hosting;
 using PosSystem.Main.Server;
 using System;
 using PosSystem.Main.Database; // Dùng để khởi tạo DB nếu cần
-
+using Microsoft.Extensions.DependencyInjection;
 namespace PosSystem.Main
 {
     public partial class App : Application
     {
-        private IHost? _host;
+        public static IHost? WebHost { get; private set; }
 
         // Lưu ý: Phải là 'async void' vì đây là Event Handler
         protected override async void OnStartup(StartupEventArgs e)
@@ -18,11 +18,11 @@ namespace PosSystem.Main
 
             try
             {
-                // 2. Build Server
-                _host = WebServer.CreateHostBuilder(e.Args).Build();
+                // 1. Tạo Web Server (nhưng chưa chạy)
+                WebHost = WebServer.CreateHostBuilder(e.Args).Build();
 
-                // 3. Start Server (Quan trọng: phải có await)
-                await _host.StartAsync();
+                // 2. Chạy Server (Async để không đơ UI)
+                await WebHost.StartAsync();
             }
             catch (Exception ex)
             {
@@ -33,10 +33,10 @@ namespace PosSystem.Main
 
         protected override async void OnExit(ExitEventArgs e)
         {
-            if (_host != null)
+            if (WebHost != null)
             {
-                await _host.StopAsync();
-                _host.Dispose();
+                await WebHost.StopAsync();
+                WebHost.Dispose();
             }
             base.OnExit(e);
         }
