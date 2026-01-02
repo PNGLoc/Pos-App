@@ -1,0 +1,186 @@
+:root {
+    --primary-color: #ff6b6b;
+    /* Màu cam đỏ chủ đạo cho F&B */
+    --secondary-color: #4ecdc4;
+    --bg-light: #f8f9fa;
+    --text-dark: #2d3436;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    -webkit-tap-highlight-color: transparent;
+    padding-bottom: 80px;
+    /* Chừa chỗ cho bottom bar */
+}
+
+/* Các màn hình (Views) */
+.view-section {
+    display: none;
+    /* Mặc định ẩn, JS sẽ bật lên */
+    min-height: 100vh;
+}
+
+.view-section.active {
+    display: block;
+    animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Header */
+.app-header {
+    background: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 10px 15px;
+}
+
+/* Filter Bàn */
+.table-filters {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 5px;
+}
+
+.filter-btn {
+    border-radius: 20px;
+    padding: 5px 15px;
+    margin-right: 8px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #666;
+}
+
+.filter-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Grid Bàn */
+.table-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    padding: 15px;
+}
+
+.table-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px 10px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.table-card.occupied {
+    background-color: #fff3cd;
+    /* Màu vàng nhạt cho bàn có khách */
+    border-color: #ffc107;
+}
+
+.table-card.selected {
+    border-color: var(--primary-color);
+}
+
+/* Chi tiết bàn */
+.table-tabs .nav-link {
+    color: #666;
+    font-weight: 600;
+}
+
+.table-tabs .nav-link.active {
+    color: var(--primary-color);
+    border-bottom: 3px solid var(--primary-color);
+}
+
+.action-select-food {
+    color: var(--primary-color);
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Danh sách món (Menu Selection) */
+.category-bar {
+    position: sticky;
+    top: 60px;
+    /* Dưới header chính */
+    background: #fff;
+    z-index: 999;
+    padding: 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+    border-bottom: 1px solid #eee;
+}
+
+.dish-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.dish-info h6 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.dish-price {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.qty-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-qty {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    background: white;
+}
+
+.btn-qty.active {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+}
+
+/* Bottom Floating Bar */
+.bottom-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: white;
+    padding: 15px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1050;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
