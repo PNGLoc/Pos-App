@@ -689,16 +689,51 @@
                                                 <Grid>
                                                     <TextBox Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                              Tag="{Binding OrderDetailID}"
-                                                             Style="{StaticResource NoteTextBoxStyle}"
                                                              LostFocus="TxtNote_LostFocus"
-                                                             ToolTip="Nhấn để nhập ghi chú (Ví dụ: Ít đường, Không đá...)"/>
+                                                             Padding="0,2">
+                                                        <TextBox.Style>
+                                                            <Style TargetType="TextBox"
+                                                                    BasedOn="{StaticResource NoteTextBoxStyle}">
+                                                                <Setter Property="IsReadOnly"
+                                                                        Value="False"/>
+                                                                <Setter Property="ToolTip"
+                                                                        Value="Nhập ghi chú (Ví dụ: Ít đường...)"/>
+
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding ItemStatus}"
+                                                                            Value="Sent">
+                                                                        <Setter Property="IsReadOnly"
+                                                                                Value="True"/>
+                                                                        <Setter Property="Foreground"
+                                                                                Value="#999"/>
+                                                                        <Setter Property="BorderThickness"
+                                                                                Value="0"/>
+                                                                        <Setter Property="ToolTip"
+                                                                                Value="Món đã gửi bếp - Không thể sửa ghi chú"/>
+                                                                        <Setter Property="Cursor"
+                                                                                Value="Arrow"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding ItemStatus}"
+                                                                            Value="Done">
+                                                                        <Setter Property="IsReadOnly"
+                                                                                Value="True"/>
+                                                                        <Setter Property="Foreground"
+                                                                                Value="#999"/>
+                                                                        <Setter Property="BorderThickness"
+                                                                                Value="0"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBox.Style>
+                                                    </TextBox>
+
                                                     <TextBlock Text="Ghi chú"
-                                                               FontSize="12"
-                                                               Foreground="#BBB"
-                                                               FontStyle="Italic"
+                                                            FontSize="12"
+                                                            Foreground="#BBB"
+                                                            FontStyle="Italic"
                                                                Margin="5,2"
-                                                               IsHitTestVisible="False"
-                                                               VerticalAlignment="Center"
+                                                            IsHitTestVisible="False"
+                                                            VerticalAlignment="Center"
                                                                Visibility="{Binding Note, Converter={StaticResource EmptyStringToVisibilityConverter}}"/>
                                                 </Grid>
                                             </StackPanel>
