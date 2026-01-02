@@ -25,12 +25,13 @@ namespace PosSystem.Main.Server.Controllers
             _hubContext = hubContext;
         }
 
-        // POST: api/order/create (Mở bàn mới)
+        // 1. MỞ BÀN & TẠO ĐƠN (Chỉ lưu status New, CHƯA IN)
         [HttpPost("create")]
         public async Task<IActionResult> CreateOrder([FromBody] OrderRequest request)
         {
             if (request.Items.Count == 0) return BadRequest("Chưa chọn món nào!");
 
+            // Kiểm tra bàn có đơn chưa
             var currentOrder = await _context.Orders
                 .Include(o => o.OrderDetails)
                 .FirstOrDefaultAsync(o => o.TableID == request.TableID && o.OrderStatus == "Pending");
@@ -56,19 +57,17 @@ namespace PosSystem.Main.Server.Controllers
                 var dish = await _context.Dishes.FindAsync(itemDto.DishID);
                 if (dish != null)
                 {
-                    var newDetail = new OrderDetail
+                    currentOrder.OrderDetails.Add(new OrderDetail
                     {
                         DishID = dish.DishID,
                         Quantity = itemDto.Quantity,
                         UnitPrice = dish.Price,
                         Note = itemDto.Note,
-                        ItemStatus = "New",
+                        ItemStatus = "New",      // ⭐ Quan trọng: Mới chỉ là New
+                        PrintedQuantity = 0,     // ⭐ Chưa in
                         DiscountRate = 0,
                         TotalAmount = itemDto.Quantity * dish.Price
-                    };
-
-                    if (currentOrder.OrderID > 0) currentOrder.OrderDetails.Add(newDetail);
-                    else _context.Add(newDetail);
+                    });
                 }
             }
 
@@ -77,13 +76,124 @@ namespace PosSystem.Main.Server.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Gửi tín hiệu real-time
+            // Bắn SignalR: WPF sẽ thấy bàn chuyển màu đỏ và hiện món màu vàng
             await _hubContext.Clients.All.SendAsync("TableUpdated", request.TableID);
 
-            return Ok(new { Message = "Đã gửi đơn xuống bếp thành công!", OrderID = currentOrder.OrderID });
+            return Ok(new { Message = "Đã mở bàn (chưa gửi bếp)", OrderID = currentOrder.OrderID });
         }
 
-        // GET: api/order/{tableId}
+        // 2. THÊM MÓN VÀO ĐƠN (Lưu vào giỏ chung, CHƯA IN)
+        [HttpPost("{tableId}/add")]
+        public async Task<IActionResult> AddOrderItems(int tableId, [FromBody] AddOrderItemsRequest request)
+        {
+            if (request?.Details == null || request.Details.Count == 0) return BadRequest("Chưa chọn món!");
+
+            var currentOrder = await _context.Orders
+                .Include(o => o.OrderDetails)
+                .FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
+
+            if (currentOrder == null) return BadRequest("Bàn chưa mở, vui lòng mở bàn trước!");
+
+            foreach (var itemDto in request.Details)
+            {
+                var dish = await _context.Dishes.FindAsync(itemDto.DishID);
+                if (dish != null)
+                {
+                    // Gộp vào dòng "New" nếu trùng món và note (để gọn bill)
+                    var existingItem = currentOrder.OrderDetails
+                        .FirstOrDefault(d => d.DishID == dish.DishID && d.ItemStatus == "New" && (d.Note ?? "") == (itemDto.Note ?? ""));
+
+                    if (existingItem != null)
+                    {
+                        existingItem.Quantity += itemDto.Quantity;
+                        existingItem.TotalAmount = existingItem.Quantity * existingItem.UnitPrice;
+                    }
+                    else
+                    {
+                        currentOrder.OrderDetails.Add(new OrderDetail
+                        {
+                            DishID = dish.DishID,
+                            Quantity = itemDto.Quantity,
+                            UnitPrice = dish.Price,
+                            Note = itemDto.Note ?? "",
+                            ItemStatus = "New",      // ⭐ Status New -> Hiện ở tab Cart Mobile và dòng Vàng WPF
+                            PrintedQuantity = 0,
+                            TotalAmount = itemDto.Quantity * dish.Price
+                        });
+                    }
+                }
+            }
+
+            currentOrder.SubTotal = currentOrder.OrderDetails.Sum(d => d.TotalAmount);
+            currentOrder.FinalAmount = currentOrder.SubTotal;
+
+            await _context.SaveChangesAsync();
+            await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+
+            return Ok(new { Message = "Đã thêm vào giỏ hàng chung" });
+        }
+
+        // 3. API GỬI BẾP (Tìm món New -> In -> Chuyển thành Sent)
+        // Mobile nút "Gửi thực đơn" sẽ gọi cái này
+        [HttpPost("{tableId}/send")]
+        public async Task<IActionResult> SendToKitchen(int tableId)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderDetails).ThenInclude(d => d.Dish).ThenInclude(c => c.Category)
+                .Include(o => o.Table)
+                .FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
+
+            if (order == null) return BadRequest("Bàn này không có đơn hàng!");
+
+            // Lấy các món chưa in (New) hoặc số lượng tăng thêm
+            var itemsToPrint = order.OrderDetails
+                .Where(d => d.Quantity > d.PrintedQuantity)
+                .ToList();
+
+            if (!itemsToPrint.Any()) return Ok(new { Message = "Không có món mới cần gửi bếp" });
+
+            // Tăng Batch Number
+            var batchNumber = order.OrderDetails.Max(d => (int?)d.KitchenBatch) ?? 0;
+            batchNumber++;
+
+            if (!order.FirstSentTime.HasValue) order.FirstSentTime = DateTime.Now;
+
+            // Danh sách tạm để gửi lệnh in
+            var printQueue = new List<OrderDetail>();
+
+            foreach (var item in itemsToPrint)
+            {
+                int quantityToSend = item.Quantity - item.PrintedQuantity;
+
+                // Tạo bản copy để in đúng số lượng mới
+                var printItem = new OrderDetail
+                {
+                    Dish = item.Dish,
+                    DishID = item.DishID,
+                    Quantity = quantityToSend,
+                    Note = item.Note,
+                    KitchenBatch = batchNumber
+                };
+                printQueue.Add(printItem);
+
+                // Cập nhật DB
+                item.PrintedQuantity = item.Quantity;
+                item.ItemStatus = "Sent"; // ⭐ Chuyển sang Sent -> Mobile hiện tab Đã Xác Nhận, WPF hiện dòng Trắng/Xanh
+                item.KitchenBatch = batchNumber;
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Gọi Service In Bếp (Code có sẵn của bạn)
+            Services.PrintService.PrintKitchen(order, printQueue, batchNumber);
+
+            // Bắn SignalR
+            await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+
+            return Ok(new { Message = $"Đã gửi {printQueue.Count} món xuống bếp!" });
+        }
+
+        // GET: api/order/{tableId} (API lấy dữ liệu cho Mobile)
         [HttpGet("{tableId}")]
         public async Task<IActionResult> GetOrderDetails(int tableId)
         {
@@ -103,93 +213,14 @@ namespace PosSystem.Main.Server.Controllers
                 {
                     d.OrderDetailID,
                     d.DishID,
-                    d.Dish!.DishName,
+                    d.Dish!.DishName, // ! để bỏ cảnh báo null
                     d.Quantity,
                     d.UnitPrice,
                     d.TotalAmount,
                     d.Note,
-                    d.ItemStatus
+                    d.ItemStatus // Quan trọng để JS phân loại tab
                 })
             });
-        }
-
-        // POST: api/order/{tableId} (Thêm món)
-        [HttpPost("{tableId}")]
-        public async Task<IActionResult> AddOrderItems(int tableId, [FromBody] AddOrderItemsRequest request)
-        {
-            if (request?.Details == null || request.Details.Count == 0)
-                return BadRequest("Chưa chọn món nào!");
-
-            var currentOrder = await _context.Orders
-                .Include(o => o.OrderDetails).ThenInclude(od => od.Dish).ThenInclude(d => d.Category)
-                .FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
-
-            if (currentOrder == null)
-            {
-                currentOrder = new Order
-                {
-                    TableID = tableId,
-                    AccID = 1,
-                    OrderTime = DateTime.Now,
-                    OrderStatus = "Pending",
-                    PaymentMethod = "Cash"
-                };
-                _context.Orders.Add(currentOrder);
-
-                var table = await _context.Tables.FindAsync(tableId);
-                if (table != null) table.TableStatus = "Occupied";
-            }
-
-            var itemsToPrint = new List<OrderDetail>();
-            foreach (var itemDto in request.Details)
-            {
-                var dish = await _context.Dishes.Include(d => d.Category).FirstOrDefaultAsync(d => d.DishID == itemDto.DishID);
-                if (dish != null)
-                {
-                    var newDetail = new OrderDetail
-                    {
-                        DishID = dish.DishID,
-                        Quantity = itemDto.Quantity,
-                        UnitPrice = dish.Price,
-                        Note = itemDto.Note ?? "",
-                        ItemStatus = "Sent",
-                        PrintedQuantity = itemDto.Quantity,
-                        DiscountRate = 0,
-                        TotalAmount = itemDto.Quantity * dish.Price
-                    };
-
-                    if (currentOrder.OrderID > 0) currentOrder.OrderDetails.Add(newDetail);
-                    else _context.Add(newDetail); // Link với order mới
-
-                    itemsToPrint.Add(newDetail);
-                }
-            }
-
-            currentOrder.SubTotal = currentOrder.OrderDetails.Sum(d => d.TotalAmount);
-            currentOrder.FinalAmount = currentOrder.SubTotal;
-
-            if (!currentOrder.FirstSentTime.HasValue) currentOrder.FirstSentTime = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            // IN BẾP
-            if (itemsToPrint.Any())
-            {
-                var batchNumber = currentOrder.OrderDetails
-                    .Where(d => d.KitchenBatch > 0)
-                    .Max(d => (int?)d.KitchenBatch) ?? 0;
-                batchNumber++;
-
-                foreach (var item in itemsToPrint) item.KitchenBatch = batchNumber;
-                await _context.SaveChangesAsync();
-
-                Services.PrintService.PrintKitchen(currentOrder, itemsToPrint, batchNumber);
-            }
-
-            // Gửi tín hiệu real-time
-            await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
-
-            return Ok(new { Message = "Đã gửi đơn xuống bếp thành công!", OrderID = currentOrder.OrderID });
         }
 
         // POST: api/order/checkout (Thanh toán)
@@ -243,5 +274,6 @@ namespace PosSystem.Main.Server.Controllers
                 Method = order.PaymentMethod
             });
         }
+
     }
 }
