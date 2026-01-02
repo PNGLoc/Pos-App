@@ -80,6 +80,7 @@ namespace PosSystem.Main.Services
         }
 
         // 1. HÀM IN BILL (HÓA ĐƠN)
+        // 1. HÀM IN BILL (HÓA ĐƠN) - ĐÃ SỬA GỘP MÓN
         public static void PrintBill(long orderId)
         {
             using (var db = new AppDbContext())
@@ -88,16 +89,46 @@ namespace PosSystem.Main.Services
                     .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
                     .Include(o => o.Account)
                     .Include(o => o.Table)
-                    .Include(o => o.Account)
                     .FirstOrDefault(o => o.OrderID == orderId);
 
                 if (order == null) return;
 
-                // SỬA LỖI CS1061: Dùng IsBillPrinter thay vì PrinterType
+                // --- [ĐOẠN CODE MỚI: GỘP MÓN TRƯỚC KHI IN] ---
+                // Logic giống hệt MainWindow: Gộp theo Món + Trạng thái + Ghi chú
+                var groupedDetails = order.OrderDetails
+                    .GroupBy(d => new
+                    {
+                        d.DishID,
+                        d.ItemStatus,
+                        Note = (d.Note ?? "").Trim()
+                    })
+                    .Select(g => new OrderDetail
+                    {
+                        // Lấy thông tin từ món đầu tiên trong nhóm
+                        DishID = g.Key.DishID,
+                        Dish = g.First().Dish, // Quan trọng: Phải giữ object Dish để lấy tên món
+                        UnitPrice = g.First().UnitPrice,
+                        Note = g.Key.Note,
+                        ItemStatus = g.Key.ItemStatus,
+
+                        // Cộng dồn số lượng và thành tiền
+                        Quantity = g.Sum(x => x.Quantity),
+                        TotalAmount = g.Sum(x => x.TotalAmount),
+
+                        // Các thuộc tính phụ (nếu cần)
+                        PrintedQuantity = g.Sum(x => x.PrintedQuantity)
+                    })
+                    .OrderBy(d => d.ItemStatus == "New" ? 0 : 1) // Sắp xếp: Mới trước, Cũ sau
+                    .ThenBy(d => d.Dish?.DishName)
+                    .ToList();
+
+                // Gán danh sách đã gộp vào Order (Chỉ gán trong bộ nhớ để in, không lưu DB)
+                order.OrderDetails = groupedDetails;
+                // ----------------------------------------------
+
                 var printer = db.Printers.FirstOrDefault(p => p.IsBillPrinter && p.IsActive);
                 if (printer == null) return;
 
-                // Lấy cấu hình Layout từ DB
                 var layoutConfig = db.PrintTemplates.FirstOrDefault(t => t.TemplateType == "Bill" && t.IsActive);
                 List<PrintElement> elements = null;
                 if (layoutConfig != null && !string.IsNullOrEmpty(layoutConfig.TemplateContentJson))
@@ -110,8 +141,6 @@ namespace PosSystem.Main.Services
                     try
                     {
                         var template = new Templates.BillTemplate();
-
-                        // Truyền thêm elements và paymentMethod vào SetData
                         template.SetData(order, elements, order.PaymentMethod);
 
                         int width = printer.PaperSize == 58 ? 380 : 550;
@@ -132,15 +161,13 @@ namespace PosSystem.Main.Services
             }
         }
 
-        // 2. HÀM IN BẾP
+        // 2. HÀM IN BẾP - ĐÃ SỬA GỘP MÓN
         public static void PrintKitchen(Order orderInfo, List<OrderDetail> itemsToPrint, int batchNumber)
         {
-            // Kiểm tra danh sách món
             if (itemsToPrint == null || !itemsToPrint.Any()) return;
 
             using (var db = new AppDbContext())
             {
-                // Lấy cấu hình Layout Bếp từ DB
                 var layoutConfig = db.PrintTemplates.FirstOrDefault(t => t.TemplateType == "Kitchen" && t.IsActive);
                 List<PrintElement> elements = null;
                 if (layoutConfig != null && !string.IsNullOrEmpty(layoutConfig.TemplateContentJson))
@@ -148,8 +175,29 @@ namespace PosSystem.Main.Services
                     try { elements = JsonSerializer.Deserialize<List<PrintElement>>(layoutConfig.TemplateContentJson); } catch { }
                 }
 
-                // Gom nhóm món theo Máy in (Dựa vào PrinterID của Danh mục món)
-                var printerGroups = itemsToPrint
+                // --- [ĐOẠN CODE MỚI: GỘP MÓN CHO BẾP] ---
+                // Trước khi chia theo máy in, ta gộp các món giống nhau lại
+                // (Phòng trường hợp bấm + 2 lần tạo ra 2 object riêng lẻ)
+                var groupedItemsToPrint = itemsToPrint
+                    .GroupBy(d => new
+                    {
+                        d.DishID,
+                        Note = (d.Note ?? "").Trim()
+                        // Bếp in theo đợt nên không cần group theo ItemStatus, tất cả đều là New/Modified
+                    })
+                    .Select(g => new OrderDetail
+                    {
+                        DishID = g.Key.DishID,
+                        Dish = g.First().Dish, // Object Dish chứa Category -> PrinterID
+                        Note = g.Key.Note,
+                        Quantity = g.Sum(x => x.Quantity), // Cộng dồn số lượng cần in
+                        // Các field khác không quan trọng với Bếp
+                    })
+                    .ToList();
+                // ----------------------------------------
+
+                // Gom nhóm theo Máy in (Dựa vào PrinterID của Danh mục món)
+                var printerGroups = groupedItemsToPrint
                     .Where(d => d.Dish?.Category?.PrinterID != null)
                     .GroupBy(d => d.Dish!.Category!.PrinterID)
                     .ToList();
@@ -166,9 +214,9 @@ namespace PosSystem.Main.Services
                     var filteredOrder = new Order
                     {
                         OrderID = orderInfo.OrderID,
-                        Table = orderInfo.Table,
+                        Table = orderInfo.Table, // Lấy tên bàn
                         OrderTime = DateTime.Now,
-                        OrderDetails = group.ToList() // Danh sách món cần in
+                        OrderDetails = group.ToList() // Danh sách món CẦN IN (Đã gộp)
                     };
 
                     Application.Current.Dispatcher.Invoke(() =>
@@ -176,8 +224,6 @@ namespace PosSystem.Main.Services
                         try
                         {
                             var template = new Templates.KitchenTemplate();
-
-                            // SỬA LỖI CS7036: Truyền đủ 3 tham số (Order, Batch, Layout)
                             template.SetData(filteredOrder, batchNumber, elements);
 
                             int width = printer.PaperSize == 58 ? 380 : 550;
@@ -198,7 +244,6 @@ namespace PosSystem.Main.Services
                 }
             }
         }
-
         // 3. HÀM IN THÔNG BÁO CHUYỂN BÀN
         public static void PrintMoveTableNotification(Order orderInfo, string oldTableName, string newTableName)
         {
