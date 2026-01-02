@@ -21,4 +21,10 @@ namespace PosSystem.Main.Server.Dtos
     {
         public List<OrderItemDto> Details { get; set; } = new();
     }
+    public class UpdateItemRequest
+    {
+        public int OrderDetailID { get; set; }
+        public int Quantity { get; set; }
+        public string Note { get; set; } = "";
+    }
 }

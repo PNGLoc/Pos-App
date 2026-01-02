@@ -109,6 +109,41 @@
             </div>
         </div>
     </div>
+    <div class="modal fade" id="noteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title fw-bold">Ghi chú món ăn</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="noteTargetId"> <input type="hidden" id="noteType"> <textarea
+                        class="form-control mb-2" id="noteInput" rows="3"
+                        placeholder="Ví dụ: Ít đường, không đá..."></textarea>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <span class="badge bg-light text-dark border p-2 cursor-pointer"
+                            onclick="appendNote('Ít đá')">Ít đá</span>
+                        <span class="badge bg-light text-dark border p-2 cursor-pointer"
+                            onclick="appendNote('Ít đường')">Ít đường</span>
+                        <span class="badge bg-light text-dark border p-2 cursor-pointer"
+                            onclick="appendNote('Không hành')">Không hành</span>
+                        <span class="badge bg-light text-dark border p-2 cursor-pointer"
+                            onclick="appendNote('Mang về')">Mang về</span>
+                    </div>
+                </div>
+                <div class="modal-footer py-1">
+                    <button type="button" class="btn btn-primary w-100" onclick="saveNote()">Lưu Ghi Chú</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function appendNote(text) {
+            const el = document.getElementById('noteInput');
+            el.value = el.value ? el.value + ', ' + text : text;
+        }
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/signalr.min.js"></script>

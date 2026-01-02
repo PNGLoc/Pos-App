@@ -192,6 +192,45 @@ namespace PosSystem.Main.Server.Controllers
 
             return Ok(new { Message = $"Đã gửi {printQueue.Count} món xuống bếp!" });
         }
+        // POST: api/Order/{tableId}/update-item
+        [HttpPost("{tableId}/update-item")]
+        public async Task<IActionResult> UpdateItem(int tableId, [FromBody] UpdateItemRequest req)
+        {
+            var orderDetail = await _context.OrderDetails
+                .Include(od => od.Order)
+                .FirstOrDefaultAsync(od => od.OrderDetailID == req.OrderDetailID && od.Order.TableID == tableId);
+
+            if (orderDetail == null) return NotFound("Món không tồn tại");
+
+            // Chỉ cho phép sửa món trạng thái "New" (chưa gửi bếp)
+            if (orderDetail.ItemStatus != "New") return BadRequest("Chỉ sửa được món chưa gửi bếp");
+
+            if (req.Quantity <= 0)
+            {
+                _context.OrderDetails.Remove(orderDetail); // Xóa nếu số lượng = 0
+            }
+            else
+            {
+                orderDetail.Quantity = req.Quantity;
+                orderDetail.TotalAmount = orderDetail.Quantity * orderDetail.UnitPrice;
+                orderDetail.Note = req.Note;
+            }
+
+            // Lưu tạm để cập nhật dòng chi tiết
+            await _context.SaveChangesAsync();
+
+            // Tính lại tổng tiền đơn hàng
+            var order = orderDetail.Order;
+            order.SubTotal = _context.OrderDetails.Where(d => d.OrderID == order.OrderID).Sum(d => d.TotalAmount);
+            order.FinalAmount = order.SubTotal;
+
+            await _context.SaveChangesAsync();
+
+            // Báo cho mọi người biết để cập nhật giao diện
+            await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+
+            return Ok(new { Message = "Cập nhật thành công" });
+        }
 
         // GET: api/order/{tableId} (API lấy dữ liệu cho Mobile)
         [HttpGet("{tableId}")]
