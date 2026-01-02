@@ -607,7 +607,8 @@ namespace PosSystem.Main
                         ItemStatus = "New", // Luôn là New
                         PrintedQuantity = 0,
                         TotalAmount = dishInfo.Price,
-                        Note = ""
+                        Note = "",
+                        ItemOrderTime = DateTime.Now
                     });
                 }
 

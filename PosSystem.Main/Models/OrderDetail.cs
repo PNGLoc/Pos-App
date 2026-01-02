@@ -17,7 +17,7 @@ namespace PosSystem.Main.Models
         public decimal TotalAmount { get; set; } = 0; // Thành tiền = (SL * Giá) * (1 - Discount)
 
         public string Note { get; set; } = "";
-
+        public DateTime ItemOrderTime { get; set; } = DateTime.Now;
         // Quan trọng cho IN ẤN BẾP
         // New: Mới gọi (Cần in) -> Sent: Đã gửi bếp -> Done: Đã ra món -> Cancel: Đã hủy
         public string ItemStatus { get; set; } = "New";
