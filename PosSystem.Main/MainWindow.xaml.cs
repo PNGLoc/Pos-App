@@ -29,6 +29,7 @@ namespace PosSystem.Main
         public string TimeDisplay { get; set; } = "";
         public string StatusDisplay => TableStatus == "Occupied" ? "Có khách" : "Trống";
         public SolidColorBrush ColorBrush => TableStatus == "Occupied" ? new SolidColorBrush(Color.FromRgb(220, 53, 69)) : new SolidColorBrush(Color.FromRgb(40, 167, 69));
+        public bool IsRequestingPayment { get; set; } = false;
     }
 
     public class CategoryViewModel { public int CategoryID { get; set; } public string CategoryName { get; set; } = ""; }
@@ -61,7 +62,6 @@ namespace PosSystem.Main
 
         // Move table mode variables
         private bool _isWaitingForMoveTargetTable = false;  // True when waiting for user to click target table for move
-
         public MainWindow()
         {
             InitializeComponent();
@@ -294,13 +294,6 @@ namespace PosSystem.Main
                         TableStatus = t.TableStatus,
                         TimeDisplay = ""
                     };
-                    if (_tablesRequestingPayment.Contains(t.TableID))
-                    {
-                        // Ghi đè màu sắc (Màu cam nhấp nháy hoặc tĩnh)
-                        // Bạn cần sửa TableViewModel thêm property ColorBrush set được
-                        // Hoặc đơn giản là thêm text "(Cần In)" vào TableName
-                        vm.TableName += " (🖨)";
-                    }
 
                     // Calculate time for occupied tables with pending orders that have been sent to kitchen
                     if (t.TableStatus == "Occupied" && t.Orders.Any())
@@ -317,6 +310,10 @@ namespace PosSystem.Main
                             else
                                 vm.TimeDisplay = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
                         }
+                    }
+                    if (_tablesRequestingPayment.Contains(t.TableID))
+                    {
+                        vm.IsRequestingPayment = true;
                     }
 
                     return vm;
@@ -1114,8 +1111,9 @@ namespace PosSystem.Main
                 Dispatcher.Invoke(() =>
                     {
                         _tablesRequestingPayment.Add(tableId);
-                        ShowToast($"🔔 Bàn {tableId} yêu cầu thanh toán!", 2000);
                         LoadTables(); // Load lại để cập nhật màu
+                        ShowToast($"🔔 Bàn {tableId} yêu cầu thanh toán!", 3000);
+
                     });
             });
             _connection.On<int>("TableUpdated", (id) => Dispatcher.Invoke(() => { LoadTables(); if (_selectedTableId == id) LoadOrderDetails(id); }));

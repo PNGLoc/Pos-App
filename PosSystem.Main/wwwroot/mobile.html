@@ -29,27 +29,6 @@
     </div>
 
     <div id="view-detail" class="view-section">
-        <div class="container mt-2">
-            <button id="btnRequestBill" class="btn btn-warning w-100 mb-2 fw-bold text-dark"
-                onclick="requestBillMobile()">
-                <i class="fas fa-print"></i> YÊU CẦU IN BILL / THANH TOÁN
-            </button>
-
-            <div class="row g-2">
-                <div class="col-6">
-                    <button id="btnMoveTable" class="btn btn-secondary w-100 mt-2" onclick="moveTableMobile()"
-                        style="display:none">
-                        <i class="fas fa-exchange-alt"></i> Chuyển Bàn
-                    </button>
-                </div>
-                <div class="col-6">
-                    <button id="btnPayment" class="btn btn-success w-100 mt-2" onclick="doPaymentMobile()"
-                        style="display:none">
-                        <i class="fas fa-money-bill-wave"></i> Thanh Toán Ngay
-                    </button>
-                </div>
-            </div>
-        </div>
         <div class="app-header d-flex align-items-center gap-3">
             <button class="btn btn-light" onclick="showView('view-tables')"><i class="fas fa-arrow-left"></i></button>
             <div class="flex-grow-1">
@@ -59,6 +38,10 @@
             <div class="action-select-food" onclick="openMenuSelection()">
                 <i class="fas fa-plus-circle"></i> CHỌN MÓN
             </div>
+            <button class="btn btn-light text-dark" onclick="toggleActionMenu()"
+                style="height: 40px; width: 40px; border-radius: 50%;">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
         </div>
 
         <ul class="nav nav-tabs table-tabs nav-fill mt-2 bg-white" role="tablist">
@@ -155,6 +138,72 @@
                 <div class="modal-footer py-1">
                     <button type="button" class="btn btn-primary w-100" onclick="saveNote()">Lưu Ghi Chú</button>
                 </div>
+            </div>
+        </div>
+    </div>
+    <div id="actionSheetOverlay" class="action-sheet-overlay" onclick="toggleActionMenu()"></div>
+    <div id="actionSheet" class="action-sheet">
+        <div class="text-center text-muted mb-3"><small>Chức năng mở rộng</small></div>
+
+        <button id="btnMenuRequest" class="action-btn bg-warning-subtle text-warning-emphasis"
+            onclick="openConfirmModal('request')">
+            <i class="fas fa-print"></i> Yêu cầu In / Thanh toán
+        </button>
+
+        <button id="btnMenuMove" class="action-btn bg-secondary-subtle text-secondary-emphasis"
+            onclick="openMoveTableModal()">
+            <i class="fas fa-exchange-alt"></i> Chuyển / Gộp bàn
+        </button>
+
+        <button id="btnMenuPay" class="action-btn bg-success-subtle text-success-emphasis"
+            onclick="openConfirmModal('payment')">
+            <i class="fas fa-money-bill-wave"></i> Thanh toán NGAY
+        </button>
+
+        <button class="btn btn-light w-100 mt-2 text-muted" onclick="toggleActionMenu()">Đóng</button>
+    </div>
+
+    <div id="moveTableModal" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <div class="modal-header">Chọn bàn chuyển đến</div>
+            <div class="modal-body">
+                <div id="tableSelectGrid" class="table-select-grid">Loading...</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-light" onclick="closeModal('moveTableModal')">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <div class="modal-header" id="confirmTitle">Xác nhận</div>
+            <div class="modal-body text-center">
+                <div class="mb-3"><i id="confirmIcon" class="fas fa-question-circle fa-3x text-primary"></i></div>
+                <p id="confirmMessage">Bạn có chắc chắn?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-light" onclick="closeModal('confirmModal')">Hủy</button>
+                <button id="btnConfirmAction" class="btn btn-primary">Đồng ý</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cancelModal" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <div class="modal-header">Hủy / Trả món</div>
+            <div class="modal-body">
+                <p id="cancelItemName" class="fw-bold text-center mb-0">Món ăn</p>
+                <div class="qty-control">
+                    <button class="btn-circle text-danger" onclick="adjustCancelQty(-1)">-</button>
+                    <div class="qty-display" id="cancelQtyDisplay">1</div>
+                    <button class="btn-circle text-success" onclick="adjustCancelQty(1)">+</button>
+                </div>
+                <div class="text-center text-muted small">Tối đa: <span id="cancelMaxQty">0</span></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-light" onclick="closeModal('cancelModal')">Đóng</button>
+                <button class="btn btn-danger" onclick="submitCancelItem()">Xác nhận Hủy</button>
             </div>
         </div>
     </div>

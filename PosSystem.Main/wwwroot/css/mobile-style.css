@@ -184,3 +184,166 @@ body {
     justify-content: space-between;
     align-items: center;
 }
+
+/* --- ACTION SHEET (Menu trượt từ dưới) --- */
+.action-sheet-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+}
+
+.action-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    padding: 20px;
+    z-index: 2001;
+    transform: translateY(100%);
+    transition: transform 0.3s ease-out;
+}
+
+.action-sheet.show {
+    transform: translateY(0);
+}
+
+.action-btn {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    font-weight: bold;
+    text-align: left;
+    border: none;
+    display: flex;
+    align-items: center;
+}
+
+.action-btn i {
+    width: 30px;
+    text-align: center;
+    margin-right: 10px;
+}
+
+/* --- CUSTOM MODAL (Popup giữa màn hình) --- */
+.custom-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 3000;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-modal {
+    background: white;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    animation: zoomIn 0.2s;
+}
+
+.modal-header {
+    padding: 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.modal-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 10px;
+    text-align: right;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+@keyframes zoomIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* --- SELECTION GRID (Chọn bàn) --- */
+.table-select-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.table-option {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    background: #fff;
+}
+
+.table-option.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.table-option.occupied {
+    background: #fff3cd;
+    border-color: #ffeeba;
+}
+
+/* --- QUANTITY CONTROL (+/-) --- */
+.qty-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.btn-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+    background: white;
+    font-size: 20px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qty-display {
+    font-size: 24px;
+    font-weight: bold;
+    width: 50px;
+    text-align: center;
+}

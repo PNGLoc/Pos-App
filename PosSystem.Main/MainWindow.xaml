@@ -361,37 +361,83 @@
                                                 Height="120"
                                                 Margin="15"
                                                 CornerRadius="12"
-                                                Cursor="Hand"
-                                                Background="{Binding ColorBrush}">
+                                                Cursor="Hand">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background"
+                                                            Value="{Binding ColorBrush}"/>
+                                                    <Setter Property="BorderThickness"
+                                                            Value="0"/>
+
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsRequestingPayment}"
+                                                                Value="True">
+                                                            <Setter Property="BorderBrush"
+                                                                    Value="#FFC107"/>
+                                                            <Setter Property="BorderThickness"
+                                                                    Value="5"/>
+
+                                                            <DataTrigger.EnterActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard RepeatBehavior="Forever"
+                                                                            AutoReverse="True">
+                                                                        <ColorAnimation Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                                                        To="#FF5722"
+                                                                                Duration="0:0:0.4"/>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.EnterActions>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+
                                             <Border.Effect>
                                                 <DropShadowEffect Color="Gray"
-                                                                  BlurRadius="5"
-                                                                  ShadowDepth="2"
-                                                                  Opacity="0.3"/>
+                                                        BlurRadius="5"
+                                                        ShadowDepth="2"
+                                                        Opacity="0.3"/>
                                             </Border.Effect>
-                                            <StackPanel VerticalAlignment="Center"
+
+                                            <Grid>
+                                                <StackPanel VerticalAlignment="Center"
                                                         HorizontalAlignment="Center">
-                                                <TextBlock Text="{Binding TableName}"
-                                                           Foreground="White"
-                                                           FontWeight="Bold"
-                                                           FontSize="22"
-                                                           TextAlignment="Center"/>
-                                                <TextBlock Text="{Binding TimeDisplay}"
-                                                           Foreground="White"
-                                                           FontSize="14"
-                                                           TextAlignment="Center"
-                                                           Margin="0,4,0,0"/>
-                                                <Border Background="White"
-                                                        CornerRadius="10"
-                                                        Padding="10,4"
-                                                        Margin="0,8,0,0"
-                                                        HorizontalAlignment="Center">
-                                                    <TextBlock Text="{Binding StatusDisplay}"
-                                                               Foreground="Black"
-                                                               FontSize="12"
-                                                               FontWeight="Bold"/>
-                                                </Border>
-                                            </StackPanel>
+                                                    <TextBlock Text="{Binding TableName}"
+                                                            Foreground="White"
+                                                            FontWeight="Bold"
+                                                            FontSize="22"
+                                                            TextAlignment="Center"/>
+                                                    <TextBlock Text="{Binding TimeDisplay}"
+                                                            Foreground="White"
+                                                            FontSize="14"
+                                                            TextAlignment="Center"
+                                                            Margin="0,4,0,0"/>
+                                                    <Border Background="White"
+                                                            CornerRadius="10"
+                                                            Padding="10,4"
+                                                            Margin="0,8,0,0"
+                                                            HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding StatusDisplay}"
+                                                                Foreground="Black"
+                                                                FontSize="12"
+                                                                FontWeight="Bold"/>
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <TextBlock Text="🔔"
+                                                        FontSize="28"
+                                                           HorizontalAlignment="Right"
+                                                        VerticalAlignment="Top"
+                                                           Margin="0,5,5,0"
+                                                           Visibility="{Binding IsRequestingPayment, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock.Effect>
+                                                        <DropShadowEffect Color="Black"
+                                                                BlurRadius="2"
+                                                                ShadowDepth="1"
+                                                                Opacity="0.5"/>
+                                                    </TextBlock.Effect>
+                                                </TextBlock>
+                                            </Grid>
                                         </Border>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -693,7 +739,7 @@
                                                              Padding="0,2">
                                                         <TextBox.Style>
                                                             <Style TargetType="TextBox"
-                                                                    BasedOn="{StaticResource NoteTextBoxStyle}">
+                                                                   BasedOn="{StaticResource NoteTextBoxStyle}">
                                                                 <Setter Property="IsReadOnly"
                                                                         Value="False"/>
                                                                 <Setter Property="ToolTip"
@@ -701,7 +747,7 @@
 
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding ItemStatus}"
-                                                                            Value="Sent">
+                                                                                 Value="Sent">
                                                                         <Setter Property="IsReadOnly"
                                                                                 Value="True"/>
                                                                         <Setter Property="Foreground"
@@ -714,7 +760,7 @@
                                                                                 Value="Arrow"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding ItemStatus}"
-                                                                            Value="Done">
+                                                                                 Value="Done">
                                                                         <Setter Property="IsReadOnly"
                                                                                 Value="True"/>
                                                                         <Setter Property="Foreground"
@@ -728,12 +774,12 @@
                                                     </TextBox>
 
                                                     <TextBlock Text="Ghi chú"
-                                                            FontSize="12"
-                                                            Foreground="#BBB"
-                                                            FontStyle="Italic"
+                                                               FontSize="12"
+                                                               Foreground="#BBB"
+                                                               FontStyle="Italic"
                                                                Margin="5,2"
-                                                            IsHitTestVisible="False"
-                                                            VerticalAlignment="Center"
+                                                               IsHitTestVisible="False"
+                                                               VerticalAlignment="Center"
                                                                Visibility="{Binding Note, Converter={StaticResource EmptyStringToVisibilityConverter}}"/>
                                                 </Grid>
                                             </StackPanel>
