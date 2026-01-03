@@ -1110,14 +1110,14 @@ namespace PosSystem.Main
         {
             _connection = new HubConnectionBuilder().WithUrl("http://localhost:5000/posHub").WithAutomaticReconnect().Build();
             _connection.On<int>("TableRequestPayment", (tableId) =>
-{
-    Dispatcher.Invoke(() =>
-    {
-        _tablesRequestingPayment.Add(tableId);
-        ShowToastPersistent($"🔔 Bàn {tableId} yêu cầu thanh toán!");
-        LoadTables(); // Load lại để cập nhật màu
-    });
-});
+            {
+                Dispatcher.Invoke(() =>
+                    {
+                        _tablesRequestingPayment.Add(tableId);
+                        ShowToast($"🔔 Bàn {tableId} yêu cầu thanh toán!", 2000);
+                        LoadTables(); // Load lại để cập nhật màu
+                    });
+            });
             _connection.On<int>("TableUpdated", (id) => Dispatcher.Invoke(() => { LoadTables(); if (_selectedTableId == id) LoadOrderDetails(id); }));
             try { await _connection.StartAsync(); } catch { }
         }

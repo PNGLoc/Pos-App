@@ -429,16 +429,30 @@ async function cancelItemMobile(detailId, maxQty) {
 function updateUIByPermission() {
     if (!currentUser) return;
 
-    // 1. Xử lý nút Chuyển bàn
+    // Kiểm tra xem bàn có đơn hàng không (Có OrderID và trạng thái không phải Empty)
+    // Lưu ý: appState.currentOrderId được lấy trong hàm loadOrderData
+    const hasOrder = appState.currentOrderId && appState.currentOrderId > 0;
+
+    // 1. Nút Chuyển bàn (Luôn hiện nếu có quyền, hoặc chỉ hiện khi có đơn - tuỳ bạn)
     const btnMove = document.getElementById('btnMoveTable');
     if (btnMove) {
-        // Nếu có quyền -> hiện (block), không -> ẩn (none)
-        btnMove.style.display = currentUser.canMoveTable ? 'block' : 'none';
+        // Logic: Phải có quyền VÀ bàn đang có khách mới chuyển được
+        btnMove.style.display = (currentUser.canMoveTable && hasOrder) ? 'block' : 'none';
     }
 
-    // 2. Xử lý nút Thanh toán
-    const btnPay = document.getElementById('btnPayment');
+    // 2. Nút Thanh toán (Chỉ hiện khi có Khách + Có Quyền)
+    const btnPay = document.getElementById('btnPayment'); // hoặc id='btnCheckoutMobile'
     if (btnPay) {
-        btnPay.style.display = currentUser.canPayment ? 'block' : 'none';
+        if (currentUser.canPayment && hasOrder) {
+            btnPay.style.display = 'block';
+        } else {
+            btnPay.style.display = 'none';
+        }
+    }
+
+    // 3. Nút Yêu cầu In/Thanh toán (Chỉ hiện khi có Khách)
+    const btnRequest = document.getElementById('btnRequestBill');
+    if (btnRequest) {
+        btnRequest.style.display = hasOrder ? 'block' : 'none';
     }
 }
