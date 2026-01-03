@@ -52,7 +52,7 @@ namespace PosSystem.Main
         private DispatcherTimer _tableListUpdateTimer = new DispatcherTimer();
         private DateTime? _currentOrderTime = null;
         private string _tableTypeFilter = "All";  // Track current filter
-
+        private HashSet<int> _tablesRequestingPayment = new HashSet<int>();
         // Split mode variables
         private bool _isSplitMode = false;
         private Dictionary<long, int> _splitQuantities = new Dictionary<long, int>();  // OrderDetailID -> Qty to split
@@ -123,6 +123,11 @@ namespace PosSystem.Main
                     lstTables.SelectedItem = null;  // Deselect to reset
                     ExecuteSplitTransfer(targetTableId);
                     return;
+                }
+                if (_tablesRequestingPayment.Contains(selected.TableID))
+                {
+                    _tablesRequestingPayment.Remove(selected.TableID);
+                    LoadTables();
                 }
 
                 // If waiting for target table in move mode, move entire order instead of opening menu
@@ -289,6 +294,13 @@ namespace PosSystem.Main
                         TableStatus = t.TableStatus,
                         TimeDisplay = ""
                     };
+                    if (_tablesRequestingPayment.Contains(t.TableID))
+                    {
+                        // Ghi đè màu sắc (Màu cam nhấp nháy hoặc tĩnh)
+                        // Bạn cần sửa TableViewModel thêm property ColorBrush set được
+                        // Hoặc đơn giản là thêm text "(Cần In)" vào TableName
+                        vm.TableName += " (🖨)";
+                    }
 
                     // Calculate time for occupied tables with pending orders that have been sent to kitchen
                     if (t.TableStatus == "Occupied" && t.Orders.Any())
@@ -1097,6 +1109,15 @@ namespace PosSystem.Main
         private async void SetupRealtime()
         {
             _connection = new HubConnectionBuilder().WithUrl("http://localhost:5000/posHub").WithAutomaticReconnect().Build();
+            _connection.On<int>("TableRequestPayment", (tableId) =>
+{
+    Dispatcher.Invoke(() =>
+    {
+        _tablesRequestingPayment.Add(tableId);
+        ShowToastPersistent($"🔔 Bàn {tableId} yêu cầu thanh toán!");
+        LoadTables(); // Load lại để cập nhật màu
+    });
+});
             _connection.On<int>("TableUpdated", (id) => Dispatcher.Invoke(() => { LoadTables(); if (_selectedTableId == id) LoadOrderDetails(id); }));
             try { await _connection.StartAsync(); } catch { }
         }

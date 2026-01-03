@@ -262,57 +262,193 @@ namespace PosSystem.Main.Server.Controllers
             });
         }
 
-        // POST: api/order/checkout (Thanh toán)
-        [HttpPost("checkout")]
-        public async Task<IActionResult> Checkout([FromBody] CheckoutRequest request)
+        public class MobileCheckoutRequest : CheckoutRequest
         {
-            var order = await _context.Orders
-                .Include(o => o.OrderDetails)
-                .Include(o => o.Table)
+            public int AccID { get; set; } // Thêm trường này để check quyền
+        }
+
+        [HttpPost("checkout-mobile")]
+        public async Task<IActionResult> CheckoutMobile([FromBody] MobileCheckoutRequest request)
+        {
+            // 1. Check quyền
+            var acc = await _context.Accounts.FindAsync(request.AccID);
+            if (acc == null || !acc.CanPayment) return StatusCode(403, "Bạn không có quyền thanh toán!");
+
+            // 2. Logic thanh toán (Copy từ hàm Checkout cũ)
+            var order = await _context.Orders.Include(o => o.Table).Include(o => o.OrderDetails).ThenInclude(d => d.Dish)
                 .FirstOrDefaultAsync(o => o.OrderID == request.OrderID);
 
-            if (order == null) return NotFound("Không tìm thấy đơn hàng!");
-            if (order.OrderStatus == "Paid") return BadRequest("Đơn này đã thanh toán rồi!");
+            if (order == null || order.OrderStatus == "Paid") return BadRequest("Đơn lỗi");
 
             order.PaymentMethod = request.PaymentMethod;
             order.DiscountPercent = request.DiscountPercent;
             order.DiscountAmount = request.DiscountAmount;
             order.CheckoutTime = DateTime.Now;
 
-            // Tính tiền
+            // Tính tiền lại cho chắc
             order.SubTotal = order.OrderDetails.Sum(d => d.TotalAmount);
-            decimal discountValue = (order.DiscountPercent > 0)
-                ? order.SubTotal * (order.DiscountPercent / 100)
-                : order.DiscountAmount;
-
-            order.FinalAmount = order.SubTotal - discountValue;
-            if (order.FinalAmount < 0) order.FinalAmount = 0;
-
-            // Chốt đơn
+            decimal discountVal = (order.DiscountPercent > 0) ? order.SubTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
+            order.FinalAmount = order.SubTotal - discountVal;
             order.OrderStatus = "Paid";
-            if (order.Table != null)
-            {
-                order.Table.TableStatus = "Empty"; // Trả bàn về trống
-            }
+
+            if (order.Table != null) order.Table.TableStatus = "Empty";
 
             await _context.SaveChangesAsync();
 
-            // --- QUAN TRỌNG: Gửi SignalR báo cho Mobile biết bàn đã trống ---
-            if (order.TableID.HasValue)
+            // 3. GỌI IN HÓA ĐƠN TRÊN SERVER (DESKTOP)
+            // Đây là điểm mấu chốt: Mobile kích hoạt, Desktop in.
+            try
             {
-                await _hubContext.Clients.All.SendAsync("TableUpdated", order.TableID.Value);
+                Services.PrintService.PrintBill(order.OrderID);
             }
-            // -------------------------------------------------------------
+            catch { }
 
-            return Ok(new
-            {
-                Message = "Thanh toán thành công!",
-                OrderID = order.OrderID,
-                TableName = order.Table?.TableName,
-                Total = order.FinalAmount,
-                Method = order.PaymentMethod
-            });
+            await _hubContext.Clients.All.SendAsync("TableUpdated", order.TableID);
+
+            return Ok(new { Message = "Đã thanh toán & In hóa đơn!" });
         }
 
+        // [POST] api/Order/{tableId}/request-payment
+        [HttpPost("{tableId}/request-payment")]
+        public async Task<IActionResult> RequestPayment(int tableId)
+        {
+            // Gửi tín hiệu SignalR tên là "TableRequestPayment"
+            // Desktop sẽ lắng nghe sự kiện này để đổi màu bàn
+            await _hubContext.Clients.All.SendAsync("TableRequestPayment", tableId);
+            return Ok(new { Message = "Đã gửi yêu cầu thanh toán!" });
+        }
+        // DTO nhận dữ liệu chuyển bàn
+        public class MoveTableRequest
+        {
+            public int AccID { get; set; } // ID người thực hiện để check quyền
+            public int TargetTableID { get; set; }
+        }
+
+        [HttpPost("{sourceTableId}/move")]
+        public async Task<IActionResult> MoveTable(int sourceTableId, [FromBody] MoveTableRequest req)
+        {
+            // 1. Check quyền
+            var acc = await _context.Accounts.FindAsync(req.AccID);
+            if (acc == null || !acc.CanMoveTable) return StatusCode(403, "Bạn không có quyền chuyển bàn!");
+
+            // 2. Lấy đơn gốc
+            var sourceOrder = await _context.Orders
+                .Include(o => o.OrderDetails).ThenInclude(d => d.Dish).ThenInclude(c => c.Category)
+                .Include(o => o.Table)
+                .FirstOrDefaultAsync(o => o.TableID == sourceTableId && o.OrderStatus == "Pending");
+
+            if (sourceOrder == null) return BadRequest("Bàn gốc không có đơn!");
+            if (sourceTableId == req.TargetTableID) return BadRequest("Trùng bàn đích!");
+
+            string oldTableName = sourceOrder.Table?.TableName ?? sourceTableId.ToString();
+            string newTableName = "";
+
+            // 3. Kiểm tra bàn đích
+            var targetOrder = await _context.Orders
+                .Include(o => o.OrderDetails)
+                .Include(o => o.Table)
+                .FirstOrDefaultAsync(o => o.TableID == req.TargetTableID && o.OrderStatus == "Pending");
+
+            var targetTable = await _context.Tables.FindAsync(req.TargetTableID);
+            if (targetTable != null) newTableName = targetTable.TableName;
+
+            if (targetOrder != null)
+            {
+                // TRƯỜNG HỢP GỘP BÀN: Chuyển hết món sang đơn đích
+                foreach (var detail in sourceOrder.OrderDetails)
+                {
+                    detail.OrderID = targetOrder.OrderID;
+                }
+                // Tính lại tiền đơn đích
+                targetOrder.SubTotal += sourceOrder.SubTotal;
+                targetOrder.FinalAmount += sourceOrder.FinalAmount;
+
+                // Xóa đơn gốc
+                _context.Orders.Remove(sourceOrder);
+            }
+            else
+            {
+                // TRƯỜNG HỢP CHUYỂN BÀN: Đổi TableID
+                sourceOrder.TableID = req.TargetTableID;
+                if (targetTable != null) targetTable.TableStatus = "Occupied";
+            }
+
+            // Trả bàn gốc về trống
+            var sourceTable = await _context.Tables.FindAsync(sourceTableId);
+            if (sourceTable != null) sourceTable.TableStatus = "Empty";
+
+            await _context.SaveChangesAsync();
+
+            // 4. IN PHIẾU BÁO BẾP (Quan trọng)
+            // Gọi hàm in có sẵn của Desktop
+            Services.PrintService.PrintMoveTableNotification(targetOrder ?? sourceOrder, oldTableName, newTableName);
+
+            // 5. Cập nhật UI
+            await _hubContext.Clients.All.SendAsync("TableUpdated", sourceTableId);
+            await _hubContext.Clients.All.SendAsync("TableUpdated", req.TargetTableID);
+
+            return Ok(new { Message = "Chuyển bàn thành công!" });
+        }
+        public class CancelItemRequest
+        {
+            public int AccID { get; set; }
+            public long OrderDetailID { get; set; }
+            public int Quantity { get; set; } // Số lượng muốn hủy
+            public string Reason { get; set; }
+        }
+
+        [HttpPost("cancel-item")]
+        public async Task<IActionResult> CancelItem([FromBody] CancelItemRequest req)
+        {
+            // 1. Check quyền
+            var acc = await _context.Accounts.FindAsync(req.AccID);
+            if (acc == null || !acc.CanCancelItem) return StatusCode(403, "Bạn không có quyền hủy món!");
+
+            var detail = await _context.OrderDetails
+                .Include(d => d.Dish).ThenInclude(c => c.Category) // Load category để biết máy in nào
+                .Include(d => d.Order).ThenInclude(o => o.Table)
+                .FirstOrDefaultAsync(d => d.OrderDetailID == req.OrderDetailID);
+
+            if (detail == null) return NotFound();
+
+            if (req.Quantity > detail.Quantity) return BadRequest("Không thể hủy quá số lượng hiện có");
+
+            // 2. Giảm số lượng
+            detail.Quantity -= req.Quantity;
+            detail.PrintedQuantity -= req.Quantity; // Giảm luôn số đã in để đồng bộ
+            detail.TotalAmount = detail.Quantity * detail.UnitPrice; // Tính lại tiền row
+
+            // Nếu giảm về 0 thì xóa luôn dòng
+            bool isRemoved = false;
+            if (detail.Quantity <= 0)
+            {
+                _context.OrderDetails.Remove(detail);
+                isRemoved = true;
+            }
+
+            // Cập nhật tổng tiền đơn hàng
+            var order = detail.Order;
+            // ... (Logic tính lại SubTotal/FinalAmount cho order) ...
+
+            await _context.SaveChangesAsync();
+
+            // 3. IN PHIẾU HỦY XUỐNG BẾP
+            // Mẹo: Tạo một OrderDetail ảo với số lượng ÂM
+            var cancelItem = new OrderDetail
+            {
+                Dish = detail.Dish,
+                DishID = detail.DishID,
+                Quantity = -req.Quantity, // Số âm để template bếp hiểu là trả món
+                Note = $"HỦY MÓN: {req.Reason}",
+                KitchenBatch = 0
+            };
+
+            // Gọi Service in bếp
+            Services.PrintService.PrintKitchen(order, new List<OrderDetail> { cancelItem }, 0);
+
+            await _hubContext.Clients.All.SendAsync("TableUpdated", order.TableID);
+
+            return Ok(new { Message = "Đã hủy món & Báo bếp" });
+        }
     }
 }

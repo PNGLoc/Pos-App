@@ -15,5 +15,10 @@ namespace PosSystem.Main.Models
         public string AccPass { get; set; } = string.Empty; // Mật khẩu
 
         public string AccRole { get; set; } = "Staff"; // Admin hoặc Staff
+
+        // --- THÊM MỚI: QUYỀN HẠN CHI TIẾT ---
+        public bool CanMoveTable { get; set; } = false;    // Quyền chuyển bàn
+        public bool CanPayment { get; set; } = false;      // Quyền thanh toán
+        public bool CanCancelItem { get; set; } = false;   // Quyền huỷ món
     }
 }

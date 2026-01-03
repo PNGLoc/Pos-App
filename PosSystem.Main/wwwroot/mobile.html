@@ -29,6 +29,26 @@
     </div>
 
     <div id="view-detail" class="view-section">
+        <div class="container mt-2">
+            <button class="btn btn-warning w-100 mb-2 fw-bold text-dark" onclick="requestBillMobile()">
+                <i class="fas fa-print"></i> YÊU CẦU IN BILL / THANH TOÁN
+            </button>
+
+            <div class="row g-2">
+                <div class="col-6">
+                    <button id="btnMoveTable" class="btn btn-secondary w-100 mt-2" onclick="moveTableMobile()"
+                        style="display:none">
+                        <i class="fas fa-exchange-alt"></i> Chuyển Bàn
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button id="btnPayment" class="btn btn-success w-100 mt-2" onclick="doPaymentMobile()"
+                        style="display:none">
+                        <i class="fas fa-money-bill-wave"></i> Thanh Toán Ngay
+                    </button>
+                </div>
+            </div>
+        </div>
         <div class="app-header d-flex align-items-center gap-3">
             <button class="btn btn-light" onclick="showView('view-tables')"><i class="fas fa-arrow-left"></i></button>
             <div class="flex-grow-1">

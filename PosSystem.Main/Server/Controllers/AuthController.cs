@@ -34,7 +34,10 @@ namespace PosSystem.Main.Server.Controllers
             {
                 user.AccID,
                 user.AccName,
-                user.AccRole
+                user.AccRole,
+                CanMoveTable = user.CanMoveTable,
+                CanPayment = user.CanPayment,
+                CanCancelItem = user.CanCancelItem
             });
         }
     }

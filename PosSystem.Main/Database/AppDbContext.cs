@@ -49,9 +49,29 @@ namespace PosSystem.Main.Database
 
             // Seed Table & Account giữ nguyên như cũ...
             modelBuilder.Entity<Account>().HasData(
-               new Account { AccID = 1, AccName = "Admin", Username = "admin", AccPass = "123", AccRole = "Admin" },
-                 new Account { AccID = 2, AccName = "Nhân viên 1", Username = "nv1", AccPass = "123", AccRole = "Staff" }
-           );
+   new Account
+   {
+       AccID = 1,
+       AccName = "Admin",
+       Username = "admin",
+       AccPass = "123",
+       AccRole = "Admin",
+       CanMoveTable = true,
+       CanPayment = true,
+       CanCancelItem = true // Admin full quyền
+   },
+   new Account
+   {
+       AccID = 2,
+       AccName = "Nhân viên 1",
+       Username = "nv1",
+       AccPass = "123",
+       AccRole = "Staff",
+       CanMoveTable = false,
+       CanPayment = false,
+       CanCancelItem = false // NV hạn chế
+   }
+);
             modelBuilder.Entity<Table>().HasData(
                 new Table { TableID = 1, TableName = "Bàn 1", TableType = "DineIn" },
                 new Table { TableID = 2, TableName = "Bàn 2", TableType = "DineIn" }

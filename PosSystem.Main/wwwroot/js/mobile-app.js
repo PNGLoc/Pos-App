@@ -79,19 +79,43 @@ function openTableDetail(table) {
 
 // --- LOGIC ORDER (CART & CONFIRMED) ---
 async function loadOrderData(tableId) {
+    // 1. Cập nhật State bàn hiện tại
+    appState.currentTableId = tableId;
+
     try {
         const res = await fetch(`${API_URL}/Order/${tableId}`);
         if (res.ok) {
             const data = await res.json();
-            appState.orderDetails = data.Details || data.details || [];
-        } else { appState.orderDetails = []; }
-    } catch (e) { appState.orderDetails = []; }
 
-    // Tính tổng tiền món đã chốt (không phải New)
-    const confirmedTotal = appState.orderDetails.filter(d => d.itemStatus !== 'New').reduce((sum, d) => sum + d.totalAmount, 0);
-    document.getElementById('confirmedTotal').innerText = confirmedTotal.toLocaleString() + 'đ';
+            // 2. Lưu OrderID (Quan trọng cho thanh toán)
+            appState.currentOrderId = data.orderID || data.OrderID || 0;
 
-    renderCartTab(); renderConfirmedTab();
+            // 3. Lấy danh sách món
+            appState.orderDetails = data.Details || data.details || data.orderDetails || [];
+        } else {
+            // Bàn trống hoặc chưa có đơn
+            appState.currentOrderId = 0;
+            appState.orderDetails = [];
+        }
+    } catch (e) {
+        console.error("Load order error:", e);
+        appState.currentOrderId = 0;
+        appState.orderDetails = [];
+    }
+
+    // 4. Tính tổng tiền món đã chốt
+    const confirmedTotal = appState.orderDetails
+        .filter(d => d.itemStatus !== 'New')
+        .reduce((sum, d) => sum + d.totalAmount, 0);
+
+    const totalEl = document.getElementById('confirmedTotal');
+    if (totalEl) totalEl.innerText = confirmedTotal.toLocaleString() + 'đ';
+
+    // 5. [QUAN TRỌNG] Cập nhật ẩn/hiện các nút chức năng theo quyền
+    updateUIByPermission();
+
+    renderCartTab();
+    renderConfirmedTab();
 }
 
 // --- TAB CART (MÓN STATUS = NEW) ---
@@ -153,20 +177,33 @@ function renderConfirmedTab() {
     const container = document.getElementById('confirmedList'); container.innerHTML = '';
     const items = appState.orderDetails.filter(d => d.itemStatus !== 'New');
     if (items.length === 0) { container.innerHTML = `<div class="text-center text-muted mt-5">Chưa có món nào được gọi</div>`; return; }
+
     const grouped = [];
     items.forEach(item => {
         const key = `${item.dishID}_${(item.note || "").trim()}_${item.itemStatus}`;
         const exist = grouped.find(g => `${g.dishID}_${(g.note || "").trim()}_${g.itemStatus}` === key);
         if (exist) { exist.quantity += item.quantity; exist.totalAmount += item.totalAmount; } else grouped.push({ ...item });
     });
+
     grouped.forEach(d => {
         let badge = 'bg-secondary', txt = d.itemStatus;
-        if (d.itemStatus === 'Sent') { badge = 'bg-info text-dark'; txt = 'Đã gửi'; }
+        // Chỉ hiện nút hủy nếu trạng thái là 'Sent' (Đã gửi)
+        let cancelBtn = '';
+
+        if (d.itemStatus === 'Sent') {
+            badge = 'bg-info text-dark';
+            txt = 'Đã gửi';
+            // Thêm nút Hủy (X)
+            if (currentUser && currentUser.canCancelItem) {
+                cancelBtn = `<button class="btn btn-sm btn-outline-danger ms-1" style="padding: 0px 6px;" onclick="cancelItemMobile(${d.orderDetailID}, ${d.quantity})">×</button>`;
+            }
+        }
         else if (d.itemStatus === 'Done') { badge = 'bg-success'; txt = 'Đã ra'; }
-        container.innerHTML += `<div class="d-flex justify-content-between p-2 border-bottom"><div><span class="fw-bold">${d.dishName}</span> <br><small class="text-muted">${d.quantity} x ${(d.totalAmount / d.quantity).toLocaleString()}</small>${d.note ? `<br><small class="text-warning fst-italic">"${d.note}"</small>` : ''}</div><div class="text-end"><div class="fw-bold">${d.totalAmount.toLocaleString()}</div><span class="badge ${badge}">${txt}</span></div></div>`;
+
+        // Chèn biến ${cancelBtn} vào cuối div
+        container.innerHTML += `<div class="d-flex justify-content-between p-2 border-bottom"><div><span class="fw-bold">${d.dishName}</span> <br><small class="text-muted">${d.quantity} x ${(d.totalAmount / d.quantity).toLocaleString()}</small>${d.note ? `<br><small class="text-warning fst-italic">"${d.note}"</small>` : ''}</div><div class="text-end"><div class="fw-bold">${d.totalAmount.toLocaleString()}</div><span class="badge ${badge}">${txt}</span>${cancelBtn}</div></div>`;
     });
 }
-
 // --- MENU & SELECTION ---
 async function loadMenuData() { const res = await fetch(`${API_URL}/Menu`); appState.categories = await res.json(); }
 function openMenuSelection() { appState.tempMenuSelection = {}; renderMenuUI(); showView('view-menu'); }
@@ -267,3 +304,141 @@ async function sendOrderToKitchen() {
 
 function cancelMenuSelection() { appState.tempMenuSelection = {}; showView('view-detail'); }
 function logout() { localStorage.removeItem('posUser'); window.location.href = 'index.html'; }
+
+// --- 1. Gửi yêu cầu In ---
+async function requestBillMobile() {
+    if (!confirm("Gửi yêu cầu in bill cho thu ngân?")) return;
+    try {
+        await fetch(`${API_URL}/Order/${appState.currentTableId}/request-payment`, { method: 'POST' });
+        showToast("Đã gửi yêu cầu!");
+    } catch (e) { showToast("Lỗi mạng", "danger"); }
+}
+
+// --- 2. Chuyển bàn ---
+async function moveTableMobile() {
+    // Check quyền client-side cho nhanh
+    if (!currentUser.canMoveTable) { showToast("Bạn không có quyền chuyển bàn!", "warning"); return; }
+
+    let targetId = prompt("Nhập số ID bàn muốn chuyển đến:");
+    if (!targetId) return;
+
+    try {
+        const res = await fetch(`${API_URL}/Order/${appState.currentTableId}/move`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accID: currentUser.accID, targetTableID: parseInt(targetId) })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.Message);
+            showView('view-tables'); // Quay về danh sách bàn
+        } else {
+            showToast(data.Message || await res.text(), "danger");
+        }
+    } catch (e) { showToast("Lỗi kết nối", "danger"); }
+}
+
+// --- 3. Thanh toán ---
+async function doPaymentMobile() {
+    if (!currentUser.canPayment) { showToast("Bạn không có quyền thanh toán!", "warning"); return; }
+
+    // Kiểm tra xem có OrderID hợp lệ không
+    if (!appState.currentOrderId || appState.currentOrderId === 0) {
+        showToast("Bàn này đang trống hoặc chưa có đơn hàng!", "warning");
+        return;
+    }
+
+    if (!confirm("Xác nhận thanh toán và in hóa đơn?")) return;
+
+    try {
+        // Log ra console để kiểm tra dữ liệu trước khi gửi (F12 trên trình duyệt để xem)
+        const payload = {
+            accID: currentUser.accID,
+            orderID: appState.currentOrderId, // Phải đảm bảo cái này có giá trị số (VD: 105)
+            paymentMethod: "Cash",
+            discountPercent: 0,
+            discountAmount: 0
+        };
+        console.log("Sending payment:", payload);
+
+        const res = await fetch(`${API_URL}/Order/checkout-mobile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            showToast("Thanh toán thành công!");
+            // Reset lại trạng thái
+            appState.currentOrderId = 0;
+            appState.orderDetails = [];
+            renderConfirmedTab();
+            // Quay về trang chủ
+            showView('view-tables');
+        } else {
+            // Đọc lỗi từ server trả về
+            const errorText = await res.text();
+            showToast("Lỗi: " + errorText, "danger");
+        }
+    } catch (e) {
+        console.error(e);
+        showToast("Lỗi kết nối", "danger");
+    }
+}
+async function cancelItemMobile(detailId, maxQty) {
+    // 1. Check quyền
+    if (!currentUser || !currentUser.canCancelItem) {
+        showToast("Bạn không có quyền hủy món!", "warning");
+        return;
+    }
+
+    // 2. Hỏi số lượng muốn hủy
+    let qty = prompt(`Nhập số lượng hủy (Tối đa ${maxQty}):`, 1);
+    if (!qty) return;
+
+    qty = parseInt(qty);
+    if (isNaN(qty) || qty <= 0 || qty > maxQty) {
+        showToast("Số lượng không hợp lệ", "warning");
+        return;
+    }
+
+    // 3. Gọi API (Lý do mặc định là "Hủy từ Mobile")
+    try {
+        const res = await fetch(`${API_URL}/Order/cancel-item`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                accID: currentUser.accID,
+                orderDetailID: detailId,
+                quantity: qty,
+                reason: "Hủy từ Mobile" // <--- Hardcode lý do tại đây
+            })
+        });
+
+        if (res.ok) {
+            showToast(`Đã hủy ${qty} món thành công`);
+            loadOrderData(appState.currentTableId); // Reload lại dữ liệu
+        } else {
+            showToast(await res.text(), "danger");
+        }
+    } catch (e) {
+        showToast("Lỗi kết nối server", "danger");
+    }
+}
+// Thêm hàm này vào cuối file hoặc chỗ nào tiện quản lý
+function updateUIByPermission() {
+    if (!currentUser) return;
+
+    // 1. Xử lý nút Chuyển bàn
+    const btnMove = document.getElementById('btnMoveTable');
+    if (btnMove) {
+        // Nếu có quyền -> hiện (block), không -> ẩn (none)
+        btnMove.style.display = currentUser.canMoveTable ? 'block' : 'none';
+    }
+
+    // 2. Xử lý nút Thanh toán
+    const btnPay = document.getElementById('btnPayment');
+    if (btnPay) {
+        btnPay.style.display = currentUser.canPayment ? 'block' : 'none';
+    }
+}

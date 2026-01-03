@@ -59,6 +59,21 @@
                     <ComboBoxItem Content="Admin"/>
                     <ComboBoxItem Content="Staff"/>
                 </ComboBox>
+                <GroupBox Header="Quyền hạn chi tiết"
+                          Margin="0,0,0,20"
+                          Padding="5">
+                    <StackPanel>
+                        <CheckBox x:Name="chkMoveTable"
+                                  Content="Được chuyển bàn"
+                                  Margin="0,5"/>
+                        <CheckBox x:Name="chkPayment"
+                                  Content="Được thanh toán"
+                                  Margin="0,5"/>
+                        <CheckBox x:Name="chkCancelItem"
+                                  Content="Được hủy món"
+                                  Margin="0,5"/>
+                    </StackPanel>
+                </GroupBox>
 
                 <StackPanel Orientation="Horizontal"
                             HorizontalAlignment="Center">
