@@ -98,6 +98,10 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="Account"/>
+                <RadioButton Content="👥 Chấm công nhân viên"
+                             Style="{StaticResource AdminMenuButton}"
+                             Click="Menu_Click"
+                             Tag="Employee"/>
                 <RadioButton Content="📂 Thực đơn / Danh mục"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"

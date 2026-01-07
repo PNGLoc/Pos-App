@@ -3,11 +3,47 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeOpenXml;
+using OfficeOpenXml.Style;
+using System.Drawing;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 
 namespace PosSystem.Main.Services
 {
+    // Class chứa dữ liệu thống kê để truyền vào hàm Export
+    public class EmployeeReportDto
+    {
+        public string EmpName { get; set; } = "";
+        public string Position { get; set; } = "";
+        public double TotalHours { get; set; }
+        public int TotalShifts { get; set; }
+        public List<TimeLog> Logs { get; set; } = new List<TimeLog>();
+        public string TotalHoursDisplay
+        {
+            get
+            {
+                // 1. Tính toán Giờ và Phút
+                int hours = (int)TotalHours;
+                int minutes = (int)Math.Round((TotalHours - hours) * 60);
+
+                // Xử lý làm tròn (ví dụ 59.9 phút -> 60 phút -> tăng 1 giờ)
+                if (minutes == 60)
+                {
+                    hours++;
+                    minutes = 0;
+                }
+
+                // 2. Tạo chuỗi "X giờ Y phút"
+                string textPart = "";
+                if (hours > 0) textPart += $"{hours} giờ ";
+                if (minutes > 0) textPart += $"{minutes} phút";
+                if (hours == 0 && minutes == 0) textPart = "0 phút";
+                // 4. Ghép lại: "6 giờ 30 phút (6.5 giờ)"
+                return $"{textPart.Trim()}";
+            }
+        }
+    }
+
     public class ExcelService
     {
         static ExcelService()
@@ -177,5 +213,121 @@ namespace PosSystem.Main.Services
 
             return (importedCount, errors);
         }
+        public static void ExportTimeLogs(List<TimeLog> logs, string filePath)
+        {
+            // Thiết lập License cho EPPlus (Bắt buộc với bản mới)
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+            using (var package = new ExcelPackage())
+            {
+                var ws = package.Workbook.Worksheets.Add("ChamCong");
+
+                // 1. Tạo Header
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Tên Nhân Viên"; // Đổi tiêu đề
+                ws.Cells[1, 3].Value = "Ngày";
+                ws.Cells[1, 4].Value = "Giờ Vào";
+                ws.Cells[1, 5].Value = "Giờ Ra";
+                ws.Cells[1, 6].Value = "Tổng giờ";
+
+                // Format Header cho đẹp (In đậm, nền xám)
+                using (var range = ws.Cells[1, 1, 1, 6])
+                {
+                    range.Style.Font.Bold = true;
+                    range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                    range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+                }
+
+                // 2. Đổ dữ liệu
+                int row = 2;
+                foreach (var log in logs)
+                {
+                    ws.Cells[row, 1].Value = log.LogID;
+
+                    // --- SỬA ĐỔI QUAN TRỌNG TẠI ĐÂY ---
+                    // Lấy tên từ Employee thay vì Account
+                    ws.Cells[row, 2].Value = log.Employee?.FullName ?? "Không xác định";
+                    ws.Cells[row, 3].Value = log.CheckInTime.ToString("dd/MM/yyyy");
+                    ws.Cells[row, 4].Value = log.CheckInTime.ToString("HH:mm");
+                    ws.Cells[row, 5].Value = log.CheckOutTime?.ToString("HH:mm") ?? "--:--";
+                    ws.Cells[row, 6].Value = log.DurationDisplay;
+                    row++;
+                }
+
+                // Tự động chỉnh độ rộng cột
+                ws.Cells.AutoFitColumns();
+
+                // Lưu file
+                File.WriteAllBytes(filePath, package.GetAsByteArray());
+            }
+        }
+        public static void ExportComprehensiveReport(List<EmployeeReportDto> reports, DateTime from, DateTime to, string filePath)
+        {
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+            using (var package = new ExcelPackage())
+            {
+                var ws = package.Workbook.Worksheets.Add("BaoCaoTongHop");
+
+                // 1. Tiêu đề lớn
+                ws.Cells["A1:E1"].Merge = true;
+                ws.Cells["A1"].Value = $"BÁO CÁO CHẤM CÔNG NHÂN VIÊN ({from:dd/MM/yyyy} - {to:dd/MM/yyyy})";
+                ws.Cells["A1"].Style.Font.Size = 16;
+                ws.Cells["A1"].Style.Font.Bold = true;
+                ws.Cells["A1"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                int row = 3; // Bắt đầu từ dòng 3
+
+                foreach (var emp in reports)
+                {
+                    // 2. Header Từng Nhân Viên (Nền Vàng)
+                    ws.Cells[row, 1, row, 5].Merge = true;
+                    ws.Cells[row, 1].Value = $"👤 {emp.EmpName} ({emp.Position})  |  Tổng ca: {emp.TotalShifts}  |  Tổng giờ: {emp.TotalHoursDisplay:F2} ({emp.TotalHours:F2} giờ)";
+                    ws.Cells[row, 1].Style.Font.Bold = true;
+                    ws.Cells[row, 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    ws.Cells[row, 1].Style.Fill.BackgroundColor.SetColor(Color.LightGoldenrodYellow);
+                    ws.Cells[row, 1].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+
+                    row++;
+
+                    // 3. Header Bảng Chi Tiết
+                    ws.Cells[row, 2].Value = "Ngày";
+                    ws.Cells[row, 3].Value = "Giờ Vào";
+                    ws.Cells[row, 4].Value = "Giờ Ra";
+                    ws.Cells[row, 5].Value = "Thời lượng";
+
+                    using (var r = ws.Cells[row, 2, row, 5])
+                    {
+                        r.Style.Font.Bold = true;
+                        r.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                    }
+                    row++;
+
+                    // 4. Danh sách log chi tiết
+                    if (emp.Logs.Count > 0)
+                    {
+                        foreach (var log in emp.Logs)
+                        {
+                            ws.Cells[row, 2].Value = log.CheckInTime.ToString("dd/MM/yyyy");
+                            ws.Cells[row, 3].Value = log.CheckInTime.ToString("HH:mm");
+                            ws.Cells[row, 4].Value = log.CheckOutTime?.ToString("HH:mm") ?? "--:--";
+                            ws.Cells[row, 5].Value = log.DurationDisplay;
+                            row++;
+                        }
+                    }
+                    else
+                    {
+                        ws.Cells[row, 2].Value = "(Không có dữ liệu)";
+                        row++;
+                    }
+
+                    row++; // Dòng trống ngăn cách giữa các nhân viên
+                }
+
+                ws.Cells.AutoFitColumns();
+                File.WriteAllBytes(filePath, package.GetAsByteArray());
+            }
+        }
+
     }
 }

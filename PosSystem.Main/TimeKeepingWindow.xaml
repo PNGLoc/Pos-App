@@ -1,0 +1,102 @@
+<Window x:Class="PosSystem.Main.TimeKeepingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Chấm công"
+        Height="450"
+        Width="600"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+        <Border Background="White"
+                CornerRadius="15"
+                Margin="20">
+                <Border.Effect>
+                        <DropShadowEffect BlurRadius="25"
+                                          ShadowDepth="5"
+                                          Opacity="0.4"/>
+                </Border.Effect>
+
+                <Grid>
+                        <Button Content="❌"
+                                Click="BtnClose_Click"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Width="40"
+                                Height="40"
+                                Margin="0,5,5,0"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontSize="16"
+                                Cursor="Hand"/>
+
+                        <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="⏰ CHẤM CÔNG"
+                                           FontSize="26"
+                                           FontWeight="Bold"
+                                           Foreground="#333"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,10"/>
+
+                                <TextBlock Text="Quét thẻ hoặc nhập mã thủ công:"
+                                           FontSize="14"
+                                           Foreground="#666"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,15"/>
+
+                                <Border BorderBrush="#007BFF"
+                                        BorderThickness="1"
+                                        CornerRadius="5"
+                                        Width="280"
+                                        Height="45"
+                                        Margin="0,0,0,20">
+                                        <Grid>
+                                                <TextBox x:Name="txtScanInput"
+                                                         HorizontalAlignment="Stretch"
+                                                         VerticalAlignment="Stretch"
+                                                         VerticalContentAlignment="Center"
+                                                         FontSize="18"
+                                                         FontWeight="Bold"
+                                                         Background="Transparent"
+                                                         BorderThickness="0"
+                                                         Padding="10,0"
+                                                         KeyDown="TxtScanInput_KeyDown"/>
+
+                                        </Grid>
+                                </Border>
+
+                                <Border x:Name="pnlResult"
+                                        Background="#F8F9FA"
+                                        CornerRadius="10"
+                                        Padding="20"
+                                        Visibility="Collapsed"
+                                        Margin="40,0,40,0">
+                                        <StackPanel>
+                                                <TextBlock x:Name="lblStatus"
+                                                           Text="CHECK-IN THÀNH CÔNG"
+                                                           FontSize="20"
+                                                           FontWeight="Bold"
+                                                           Foreground="Green"
+                                                           HorizontalAlignment="Center"
+                                                           TextAlignment="Center"
+                                                           TextWrapping="Wrap"/>
+
+                                                <TextBlock x:Name="lblName"
+                                                           Text="NV: Nguyễn Văn A"
+                                                           FontSize="16"
+                                                           Margin="0,10,0,5"
+                                                           HorizontalAlignment="Center"/>
+
+                                                <TextBlock x:Name="lblTime"
+                                                           Text="08:00:00"
+                                                           FontSize="14"
+                                                           Foreground="#555"
+                                                           HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                </Border>
+                        </StackPanel>
+                </Grid>
+        </Border>
+</Window>

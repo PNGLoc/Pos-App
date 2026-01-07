@@ -1,0 +1,69 @@
+<Window x:Class="PosSystem.Main.ExportTimeLogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TÙY CHỌN XUẤT BÁO CÁO"
+        Height="300"
+        Width="450"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#F5F5F5">
+    <Border Padding="20">
+        <StackPanel>
+            <TextBlock Text="Chọn khoảng thời gian báo cáo:"
+                    FontWeight="Bold"
+                    Margin="0,0,0,15"/>
+
+            <RadioButton x:Name="radWeek"
+                    Content="Tuần này"
+                    Margin="0,0,0,10"
+                    Checked="Radio_Checked"/>
+            <RadioButton x:Name="radMonth"
+                    Content="Tháng này"
+                    IsChecked="True"
+                    Margin="0,0,0,10"
+                    Checked="Radio_Checked"/>
+            <RadioButton x:Name="radYear"
+                    Content="Năm nay"
+                    Margin="0,0,0,10"
+                    Checked="Radio_Checked"/>
+
+            <RadioButton x:Name="radCustom"
+                    Content="Tùy chỉnh:"
+                    Margin="0,0,0,5"
+                    Checked="Radio_Checked"/>
+
+            <StackPanel Orientation="Horizontal"
+                    Margin="20,0,0,20">
+                <DatePicker x:Name="dpFrom"
+                        Width="120"
+                        IsEnabled="False"/>
+                <TextBlock Text="-"
+                        VerticalAlignment="Center"
+                        Margin="10,0"/>
+                <DatePicker x:Name="dpTo"
+                        Width="120"
+                        IsEnabled="False"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,10,0,0">
+                <Button Content="Hủy"
+                        IsCancel="True"
+                        Width="80"
+                        Height="30"
+                        Margin="0,0,10,0"
+                        Background="White"/>
+                <Button Content="📥 XUẤT FILE"
+                        Click="BtnConfirm_Click"
+                        IsDefault="True"
+                        Width="100"
+                        Height="30"
+                        Background="#198754"
+                        Foreground="White"
+                        FontWeight="Bold"
+                        BorderThickness="0"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

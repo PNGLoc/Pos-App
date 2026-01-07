@@ -18,6 +18,8 @@ namespace PosSystem.Main.Database
         public DbSet<DishPriceRule> DishPriceRules { get; set; }
         public DbSet<GlobalSetting> GlobalSettings { get; set; }
         public DbSet<PriceRuleType> PriceRuleTypes { get; set; }
+        public DbSet<Employee> Employees { get; set; }
+        public DbSet<TimeLog> TimeLogs { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             string dbPath = Path.Combine(AppContext.BaseDirectory, "pos_data.db");

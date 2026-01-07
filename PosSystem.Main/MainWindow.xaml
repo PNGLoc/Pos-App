@@ -199,7 +199,24 @@
                             Foreground="White"
                             Padding="15,0"
                             BorderThickness="0"
+                            Margin="0,0,10,0"
                             FontWeight="SemiBold">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius"
+                                        Value="5"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                    <Button Content="⏰ CHẤM CÔNG"
+                            Click="BtnTimeKeeping_Click"
+                            Height="35"
+                            Background="#47a67f"
+                            Foreground="White"
+                            Padding="15,0"
+                            BorderThickness="0"
+                            FontWeight="SemiBold"
+                            Margin="0,0,10,0">
                         <Button.Resources>
                             <Style TargetType="Border">
                                 <Setter Property="CornerRadius"
@@ -371,7 +388,7 @@
 
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsRequestingPayment}"
-                                                                Value="True">
+                                                                     Value="True">
                                                             <Setter Property="BorderBrush"
                                                                     Value="#FFC107"/>
                                                             <Setter Property="BorderThickness"
@@ -380,10 +397,10 @@
                                                             <DataTrigger.EnterActions>
                                                                 <BeginStoryboard>
                                                                     <Storyboard RepeatBehavior="Forever"
-                                                                            AutoReverse="True">
+                                                                                AutoReverse="True">
                                                                         <ColorAnimation Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
                                                                                         To="#FF5722"
-                                                                                Duration="0:0:0.4"/>
+                                                                                        Duration="0:0:0.4"/>
                                                                     </Storyboard>
                                                                 </BeginStoryboard>
                                                             </DataTrigger.EnterActions>
@@ -394,47 +411,47 @@
 
                                             <Border.Effect>
                                                 <DropShadowEffect Color="Gray"
-                                                        BlurRadius="5"
-                                                        ShadowDepth="2"
-                                                        Opacity="0.3"/>
+                                                                  BlurRadius="5"
+                                                                  ShadowDepth="2"
+                                                                  Opacity="0.3"/>
                                             </Border.Effect>
 
                                             <Grid>
                                                 <StackPanel VerticalAlignment="Center"
-                                                        HorizontalAlignment="Center">
+                                                            HorizontalAlignment="Center">
                                                     <TextBlock Text="{Binding TableName}"
-                                                            Foreground="White"
-                                                            FontWeight="Bold"
-                                                            FontSize="22"
-                                                            TextAlignment="Center"/>
+                                                               Foreground="White"
+                                                               FontWeight="Bold"
+                                                               FontSize="22"
+                                                               TextAlignment="Center"/>
                                                     <TextBlock Text="{Binding TimeDisplay}"
-                                                            Foreground="White"
-                                                            FontSize="14"
-                                                            TextAlignment="Center"
-                                                            Margin="0,4,0,0"/>
+                                                               Foreground="White"
+                                                               FontSize="14"
+                                                               TextAlignment="Center"
+                                                               Margin="0,4,0,0"/>
                                                     <Border Background="White"
                                                             CornerRadius="10"
                                                             Padding="10,4"
                                                             Margin="0,8,0,0"
                                                             HorizontalAlignment="Center">
                                                         <TextBlock Text="{Binding StatusDisplay}"
-                                                                Foreground="Black"
-                                                                FontSize="12"
-                                                                FontWeight="Bold"/>
+                                                                   Foreground="Black"
+                                                                   FontSize="12"
+                                                                   FontWeight="Bold"/>
                                                     </Border>
                                                 </StackPanel>
 
                                                 <TextBlock Text="🔔"
-                                                        FontSize="28"
+                                                           FontSize="28"
                                                            HorizontalAlignment="Right"
-                                                        VerticalAlignment="Top"
+                                                           VerticalAlignment="Top"
                                                            Margin="0,5,5,0"
                                                            Visibility="{Binding IsRequestingPayment, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <TextBlock.Effect>
                                                         <DropShadowEffect Color="Black"
-                                                                BlurRadius="2"
-                                                                ShadowDepth="1"
-                                                                Opacity="0.5"/>
+                                                                          BlurRadius="2"
+                                                                          ShadowDepth="1"
+                                                                          Opacity="0.5"/>
                                                     </TextBlock.Effect>
                                                 </TextBlock>
                                             </Grid>

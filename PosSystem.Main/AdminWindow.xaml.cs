@@ -37,13 +37,14 @@ namespace PosSystem.Main
                     }
                 }
 
-                lblIPAddress.Text = ipAddress +":5000";
+                lblIPAddress.Text = ipAddress + ":5000";
             }
             catch (Exception ex)
             {
                 lblIPAddress.Text = $"Lỗi: {ex.Message}";
             }
         }
+
 
         private void Menu_Click(object sender, RoutedEventArgs e)
         {
@@ -60,6 +61,9 @@ namespace PosSystem.Main
                         break;
                     case "Account":
                         mainFrame.Navigate(new Pages.AccountSetupPage());
+                        break;
+                    case "Employee":
+                        mainFrame.Navigate(new Pages.EmployeeSetupPage());
                         break;
                     case "Menu":
                         mainFrame.Navigate(new Pages.MenuSetupPage());

@@ -62,6 +62,7 @@ namespace PosSystem.Main
 
         // Move table mode variables
         private bool _isWaitingForMoveTargetTable = false;  // True when waiting for user to click target table for move
+        private const int MIN_SECONDS_WAIT = 10; // Thời gian chờ giữa Check-in và Check-out chấm công
         public MainWindow()
         {
             InitializeComponent();
@@ -1393,22 +1394,6 @@ namespace PosSystem.Main
                 LoadOrderDetails(_selectedTableId);
             }
         }
-
-        private void HideQuantityControls()
-        {
-            // Hàm này không còn cần thiết - sử dụng binding thay thế
-        }
-
-        private void ShowQuantityControls()
-        {
-            // Hàm này không còn cần thiết - sử dụng binding thay thế
-        }
-
-        private void UpdateQuantityControlsVisibility(System.Windows.Controls.DataGridRow row, Visibility visibility)
-        {
-            // Hàm này không còn cần thiết - sử dụng binding thay thế
-        }
-
         private void LoadOrderDetailsInSplitMode()
         {
             using (var db = new AppDbContext())
@@ -1676,6 +1661,21 @@ namespace PosSystem.Main
                     lblTableTime.Text = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
             }
         }
+        private void BtnTimeKeeping_Click(object sender, RoutedEventArgs e)
+        {
+            // Tạo cửa sổ từ file riêng
+            var tkWindow = new TimeKeepingWindow();
+
+            // Gán Owner là MainWindow để nó hiện chính giữa cửa sổ chính
+            tkWindow.Owner = this;
+
+            // QUAN TRỌNG: Dùng ShowDialog() để biến nó thành MODAL
+            // (Người dùng không thể bấm vào MainWindow khi cửa sổ này đang mở)
+            tkWindow.ShowDialog();
+
+            // Sau khi đóng modal, focus lại màn hình chính để bán hàng tiếp
+            this.Focus();
+        }
     }
     // Class dùng để hiển thị lên DataGrid và hỗ trợ sửa Ghi chú
     public class OrderDetailViewModel
@@ -1782,4 +1782,5 @@ namespace PosSystem.Main
             return null;
         }
     }
+
 }
