@@ -227,15 +227,6 @@ namespace PosSystem.Main.Pages
                 dgTimeLogs.ItemsSource = query.OrderByDescending(t => t.CheckInTime).ToList();
             }
         }
-
-        private void BtnExport_Click(object sender, RoutedEventArgs e)
-        {
-            var logs = dgTimeLogs.ItemsSource as List<TimeLog>;
-            if (logs == null || logs.Count == 0) { MessageBox.Show("Không có dữ liệu!"); return; }
-
-            SaveFileDialog dlg = new SaveFileDialog { Filter = "Excel|*.xlsx", FileName = $"ChamCong_{DateTime.Now:ddMMyyyy}.xlsx" };
-            if (dlg.ShowDialog() == true) Services.ExcelService.ExportTimeLogs(logs, dlg.FileName);
-        }
         private void BtnViewStats_Click(object sender, RoutedEventArgs e)
         {
             CalculateStats();

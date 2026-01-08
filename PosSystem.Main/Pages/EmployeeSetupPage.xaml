@@ -137,15 +137,6 @@
                                       DisplayMemberPath="FullName"
                                       SelectedValuePath="EmpID"
                                       SelectionChanged="OnFilterChanged"/>
-                            <Button Content="📗 Xuất Excel"
-                                    Click="BtnExport_Click"
-                                    Width="100"
-                                    Height="30"
-                                    Margin="20,0,0,0"
-                                    Background="#198754"
-                                    Foreground="White"
-                                    FontWeight="Bold"
-                                    BorderThickness="0"/>
                         </StackPanel>
                     </Border>
                     <DataGrid x:Name="dgTimeLogs"
@@ -183,9 +174,9 @@
                 </Grid>
             </TabItem>
             <TabItem Header="📊 THỐNG KÊ GIỜ LÀM"
-                    FontSize="14"
-                    FontWeight="Bold"
-                    Height="40">
+                     FontSize="14"
+                     FontWeight="Bold"
+                     Height="40">
                 <Grid Margin="0,15,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -198,22 +189,22 @@
                             CornerRadius="5"
                             Margin="0,0,0,10">
                         <StackPanel Orientation="Horizontal"
-                                VerticalAlignment="Center">
+                                    VerticalAlignment="Center">
                             <TextBlock Text="Thống kê từ:"
-                                    VerticalAlignment="Center"
-                                    Margin="0,0,5,0"/>
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,5,0"/>
 
                             <DatePicker x:Name="dpStatFrom"
-                                    Width="110"
-                                    SelectedDateChanged="OnStatFilterChanged"/>
+                                        Width="110"
+                                        SelectedDateChanged="OnStatFilterChanged"/>
 
                             <TextBlock Text="Đến:"
-                                    VerticalAlignment="Center"
-                                    Margin="15,0,5,0"/>
+                                       VerticalAlignment="Center"
+                                       Margin="15,0,5,0"/>
 
                             <DatePicker x:Name="dpStatTo"
-                                    Width="110"
-                                    SelectedDateChanged="OnStatFilterChanged"/>
+                                        Width="110"
+                                        SelectedDateChanged="OnStatFilterChanged"/>
 
                             <Button Content="📥 Xuất Báo Cáo (Excel)"
                                     Click="BtnExportReport_Click"
@@ -228,31 +219,31 @@
                     </Border>
 
                     <DataGrid x:Name="dgStats"
-                            Grid.Row="1"
-                            AutoGenerateColumns="False"
+                              Grid.Row="1"
+                              AutoGenerateColumns="False"
                               IsReadOnly="True"
-                            CanUserAddRows="False"
+                              CanUserAddRows="False"
                               BorderThickness="1"
-                            BorderBrush="#DDD"
-                            RowHeight="35"
+                              BorderBrush="#DDD"
+                              RowHeight="35"
                               GridLinesVisibility="Horizontal">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Nhân viên"
-                                    Binding="{Binding EmpName}"
-                                    Width="200"
-                                    FontWeight="Bold"/>
+                                                Binding="{Binding EmpName}"
+                                                Width="200"
+                                                FontWeight="Bold"/>
                             <DataGridTextColumn Header="Chức vụ"
-                                    Binding="{Binding Position}"
-                                    Width="150"/>
+                                                Binding="{Binding Position}"
+                                                Width="150"/>
                             <DataGridTextColumn Header="Tổng số ca"
-                                    Binding="{Binding TotalShifts}"
-                                    Width="100"/>
+                                                Binding="{Binding TotalShifts}"
+                                                Width="100"/>
 
                             <DataGridTextColumn Header="Tổng thời gian"
-                                    Binding="{Binding TotalHoursDisplay}"
-                                    Width="*"
-                                    FontWeight="Bold"
-                                    Foreground="#007BFF"/>
+                                                Binding="{Binding TotalHoursDisplay}"
+                                                Width="*"
+                                                FontWeight="Bold"
+                                                Foreground="#007BFF"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
