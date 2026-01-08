@@ -11,7 +11,7 @@ namespace PosSystem.Main.Models
         public string? Position { get; set; } // Vị trí: Phục vụ, Bếp, Bảo vệ...
         // Mã thẻ RFID dùng để chấm công
         public string? CardNumber { get; set; }
-
+        public double HourlyWage { get; set; } = 0;
         public bool IsActive { get; set; } = true; // Để ẩn nhân viên đã nghỉ việc
     }
 }

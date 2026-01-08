@@ -61,11 +61,14 @@
                                                 FontWeight="SemiBold"/>
                             <DataGridTextColumn Header="Chức vụ"
                                                 Binding="{Binding Position}"
-                                                Width="120"/>
+                                                Width="110"/>
 
                             <DataGridTextColumn Header="Mã Thẻ"
                                                 Binding="{Binding CardNumber}"
-                                                Width="110"/>
+                                                Width="130"/>
+                            <DataGridTextColumn Header="Lương/Giờ"
+                                                Binding="{Binding HourlyWage, StringFormat={}{0:N0}}"
+                                                Width="100"/>
                             <DataGridCheckBoxColumn Header="Active"
                                                     Binding="{Binding IsActive}"
                                                     Width="60"/>
@@ -238,7 +241,14 @@
                             <DataGridTextColumn Header="Tổng số ca"
                                                 Binding="{Binding TotalShifts}"
                                                 Width="100"/>
-
+                            <DataGridTextColumn Header="Lương/Giờ"
+                                                Binding="{Binding HourlyWage, StringFormat={}{0:N0}}"
+                                                Width="100"/>
+                            <DataGridTextColumn Header="Tạm tính lương"
+                                                Binding="{Binding TotalSalaryDisplay}"
+                                                Width="140"
+                                                FontWeight="Bold"
+                                                Foreground="#DC3545"/>
                             <DataGridTextColumn Header="Tổng thời gian"
                                                 Binding="{Binding TotalHoursDisplay}"
                                                 Width="*"
@@ -312,6 +322,16 @@
                                Foreground="Gray"
                                FontStyle="Italic"
                                Margin="0,0,0,20"/>
+                    <TextBlock Text="Lương theo giờ (VNĐ):"
+                               FontWeight="SemiBold"
+                               Margin="0,5,0,0"/>
+
+                    <TextBox x:Name="txtWage"
+                             Height="35"
+                             Margin="0,5,0,15"
+                             Padding="5,0"
+                             VerticalContentAlignment="Center"
+                             ToolTip="Ví dụ: 25000"/>
 
                     <CheckBox x:Name="chkActive"
                               Content="Đang làm việc (Active)"

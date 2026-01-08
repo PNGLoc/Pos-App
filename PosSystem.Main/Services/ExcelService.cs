@@ -16,6 +16,12 @@ namespace PosSystem.Main.Services
         public string EmpName { get; set; } = "";
         public string Position { get; set; } = "";
         public double TotalHours { get; set; }
+        public double HourlyWage { get; set; }
+
+        public double TotalSalary => TotalHours * HourlyWage; // Tính lương
+
+        // Dùng để hiển thị lên bảng (Format tiền Việt)
+        public string TotalSalaryDisplay => TotalSalary > 0 ? TotalSalary.ToString("N0") + " đ" : "";
         public int TotalShifts { get; set; }
         public List<TimeLog> Logs { get; set; } = new List<TimeLog>();
         public string TotalHoursDisplay
@@ -267,43 +273,81 @@ namespace PosSystem.Main.Services
 
             using (var package = new ExcelPackage())
             {
-                var ws = package.Workbook.Worksheets.Add("BaoCaoTongHop");
+                var ws = package.Workbook.Worksheets.Add("BaoCaoLuong");
 
                 // 1. Tiêu đề lớn
-                ws.Cells["A1:E1"].Merge = true;
-                ws.Cells["A1"].Value = $"BÁO CÁO CHẤM CÔNG NHÂN VIÊN ({from:dd/MM/yyyy} - {to:dd/MM/yyyy})";
+                ws.Cells["A1:G1"].Merge = true; // Mở rộng merge ra 7 cột
+                ws.Cells["A1"].Value = $"BẢNG TÍNH CÔNG VÀ LƯƠNG ({from:dd/MM/yyyy} - {to:dd/MM/yyyy})";
                 ws.Cells["A1"].Style.Font.Size = 16;
                 ws.Cells["A1"].Style.Font.Bold = true;
                 ws.Cells["A1"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                ws.Cells["A1"].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
 
-                int row = 3; // Bắt đầu từ dòng 3
+                int row = 3;
 
                 foreach (var emp in reports)
                 {
-                    // 2. Header Từng Nhân Viên (Nền Vàng)
-                    ws.Cells[row, 1, row, 5].Merge = true;
-                    ws.Cells[row, 1].Value = $"👤 {emp.EmpName} ({emp.Position})  |  Tổng ca: {emp.TotalShifts}  |  Tổng giờ: {emp.TotalHoursDisplay:F2} ({emp.TotalHours:F2} giờ)";
+                    // 2. DÒNG TỔNG HỢP NHÂN VIÊN (MÀU VÀNG)
+                    // Thiết kế: Tên | Chức vụ | Tổng Ca | Tổng Giờ | Lương/Giờ | TỔNG LƯƠNG
+
+                    // Cột 1: Tên nhân viên
+                    ws.Cells[row, 1].Value = emp.EmpName;
                     ws.Cells[row, 1].Style.Font.Bold = true;
-                    ws.Cells[row, 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                    ws.Cells[row, 1].Style.Fill.BackgroundColor.SetColor(Color.LightGoldenrodYellow);
-                    ws.Cells[row, 1].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+
+                    // Cột 2: Chức vụ
+                    ws.Cells[row, 2].Value = emp.Position;
+
+                    // Cột 3: Tổng số ca
+                    ws.Cells[row, 3].Value = $"Ca: {emp.TotalShifts}";
+
+                    // Cột 4: Tổng giờ (Hiển thị chữ)
+                    ws.Cells[row, 4].Value = emp.TotalHoursDisplay;
+
+                    // Cột 5: Tổng giờ (Số thực - Để ẩn hoặc để kế toán check)
+                    ws.Cells[row, 5].Value = emp.TotalHours;
+                    ws.Cells[row, 5].Style.Numberformat.Format = "0.00";
+
+                    // Cột 6: Mức Lương/Giờ
+                    ws.Cells[row, 6].Value = emp.HourlyWage;
+                    ws.Cells[row, 6].Style.Numberformat.Format = "#,##0"; // Format tiền: 20,000
+
+                    // Cột 7: TỔNG LƯƠNG (Quan trọng nhất)
+                    ws.Cells[row, 7].Value = emp.TotalSalary;
+                    ws.Cells[row, 7].Style.Numberformat.Format = "#,##0";
+                    ws.Cells[row, 7].Style.Font.Bold = true;
+                    ws.Cells[row, 7].Style.Font.Color.SetColor(Color.DarkRed); // Chữ đỏ
+
+                    // Format dòng tổng hợp
+                    using (var range = ws.Cells[row, 1, row, 7])
+                    {
+                        range.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                        range.Style.Fill.BackgroundColor.SetColor(Color.LightGoldenrodYellow);
+                        range.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                        range.Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                    }
 
                     row++;
 
-                    // 3. Header Bảng Chi Tiết
+                    // 3. HEADER BẢNG CHI TIẾT
                     ws.Cells[row, 2].Value = "Ngày";
                     ws.Cells[row, 3].Value = "Giờ Vào";
                     ws.Cells[row, 4].Value = "Giờ Ra";
                     ws.Cells[row, 5].Value = "Thời lượng";
 
-                    using (var r = ws.Cells[row, 2, row, 5])
+                    // Thêm tiêu đề cho các cột dữ liệu tổng hợp ở trên cho dễ hiểu
+                    ws.Cells[row - 1, 5].AddComment("Số giờ thực tế để tính toán", "System");
+                    ws.Cells[row - 1, 6].AddComment("Mức lương cài đặt", "System");
+
+                    using (var header = ws.Cells[row, 2, row, 5])
                     {
-                        r.Style.Font.Bold = true;
-                        r.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                        header.Style.Font.Italic = true;
+                        header.Style.Font.Size = 10;
+                        header.Style.Font.Color.SetColor(Color.Gray);
+                        header.Style.Border.Bottom.Style = ExcelBorderStyle.Dotted;
                     }
                     row++;
 
-                    // 4. Danh sách log chi tiết
+                    // 4. DANH SÁCH CHI TIẾT
                     if (emp.Logs.Count > 0)
                     {
                         foreach (var log in emp.Logs)
@@ -315,16 +359,29 @@ namespace PosSystem.Main.Services
                             row++;
                         }
                     }
-                    else
-                    {
-                        ws.Cells[row, 2].Value = "(Không có dữ liệu)";
-                        row++;
-                    }
 
-                    row++; // Dòng trống ngăn cách giữa các nhân viên
+                    row++; // Dòng trống ngăn cách
+                }
+
+                // Header cột (tự tạo header giả ở dòng 2 cho đẹp nếu muốn, hoặc chỉ cần AutoFit)
+                ws.Cells[2, 1].Value = "HỌ TÊN";
+                ws.Cells[2, 2].Value = "CHỨC VỤ";
+                ws.Cells[2, 3].Value = "TỔNG CA";
+                ws.Cells[2, 4].Value = "THỜI GIAN";
+                ws.Cells[2, 5].Value = "GIỜ (SỐ)";
+                ws.Cells[2, 6].Value = "LƯƠNG/H";
+                ws.Cells[2, 7].Value = "THÀNH TIỀN";
+                using (var r = ws.Cells[2, 1, 2, 7])
+                {
+                    r.Style.Font.Bold = true;
+                    r.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    r.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    r.Style.Fill.BackgroundColor.SetColor(Color.LightGray);
                 }
 
                 ws.Cells.AutoFitColumns();
+
+                // Lưu file
                 File.WriteAllBytes(filePath, package.GetAsByteArray());
             }
         }

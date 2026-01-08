@@ -60,6 +60,7 @@ namespace PosSystem.Main.Pages
             // Xóa trắng form
             txtName.Clear();
             txtPos.Clear();
+            txtWage.Clear();
             txtCard.Clear();
             chkActive.IsChecked = true;
 
@@ -80,6 +81,7 @@ namespace PosSystem.Main.Pages
                 // Đổ dữ liệu cũ vào form
                 txtName.Text = emp.FullName;
                 txtPos.Text = emp.Position;
+                txtWage.Text = emp.HourlyWage.ToString("0");
                 txtCard.Text = emp.CardNumber;
                 chkActive.IsChecked = emp.IsActive;
 
@@ -108,7 +110,9 @@ namespace PosSystem.Main.Pages
             using (var db = new AppDbContext())
             {
                 string card = txtCard.Text.Trim();
-
+                // --- XỬ LÝ LƯƠNG ---
+                double wage = 0;
+                double.TryParse(txtWage.Text, out wage);
                 // Check trùng mã thẻ (Trừ chính mình nếu đang sửa)
                 int currentId = _editingEmp?.EmpID ?? 0;
                 if (!string.IsNullOrEmpty(card) && db.Employees.Any(x => x.CardNumber == card && x.EmpID != currentId))
@@ -126,6 +130,7 @@ namespace PosSystem.Main.Pages
                     {
                         FullName = txtName.Text,
                         Position = txtPos.Text,
+                        HourlyWage = wage,
                         CardNumber = card,
                         IsActive = chkActive.IsChecked == true
                     };
@@ -139,6 +144,7 @@ namespace PosSystem.Main.Pages
                     {
                         dbEmp.FullName = txtName.Text;
                         dbEmp.Position = txtPos.Text;
+                        dbEmp.HourlyWage = wage;
                         dbEmp.CardNumber = card;
                         dbEmp.IsActive = chkActive.IsChecked == true;
                     }
@@ -262,12 +268,15 @@ namespace PosSystem.Main.Pages
                             totalHours += (l.CheckOutTime.Value - l.CheckInTime).TotalHours;
                     }
 
+
                     reportList.Add(new EmployeeReportDto
                     {
                         EmpName = emp.FullName,
                         Position = emp.Position ?? "",
+                        HourlyWage = emp.HourlyWage,
                         TotalShifts = empLogs.Count,
-                        TotalHours = totalHours,
+                        // 1. Làm tròn số giờ xuống 2 chữ số thập phân (Ví dụ: 10.556 -> 10.56)
+                        TotalHours = Math.Round(totalHours, 2),
                         Logs = empLogs
                     });
                 }
