@@ -32,7 +32,12 @@ function initSignalR() {
 }
 
 // --- TIỆN ÍCH SEARCH ---
-function removeAccents(str) { return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+function removeAccents(str) {
+    if (!str) return "";
+    return str.normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d").replace(/Đ/g, "D");
+}
 function getAcronym(str) { return removeAccents(str).toLowerCase().split(/\s+/).map(w => w[0]).join(''); }
 
 // --- NAV & UI ---
