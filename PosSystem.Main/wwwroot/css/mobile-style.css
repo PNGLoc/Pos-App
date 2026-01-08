@@ -347,3 +347,8 @@ body {
     width: 50px;
     text-align: center;
 }
+
+/* Thêm vào cuối file css */
+#connectionOverlay {
+    transition: all 0.3s ease;
+}

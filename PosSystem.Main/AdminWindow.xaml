@@ -82,14 +82,17 @@
                 </Border>
 
                 <!-- Lúc này StaticResource đã được định nghĩa ở trên nên sẽ không lỗi nữa -->
-                <RadioButton Content="🖨 Cấu hình Máy in"
+                <RadioButton Content="🏠 Thống kê"
                              Style="{StaticResource AdminMenuButton}"
-                             IsChecked="True"
                              Click="Menu_Click"
-                             Tag="Printer"/>
+                             Tag="Dashboard"
+                             IsChecked="True"/>
                 <Separator Background="#555"
                            Margin="10"/>
-
+                <RadioButton Content="🖨 Cấu hình Máy in"
+                             Style="{StaticResource AdminMenuButton}"
+                             Click="Menu_Click"
+                             Tag="Printer"/>
                 <RadioButton Content="🍽 Quản lý Bàn"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"

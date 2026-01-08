@@ -31,7 +31,14 @@ namespace PosSystem.Main.Server
                     webBuilder.ConfigureServices(services =>
                     {
                         services.AddControllers();
-                        services.AddSignalR();
+                        services.AddSignalR(hubOptions =>
+{
+    // Quan trọng: Server gửi Ping mỗi 2 giây (mặc định là 15s)
+    hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(2);
+
+    // Nếu Client im lặng quá 10s thì Server sẽ đá Client (mặc định 30s)
+    hubOptions.ClientTimeoutInterval = TimeSpan.FromSeconds(10);
+});
 
                         // --- [SỬA LỖI TẠI ĐÂY] ---
                         // Đăng ký AppDbContext để Controller có thể sử dụng

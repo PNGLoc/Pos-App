@@ -11,8 +11,8 @@ namespace PosSystem.Main
         public AdminWindow()
         {
             InitializeComponent();
-            // Mặc định load trang Printer
-            mainFrame.Navigate(new Pages.PrinterSetupPage());
+
+            mainFrame.Navigate(new Pages.DashboardPage());
 
             // Hiển thị IP Address
             DisplayIPAddress();
@@ -53,6 +53,9 @@ namespace PosSystem.Main
                 // Sử dụng Navigate cho Frame
                 switch (tag)
                 {
+                    case "Dashboard":
+                        mainFrame.Navigate(new Pages.DashboardPage());
+                        break;
                     case "Printer":
                         mainFrame.Navigate(new Pages.PrinterSetupPage());
                         break;

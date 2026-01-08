@@ -23,12 +23,95 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function initSignalR() {
     if (typeof signalR === 'undefined') return;
-    const connection = new signalR.HubConnectionBuilder().withUrl("/posHub").withAutomaticReconnect().build();
+
+    // 1. Cấu hình Connection
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/posHub")
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
+        .configureLogging(signalR.LogLevel.Warning)
+        .build();
+
+    // --- SỬA LẠI THÔNG SỐ NÀY ---
+    // Vì Server ping mỗi 2s, nên nếu quá 6s không thấy đâu -> Coi là mất mạng.
+    connection.serverTimeoutInMilliseconds = 6000; // 6 giây (Cực nhạy)
+    connection.keepAliveIntervalInMilliseconds = 3000; // Client ping server mỗi 3s
+    // ----------------------------
+
+    // --- CÁC HÀM XỬ LÝ GIAO DIỆN ---
+    const overlay = document.getElementById('connectionOverlay');
+    const title = document.getElementById('connectionTitle');
+    const msg = document.getElementById('connectionMessage');
+    const spinner = document.getElementById('connectionSpinner');
+    const iconErr = document.getElementById('connectionIconErr');
+    const btnReload = document.getElementById('btnReload');
+
+    function showOverlay(tit, message, isFatal = false) {
+        if (!overlay) return;
+        overlay.classList.remove('d-none');
+        title.innerText = tit;
+        msg.innerText = message;
+
+        if (isFatal) {
+            spinner.classList.add('d-none');
+            iconErr.classList.remove('d-none');
+            btnReload.classList.remove('d-none');
+        } else {
+            spinner.classList.remove('d-none');
+            iconErr.classList.add('d-none');
+            btnReload.classList.add('d-none');
+        }
+    }
+
+    function hideOverlay() {
+        if (overlay) overlay.classList.add('d-none');
+    }
+
+    // --- SỰ KIỆN SIGNALR ---
+
+    // 1. Đang thử kết nối lại (Mạng chập chờn hoặc Server vừa tắt)
+    connection.onreconnecting(error => {
+        console.warn('Kết nối không ổn định:', error);
+        showOverlay('Mất kết nối!', 'Đang cố gắng tìm máy chủ...', false);
+    });
+
+    // 2. Đã kết nối lại thành công
+    connection.onreconnected(connectionId => {
+        console.log('Đã kết nối lại:', connectionId);
+        hideOverlay();
+        showToast('Đã khôi phục kết nối!', 'success');
+
+        // Refresh dữ liệu để đảm bảo đúng
+        loadTables(false);
+        if (appState.currentTableId) loadOrderData(appState.currentTableId);
+    });
+
+    // 3. Mất kết nối hoàn toàn (Hết số lần thử hoặc lỗi nghiêm trọng)
+    connection.onclose(error => {
+        console.error('Ngắt kết nối hẳn:', error);
+        showOverlay('Không tìm thấy máy chủ', 'Vui lòng kiểm tra lại Wifi hoặc Máy tính thu ngân.', true);
+    });
+
+    // --- LOGIC NGHIỆP VỤ ---
     connection.on("TableUpdated", (tableId) => {
         loadTables(false);
         if (appState.currentTableId == tableId) loadOrderData(tableId);
     });
-    connection.start().catch(err => console.error(err));
+
+    // Bắt đầu kết nối
+    async function start() {
+        try {
+            await connection.start();
+            console.log("SignalR Connected.");
+            hideOverlay(); // Ẩn overlay nếu đang hiện
+        } catch (err) {
+            console.error("Khởi động lỗi:", err);
+            // Nếu mở app lên mà không thấy server ngay -> Báo lỗi luôn
+            showOverlay('Không thể kết nối', 'Đang thử lại sau 5 giây...', false);
+            setTimeout(start, 5000);
+        }
+    }
+
+    start();
 }
 
 // --- TIỆN ÍCH SEARCH ---

@@ -11,6 +11,21 @@
 </head>
 
 <body>
+    <div id="connectionOverlay"
+        class="d-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-flex flex-column justify-content-center align-items-center"
+        style="z-index: 9999; backdrop-filter: blur(5px);">
+        <div class="text-center text-white p-4 rounded bg-dark shadow border border-secondary">
+            <div class="spinner-border text-warning mb-3" role="status" id="connectionSpinner"></div>
+            <i class="bi bi-wifi-off text-danger mb-3 d-none" style="font-size: 3rem;" id="connectionIconErr"></i>
+
+            <h4 id="connectionTitle">Đang kết nối lại...</h4>
+            <p class="mb-3 text-white-50" id="connectionMessage">Vui lòng đợi trong giây lát</p>
+
+            <button id="btnReload" class="btn btn-primary d-none" onclick="window.location.reload()">
+                <i class="bi bi-arrow-clockwise"></i> Tải lại trang
+            </button>
+        </div>
+    </div>
 
     <div id="view-tables" class="view-section active">
         <div class="app-header d-flex justify-content-between align-items-center">
