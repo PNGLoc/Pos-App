@@ -713,7 +713,7 @@
                                   GridLinesVisibility="Horizontal"
                                   HeadersVisibility="Column"
                                   Background="White"
-                                  RowHeight="55"
+                                  MinRowHeight="55"
                                   FontSize="14">
                             <DataGrid.RowStyle>
                                 <Style TargetType="DataGridRow">
@@ -744,7 +744,9 @@
                                                     <TextBox Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                              Tag="{Binding OrderDetailID}"
                                                              LostFocus="TxtNote_LostFocus"
-                                                             Padding="0,2">
+                                                             Padding="0,2"
+                                                             TextWrapping="Wrap"
+                                                             AcceptsReturn="True">
                                                         <TextBox.Style>
                                                             <Style TargetType="TextBox"
                                                                    BasedOn="{StaticResource NoteTextBoxStyle}">
