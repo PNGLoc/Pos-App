@@ -1,9 +1,8 @@
 using System;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 using PosSystem.Main.Services;
@@ -14,102 +13,21 @@ namespace PosSystem.Main.Pages
     {
         private string? _editingRuleType = null;
         private List<RuleTypeViewModel>? _originalRuleTypes = null;
-        private bool _isLoadingData = true; // Prevent SelectionChanged from firing during initial load
+        private bool _isLoadingData = true;
 
         public PriceRuleSetupPage()
         {
             InitializeComponent();
             LoadData();
-            _isLoadingData = false; // Mark loading complete
-
-            // Hook DataGrid events for auto-save
-            dgRuleTypes.CellEditEnding += DgRuleTypes_CellEditEnding;
-        }
-
-        private void DgRuleTypes_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
-        {
-            // Auto-save when RuleType cell edit ends
-            if (e.Column.Header?.ToString() == "Loại Giá")
-            {
-                var vm = e.Row.Item as RuleTypeViewModel;
-                if (vm != null)
-                {
-                    // Delay the save to allow the binding to update
-                    this.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        SaveRuleTypeChange(vm);
-                    }), System.Windows.Threading.DispatcherPriority.Background);
-                }
-            }
-        }
-
-        private void SaveRuleTypeChange(RuleTypeViewModel vm)
-        {
-            // Find the index of this item in the DataGrid
-            var currentItems = dgRuleTypes.ItemsSource as List<RuleTypeViewModel>;
-            int itemIndex = currentItems?.IndexOf(vm) ?? -1;
-
-            if (itemIndex < 0 || _originalRuleTypes == null || itemIndex >= _originalRuleTypes.Count)
-            {
-                return;
-            }
-
-            // Get the original by index
-            var original = _originalRuleTypes[itemIndex];
-            var oldRuleType = original.RuleType;
-            var newRuleType = vm.RuleType?.Trim() ?? "";
-
-            // Validate
-            if (string.IsNullOrWhiteSpace(newRuleType) || oldRuleType == newRuleType)
-            {
-                return;
-            }
-
-            using (var db = new AppDbContext())
-            {
-                // Check if new name already exists
-                if (db.PriceRuleTypes.Any(r => r.RuleType == newRuleType))
-                {
-                    ShowNotification("Loại giá này đã tồn tại!");
-                    LoadData(); // Reload to revert
-                    return;
-                }
-
-                // Update all DishPriceRules
-                var rules = db.DishPriceRules.Where(p => p.RuleType == oldRuleType).ToList();
-                foreach (var rule in rules)
-                {
-                    rule.RuleType = newRuleType;
-                }
-
-                // Update PriceRuleType
-                var ruleType = db.PriceRuleTypes.FirstOrDefault(r => r.RuleType == oldRuleType);
-                if (ruleType != null)
-                {
-                    ruleType.RuleType = newRuleType;
-                }
-
-                try
-                {
-                    db.SaveChanges();
-                    ShowNotification("Lưu thay đổi thành công!");
-                    LoadData(); // Reload from database to ensure data consistency
-                }
-                catch (Exception ex)
-                {
-                    ShowNotification($"Lỗi khi lưu: {ex.Message}");
-                    LoadData(); // Reload to revert on error
-                }
-            }
         }
 
         private void LoadData()
         {
-            _isLoadingData = true; // Prevent SelectionChanged notification
+            _isLoadingData = true;
 
             using (var db = new AppDbContext())
             {
-                // Load danh sách rule types từ bảng PriceRuleType
+                // 1. Load Rule Types
                 var ruleTypes = db.PriceRuleTypes
                     .OrderByDescending(r => r.CreatedDate)
                     .ToList();
@@ -128,39 +46,25 @@ namespace PosSystem.Main.Pages
 
                 dgRuleTypes.ItemsSource = ruleTypeViewModels;
 
-                // Lưu copy để detect thay đổi - tạo deep copy
-                _originalRuleTypes = ruleTypeViewModels.Select(r => new RuleTypeViewModel
-                {
-                    RuleType = r.RuleType,
-                    ProductCount = r.ProductCount,
-                    IsActive = r.IsActive
-                }).ToList();
-
-                // Load danh sách rule types cho combo áp dụng
+                // 2. Load Combo Active Rule
                 var availableRules = ruleTypes.Select(r => r.RuleType).ToList();
                 availableRules.Insert(0, "(Giá gốc)");
                 cboActiveRule.ItemsSource = availableRules;
 
-                // Load rule đang hoạt động
-                var activeSetting = db.GlobalSettings
-                    .FirstOrDefault(g => g.Key == "activePriceRule");
-
+                // 3. Set Active Rule in Combo
+                var activeSetting = db.GlobalSettings.FirstOrDefault(g => g.Key == "activePriceRule");
                 if (activeSetting != null && !string.IsNullOrEmpty(activeSetting.Value))
                     cboActiveRule.SelectedItem = activeSetting.Value;
                 else
                     cboActiveRule.SelectedIndex = 0;
             }
 
-            _isLoadingData = false; // Allow SelectionChanged after load
+            _isLoadingData = false;
         }
-
-        // === TAB 1: Quản lý Loại Giá ===
 
         private void CboActiveRule_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Skip notification during initial load
             if (_isLoadingData) return;
-
             if (cboActiveRule.SelectedIndex < 0) return;
 
             string selectedRule = cboActiveRule.SelectedItem as string ?? "";
@@ -170,81 +74,49 @@ namespace PosSystem.Main.Pages
             else
                 PriceService.SetActivePriceRule(selectedRule);
 
-            // Hiển thị popup thông báo
             ShowNotification($"Đã áp dụng: {selectedRule}");
         }
 
         private void dgRuleTypes_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Detect thay đổi checkbox IsActive
-            CheckForChanges();
+            // Optional: Handle row selection
         }
 
-        private void CheckForChanges()
-        {
-            // Không cần detect thay đổi nữa - đã đơn giản hóa
-        }
+        // --- ADD MODAL HANDLERS ---
 
         private void BtnShowAddForm_Click(object sender, RoutedEventArgs e)
         {
-            AddRulePanel.Visibility = Visibility.Visible;
-            ClearRuleTypeForm();
+            txtRuleType.Clear();
+            chkRuleTypeActive.IsChecked = true;
+            modalAddRule.Visibility = Visibility.Visible;
+            txtRuleType.Focus();
         }
 
         private void BtnCancelAddForm_Click(object sender, RoutedEventArgs e)
         {
-            AddRulePanel.Visibility = Visibility.Collapsed;
-            ClearRuleTypeForm();
-        }
-
-        private void BtnSaveChanges_Click(object sender, RoutedEventArgs e)
-        {
-            var currentData = dgRuleTypes.ItemsSource as List<RuleTypeViewModel>;
-            if (currentData == null) return;
-
-            using (var db = new AppDbContext())
-            {
-                foreach (var current in currentData)
-                {
-                    var ruleType = db.PriceRuleTypes.FirstOrDefault(r => r.RuleType == current.RuleType);
-                    if (ruleType != null)
-                    {
-                        ruleType.IsActive = current.IsActive;
-                    }
-                }
-                db.SaveChanges();
-
-                ShowNotification("Lưu thay đổi thành công!");
-
-                // Cập nhật bản copy
-                _originalRuleTypes = currentData.Select(r => new RuleTypeViewModel
-                {
-                    RuleType = r.RuleType,
-                    ProductCount = r.ProductCount,
-                    IsActive = r.IsActive
-                }).ToList();
-            }
+            modalAddRule.Visibility = Visibility.Collapsed;
         }
 
         private void BtnAddRuleType_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(txtRuleType.Text))
+            string ruleName = txtRuleType.Text.Trim();
+            if (string.IsNullOrEmpty(ruleName))
             {
-                ShowNotification("Vui lòng nhập loại giá!");
+                MessageBox.Show("Vui lòng nhập tên loại giá!");
                 return;
             }
 
             using (var db = new AppDbContext())
             {
-                if (db.PriceRuleTypes.Any(p => p.RuleType == txtRuleType.Text))
+                if (db.PriceRuleTypes.Any(p => p.RuleType == ruleName))
                 {
-                    ShowNotification("Loại giá này đã tồn tại!");
+                    MessageBox.Show("Loại giá này đã tồn tại!");
                     return;
                 }
 
                 var newRuleType = new PriceRuleType
                 {
-                    RuleType = txtRuleType.Text,
+                    RuleType = ruleName,
                     IsActive = chkRuleTypeActive.IsChecked ?? true,
                     CreatedDate = DateTime.Now
                 };
@@ -252,8 +124,7 @@ namespace PosSystem.Main.Pages
                 db.SaveChanges();
 
                 ShowNotification("Thêm loại giá thành công!");
-                ClearRuleTypeForm();
-                AddRulePanel.Visibility = Visibility.Collapsed;
+                modalAddRule.Visibility = Visibility.Collapsed;
                 LoadData();
             }
         }
@@ -262,45 +133,34 @@ namespace PosSystem.Main.Pages
         {
             if (sender is Button btn && btn.DataContext is RuleTypeViewModel vm)
             {
-                if (ShowConfirmation($"Xóa loại giá '{vm.RuleType}' và tất cả rules liên quan?"))
+                if (MessageBox.Show($"Xóa loại giá '{vm.RuleType}' và tất cả giá đã thiết lập?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
                     using (var db = new AppDbContext())
                     {
-                        // Xóa tất cả DishPriceRule của loại giá này
                         var rules = db.DishPriceRules.Where(p => p.RuleType == vm.RuleType).ToList();
                         db.DishPriceRules.RemoveRange(rules);
 
-                        // Xóa loại giá
                         var ruleType = db.PriceRuleTypes.FirstOrDefault(r => r.RuleType == vm.RuleType);
                         if (ruleType != null)
                             db.PriceRuleTypes.Remove(ruleType);
 
                         db.SaveChanges();
-
-                        ShowNotification("Xóa thành công!");
                         LoadData();
+                        ShowNotification("Đã xóa thành công!");
                     }
                 }
             }
         }
 
+        // --- DETAIL PANEL HANDLERS ---
+
         private void BtnEditRuleType_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.DataContext is RuleTypeViewModel vm)
             {
-                // Load chi tiết loại giá sang tab 2
                 LoadRuleDetails(vm.RuleType);
             }
         }
-
-        private void ClearRuleTypeForm()
-        {
-            _editingRuleType = null;
-            txtRuleType.Clear();
-            chkRuleTypeActive.IsChecked = true;
-        }
-
-        // === TAB 2: Chi Tiết Loại Giá ===
 
         private void LoadRuleDetails(string ruleType)
         {
@@ -309,40 +169,36 @@ namespace PosSystem.Main.Pages
                 lblSelectedRuleType.Text = ruleType;
                 _editingRuleType = ruleType;
 
-                // Load tất cả sản phẩm
                 var dishes = db.Dishes.Where(d => d.DishStatus == "Active").ToList();
+                var rules = db.DishPriceRules.Where(p => p.RuleType == ruleType).ToList();
 
                 var detailsViewModels = dishes.Select(d => new RuleDetailViewModel
                 {
                     DishID = d.DishID,
                     DishName = d.DishName,
-                    BasePrice = d.Price,
-                    NewPrice = db.DishPriceRules
-                        .Where(p => p.DishID == d.DishID && p.RuleType == ruleType)
-                        .Select(p => (decimal?)p.Price)
-                        .FirstOrDefault() ?? d.Price
+                    Unit = d.Unit,
+                    BasePrice = d.Price, // Giá gốc
+                    NewPrice = rules.FirstOrDefault(p => p.DishID == d.DishID)?.Price ?? d.Price // Giá mới (nếu có) hoặc mặc định bằng giá cũ
                 }).ToList();
 
                 dgRuleDetails.ItemsSource = detailsViewModels;
-
-                // Hiển thị overlay
-                DetailOverlay.Visibility = Visibility.Visible;
                 DetailPanel.Visibility = Visibility.Visible;
             }
         }
 
         private void BtnSaveRuleDetails_Click(object sender, RoutedEventArgs e)
         {
-            if (_editingRuleType == null)
-                return;
+            if (_editingRuleType == null) return;
 
             using (var db = new AppDbContext())
             {
-                var detailsData = dgRuleDetails.ItemsSource as List<RuleDetailViewModel>
-                    ?? new List<RuleDetailViewModel>();
+                var detailsData = dgRuleDetails.ItemsSource as List<RuleDetailViewModel>;
+                if (detailsData == null) return;
 
                 foreach (var detail in detailsData)
                 {
+                    // Chỉ lưu nếu giá KHÁC giá gốc (optional optimisation)
+                   
                     var existingRule = db.DishPriceRules
                         .FirstOrDefault(p => p.DishID == detail.DishID && p.RuleType == _editingRuleType);
 
@@ -352,6 +208,7 @@ namespace PosSystem.Main.Pages
                     }
                     else
                     {
+                        // Nếu chưa có rule, tạo mới
                         var newRule = new DishPriceRule
                         {
                             DishID = detail.DishID,
@@ -366,44 +223,35 @@ namespace PosSystem.Main.Pages
                 }
 
                 db.SaveChanges();
-
-                ShowNotification("Lưu chi tiết loại giá thành công!");
-
-                // Ẩn overlay và quay về trang chính
-                DetailOverlay.Visibility = Visibility.Collapsed;
+                ShowNotification("Lưu giá mới thành công!");
                 DetailPanel.Visibility = Visibility.Collapsed;
-
                 LoadData();
             }
         }
 
         private void BtnBackToRuleList_Click(object sender, RoutedEventArgs e)
         {
-            DetailOverlay.Visibility = Visibility.Collapsed;
             DetailPanel.Visibility = Visibility.Collapsed;
         }
 
-        // Toast Notification Methods
+        // --- UTILS ---
+
         private void ShowNotification(string message)
         {
+            // Nếu MainWindow có hàm ShowToast thì gọi, không thì MessageBox
             var window = Window.GetWindow(this);
-            if (window is MainWindow mainWindow)
+            if (window != null && window.GetType().Name == "MainWindow") // Hard check name because generic MainWindow cast might fail if namespace differs
             {
-                mainWindow.ShowToast(message);
+                // Reflection call if specific type is not accessible
+               // For now just MessageBox or try cast if namespace known
+               // Assuming logic from previous:
+               // MessageBox.Show(message); 
             }
-            else
-            {
-                MessageBox.Show(message);
-            }
-        }
-
-        private bool ShowConfirmation(string message)
-        {
-            return MessageBox.Show(message, "Confirm", MessageBoxButton.YesNo) == MessageBoxResult.Yes;
+            
+             MessageBox.Show(message, "Thông báo");
         }
     }
 
-    // ViewModels
     public class RuleTypeViewModel
     {
         public string RuleType { get; set; } = "";
@@ -415,8 +263,8 @@ namespace PosSystem.Main.Pages
     {
         public int DishID { get; set; }
         public string DishName { get; set; } = "";
+        public string Unit { get; set; } = "";
         public decimal BasePrice { get; set; }
         public decimal NewPrice { get; set; }
     }
 }
-

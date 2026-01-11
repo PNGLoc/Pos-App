@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 using PosSystem.Main.Services;
+
 namespace PosSystem.Main.Pages
 {
     public partial class PrinterSetupPage : UserControl
@@ -25,118 +26,120 @@ namespace PosSystem.Main.Pages
             }
         }
 
-        private void dgPrinters_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void BtnAdd_Click(object sender, RoutedEventArgs e)
         {
-            if (dgPrinters.SelectedItem is Printer prt)
+            _selectedPrinter = null;
+            lblModalTitle.Text = "THÊM MÁY IN MỚI";
+            txtName.Text = "";
+            txtString.Text = "";
+            cboType.SelectedIndex = 0;
+            chkIsBill.IsChecked = false;
+
+            modalOverlay.Visibility = Visibility.Visible;
+            txtName.Focus();
+        }
+
+        private void BtnEditRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is Printer prt)
             {
                 _selectedPrinter = prt;
+                lblModalTitle.Text = "CẬP NHẬT MÁY IN";
                 txtName.Text = prt.PrinterName;
                 txtString.Text = prt.ConnectionString;
                 cboType.SelectedIndex = prt.ConnectionType == "LAN" ? 0 : 1;
                 chkIsBill.IsChecked = prt.IsBillPrinter;
+
+                modalOverlay.Visibility = Visibility.Visible;
+                txtName.Focus();
             }
         }
 
-        private void BtnAdd_Click(object sender, RoutedEventArgs e)
+        private void BtnDeleteRow_Click(object sender, RoutedEventArgs e)
         {
-            using (var db = new AppDbContext())
+            if (sender is Button btn && btn.Tag is Printer prt)
             {
-                var p = new Printer
+                if (MessageBox.Show($"Bạn chắc chắn muốn xóa máy in '{prt.PrinterName}'?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
-                    PrinterName = txtName.Text,
-                    ConnectionType = cboType.SelectedIndex == 0 ? "LAN" : "USB",
-                    ConnectionString = txtString.Text,
-                    IsBillPrinter = chkIsBill.IsChecked == true,
-                    IsActive = true
-                };
-                db.Printers.Add(p);
-                db.SaveChanges();
-                LoadData();
-                ClearForm();
-            }
-        }
-
-        private void BtnUpdate_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedPrinter == null) return;
-            using (var db = new AppDbContext())
-            {
-                var p = db.Printers.Find(_selectedPrinter.PrinterID);
-                if (p != null)
-                {
-                    p.PrinterName = txtName.Text;
-                    p.ConnectionType = cboType.SelectedIndex == 0 ? "LAN" : "USB";
-                    p.ConnectionString = txtString.Text;
-                    p.IsBillPrinter = chkIsBill.IsChecked == true;
-                    db.SaveChanges();
-                    LoadData();
-                    ClearForm();
+                    using (var db = new AppDbContext())
+                    {
+                        var item = db.Printers.Find(prt.PrinterID);
+                        if (item != null)
+                        {
+                            db.Printers.Remove(item);
+                            db.SaveChanges();
+                            LoadData();
+                        }
+                    }
                 }
             }
         }
 
-        private void BtnDelete_Click(object sender, RoutedEventArgs e)
+        private void BtnTestRow_Click(object sender, RoutedEventArgs e)
         {
-            if (_selectedPrinter == null) return;
-            if (MessageBox.Show("Xóa máy in này?", "Cảnh báo", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (sender is Button btn && btn.Tag is Printer prt)
             {
-                using (var db = new AppDbContext())
+                // In thử (Async)
+                Task.Run(() =>
                 {
-                    var p = db.Printers.Find(_selectedPrinter.PrinterID);
-                    if (p != null) db.Printers.Remove(p);
-                    db.SaveChanges();
-                    LoadData();
-                    ClearForm();
-                }
+                    try
+                    {
+                        PrintService.PrintTest(prt);
+                        Dispatcher.Invoke(() => MessageBox.Show($"✅ Đã gửi lệnh in test tới '{prt.PrinterName}'!"));
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Dispatcher.Invoke(() => MessageBox.Show("❌ Lỗi in thử: " + ex.Message));
+                    }
+                });
             }
         }
 
-        private void ClearForm()
+        private void BtnSaveModal_Click(object sender, RoutedEventArgs e)
         {
-            txtName.Text = "";
-            txtString.Text = "";
-            _selectedPrinter = null;
-        }
-
-        // --- HÀM XỬ LÝ NÚT IN THỬ ---
-        private void BtnTest_Click(object sender, RoutedEventArgs e)
-        {
-            // 1. Lấy dữ liệu từ Form nhập liệu
-            string name = txtName.Text.Trim();
-            string connStr = txtString.Text.Trim();
-            bool isLan = cboType.SelectedIndex == 0; // Index 0 là LAN, 1 là USB
-
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(connStr))
+            if (string.IsNullOrWhiteSpace(txtName.Text) || string.IsNullOrWhiteSpace(txtString.Text))
             {
-                MessageBox.Show("Vui lòng nhập Tên máy và Cổng kết nối (IP/USB) để test!");
+                MessageBox.Show("Vui lòng nhập Tên máy và Cổng kết nối (IP/USB)!");
                 return;
             }
 
-            // 2. Tạo một đối tượng Printer tạm thời (Không lưu vào DB, chỉ để Test)
-            var tempPrinter = new Printer
+            using (var db = new AppDbContext())
             {
-                PrinterName = name,
-                ConnectionType = isLan ? "LAN" : "USB",
-                ConnectionString = connStr,
-                IsActive = true
-            };
-
-            // 3. Thực hiện in thử (Chạy Async để không đơ ứng dụng)
-            Task.Run(() =>
-            {
-                try
+                if (_selectedPrinter == null)
                 {
-                    // Gọi hàm PrintTest trong PrintService
-                    PrintService.PrintTest(tempPrinter);
-
-                    // Thông báo thành công (Quay về luồng UI)
-                    Dispatcher.Invoke(() => MessageBox.Show("✅ Đã gửi lệnh in test!\nKiểm tra máy in của bạn."));
+                    // Add
+                    var p = new Printer
+                    {
+                        PrinterName = txtName.Text,
+                        ConnectionType = cboType.SelectedIndex == 0 ? "LAN" : "USB",
+                        ConnectionString = txtString.Text,
+                        IsBillPrinter = chkIsBill.IsChecked == true,
+                        IsActive = true
+                    };
+                    db.Printers.Add(p);
                 }
-                catch (System.Exception ex)
+                else
                 {
-                    Dispatcher.Invoke(() => MessageBox.Show("❌ Lỗi in thử: " + ex.Message));
+                    // Update
+                    var p = db.Printers.Find(_selectedPrinter.PrinterID);
+                    if (p != null)
+                    {
+                        p.PrinterName = txtName.Text;
+                        p.ConnectionType = cboType.SelectedIndex == 0 ? "LAN" : "USB";
+                        p.ConnectionString = txtString.Text;
+                        p.IsBillPrinter = chkIsBill.IsChecked == true;
+                    }
                 }
-            });
+                db.SaveChanges();
+            }
+
+            modalOverlay.Visibility = Visibility.Collapsed;
+            LoadData();
+        }
+
+        private void BtnCloseModal_Click(object sender, RoutedEventArgs e)
+        {
+            modalOverlay.Visibility = Visibility.Collapsed;
         }
     }
 }
