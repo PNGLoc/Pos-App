@@ -19,7 +19,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTables();
     await loadMenuData();
     setTimeout(() => initSignalR(), 500);
+
+    // [NEW] Hiển thị thông tin user lên Menu
+    if (currentUser) {
+        document.getElementById('menuUserName').innerText = currentUser.accName || "Unknown";
+        document.getElementById('menuUserRole').innerText = currentUser.accRole || "Staff";
+        // Lấy chữ cái đầu làm Avatar
+        const firstLetter = (currentUser.accName || "U").charAt(0).toUpperCase();
+        document.getElementById('menuUserAvatar').innerText = firstLetter;
+    }
 });
+
+// --- SIDEBAR TOGGLE ---
+function toggleSidebar() {
+    const drawer = document.getElementById('sidebarDrawer');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (!drawer || !overlay) return;
+
+    if (drawer.classList.contains('show')) {
+        drawer.classList.remove('show');
+        overlay.classList.remove('show');
+        setTimeout(() => overlay.style.display = 'none', 300);
+    } else {
+        overlay.style.display = 'block';
+        // force reflow
+        overlay.offsetHeight;
+        overlay.classList.add('show');
+        drawer.classList.add('show');
+    }
+}
 
 function initSignalR() {
     if (typeof signalR === 'undefined') return;
@@ -45,7 +73,22 @@ function initSignalR() {
     const iconErr = document.getElementById('connectionIconErr');
     const btnReload = document.getElementById('btnReload');
 
+    function updateConnectionStatus(isConnected) {
+        const el = document.getElementById('menuConnectionStatus');
+        if (!el) return;
+
+        if (isConnected) {
+            el.innerHTML = '<i class="fas fa-circle" style="font-size: 8px;"></i> Kết nối ổn định';
+            el.classList.remove('error');
+        } else {
+            el.innerHTML = '<i class="fas fa-exclamation-circle"></i> Mất kết nối!';
+            el.classList.add('error');
+        }
+    }
+
     function showOverlay(tit, message, isFatal = false) {
+        // [NEW] Cập nhật trạng thái menu
+        updateConnectionStatus(false);
         if (!overlay) return;
         overlay.classList.remove('d-none');
         title.innerText = tit;
@@ -79,6 +122,7 @@ function initSignalR() {
         console.log('Đã kết nối lại:', connectionId);
         hideOverlay();
         showToast('Đã khôi phục kết nối!', 'success');
+        updateConnectionStatus(true);
 
         // Refresh dữ liệu để đảm bảo đúng
         loadTables(false);
@@ -103,6 +147,7 @@ function initSignalR() {
             await connection.start();
             console.log("SignalR Connected.");
             hideOverlay(); // Ẩn overlay nếu đang hiện
+            updateConnectionStatus(true);
         } catch (err) {
             console.error("Khởi động lỗi:", err);
             // Nếu mở app lên mà không thấy server ngay -> Báo lỗi luôn

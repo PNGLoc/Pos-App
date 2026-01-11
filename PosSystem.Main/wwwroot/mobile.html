@@ -30,8 +30,7 @@
     <div id="view-tables" class="view-section active">
         <div class="app-header d-flex justify-content-between align-items-center">
             <h5 class="m-0"><i class="fas fa-store"></i> Sơ đồ bàn</h5>
-            <button class="btn btn-sm btn-outline-danger" onclick="logout()"><i
-                    class="fas fa-sign-out-alt"></i></button>
+            <button class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
         </div>
 
         <div class="bg-white p-2 border-bottom">
@@ -223,6 +222,35 @@
         </div>
     </div>
 
+    <!-- SIDEBAR MENU -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div id="sidebarDrawer" class="sidebar-drawer">
+        <div class="sidebar-header">
+            <div class="user-avatar" id="menuUserAvatar">U</div>
+            <div>
+                <div class="fw-bold" id="menuUserName">User</div>
+                <small class="text-white-50" id="menuUserRole">Staff</small>
+            </div>
+        </div>
+        <div class="sidebar-content">
+            <div class="sidebar-item">
+                <i class="fas fa-wifi"></i>
+                <div>
+                    <div>Trạng thái máy chủ</div>
+                    <div class="status-check" id="menuConnectionStatus">
+                        <i class="fas fa-circle" style="font-size: 8px;"></i> Kết nối ổn định
+                    </div>
+                </div>
+            </div>
+            <!-- Có thể thêm các menu khác ở đây -->
+        </div>
+        <div class="sidebar-footer">
+            <button class="btn btn-outline-danger w-100" onclick="logout()">
+                <i class="fas fa-sign-out-alt me-2"></i> Đăng xuất
+            </button>
+        </div>
+    </div>
+
     <script>
         function appendNote(text) {
             const el = document.getElementById('noteInput');
@@ -232,7 +260,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/signalr.min.js"></script>
-    <script src="js/mobile-app.js"></script>
+    <script src="js/mobile-app.js?v=2"></script>
 </body>
 
 </html>
