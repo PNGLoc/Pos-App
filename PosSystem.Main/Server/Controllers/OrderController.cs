@@ -244,8 +244,21 @@ namespace PosSystem.Main.Server.Controllers
 
             // Tính lại tổng tiền đơn hàng
             var order = orderDetail.Order;
-            order.SubTotal = _context.OrderDetails.Where(d => d.OrderID == order.OrderID).Sum(d => d.TotalAmount);
-            order.FinalAmount = order.SubTotal;
+            var remainingItems = await _context.OrderDetails.Where(d => d.OrderID == order.OrderID).ToListAsync();
+
+            if (remainingItems.Count == 0)
+            {
+                // Nếu không còn món nào -> Xóa đơn & Trả bàn
+                _context.Orders.Remove(order);
+                var table = await _context.Tables.FindAsync(order.TableID);
+                if (table != null) table.TableStatus = "Empty";
+            }
+            else
+            {
+                // Còn món -> Tính lại tiền
+                order.SubTotal = remainingItems.Sum(d => d.TotalAmount);
+                order.FinalAmount = order.SubTotal;
+            }
 
             await _context.SaveChangesAsync();
 
@@ -451,7 +464,19 @@ namespace PosSystem.Main.Server.Controllers
 
             // Cập nhật tổng tiền đơn hàng
             var order = detail.Order;
-            // ... (Logic tính lại SubTotal/FinalAmount cho order) ...
+            var remainingItems = await _context.OrderDetails.Where(d => d.OrderID == order.OrderID).ToListAsync();
+
+            if (remainingItems.Count == 0)
+            {
+                 // Nếu hủy hết món -> Xóa đơn & Trả bàn
+                 _context.Orders.Remove(order);
+                 if (order.Table != null) order.Table.TableStatus = "Empty";
+            }
+            else
+            {
+                order.SubTotal = remainingItems.Sum(d => d.TotalAmount);
+                order.FinalAmount = order.SubTotal;
+            }
 
             await _context.SaveChangesAsync();
 
