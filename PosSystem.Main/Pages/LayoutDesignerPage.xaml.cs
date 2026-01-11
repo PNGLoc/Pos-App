@@ -69,8 +69,9 @@ namespace PosSystem.Main.Pages
         }
 
         // Logic display
-        public Visibility IsTextVisible => (ElementType != "Separator" && ElementType != "Logo" && ElementType != "QRCode") ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility IsTextVisible => (ElementType != "Separator" && ElementType != "SeparatorDashed" && ElementType != "Logo" && ElementType != "QRCode") ? Visibility.Visible : Visibility.Collapsed;
         public Visibility IsSeparatorVisible => ElementType == "Separator" ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility IsDashedSeparatorVisible => ElementType == "SeparatorDashed" ? Visibility.Visible : Visibility.Collapsed;
         public Visibility IsImageVisible => (ElementType == "Logo" || ElementType == "QRCode") ? Visibility.Visible : Visibility.Collapsed;
 
         public FontWeight FontWeightDisplay => IsBold ? FontWeights.Bold : FontWeights.Normal;
@@ -107,6 +108,7 @@ namespace PosSystem.Main.Pages
                     case "BatchNumber": return "[SỐ ĐỢT]";
                     case "Text": return "[VĂN BẢN]";
                     case "Separator": return "[KẺ NGANG]";
+                    case "SeparatorDashed": return "[KẺ NÉT ĐỨT]";
                     case "Logo": return "[LOGO]";
                     case "QRCode": return "[MÃ QR]";
                     default: return ElementType;
@@ -247,30 +249,17 @@ namespace PosSystem.Main.Pages
         private void FilterToolbox()
         {
             // Logic ẩn hiện các nút Toolbox dựa trên loại mẫu in (Bill/Kitchen)
-            // Trong XAML mới, ta không nhóm bằng StackPanel có Name cụ thể cho từng nhóm Kitchen/Bill
-            // Nhưng ta có thể dựa vào Tag của Button để ẩn hiện.
-            if (pnlToolbox == null) return;
-            
-            foreach (var child in pnlToolbox.Children)
-            {
-                if (child is Button btn && btn.Tag is string tag)
-                {
-                    // Kitchen items: BatchNumber, KitchenOrderDetails
-                    bool isKitchenItem = tag == "BatchNumber" || tag == "KitchenOrderDetails";
-                    // Bill items: OrderDetails, Total, QRCode
-                    bool isBillItem = tag == "OrderDetails" || tag == "Total" || tag == "QRCode";
+            if (grpKitchen == null || grpBill == null) return;
 
-                    if (TemplateType == "Kitchen")
-                    {
-                        if (isBillItem) btn.Visibility = Visibility.Collapsed;
-                        else btn.Visibility = Visibility.Visible;
-                    }
-                    else // Bill
-                    {
-                        if (isKitchenItem) btn.Visibility = Visibility.Collapsed;
-                        else btn.Visibility = Visibility.Visible;
-                    }
-                }
+            if (TemplateType == "Kitchen")
+            {
+                grpKitchen.Visibility = Visibility.Visible;
+                grpBill.Visibility = Visibility.Collapsed;
+            }
+            else // Bill
+            {
+                grpKitchen.Visibility = Visibility.Collapsed;
+                grpBill.Visibility = Visibility.Visible;
             }
         }
 
@@ -321,12 +310,14 @@ namespace PosSystem.Main.Pages
                 {
                     case "Text": newEl.Content = "Nhập văn bản..."; break;
                     case "Separator": newEl.ElementType = "Separator"; newEl.Content = "----------------"; break;
+                    case "SeparatorDashed": newEl.ElementType = "SeparatorDashed"; newEl.Content = "- - - - - - - -"; break;
 
                     case "TextTable": newEl.Content = "Bàn: {Table}"; newEl.FontSize = 16; newEl.IsBold = true; break;
                     case "TextStaff": newEl.Content = "Thu ngân: {Staff}"; newEl.FontSize = 12; break;
                     case "TextSender": newEl.Content = "Người gửi: {Sender}"; newEl.FontSize = 12; break;
                     case "TextOrderId": newEl.Content = "Mã đơn: #{OrderId}"; newEl.FontSize = 12; break;
                     case "TextTime": newEl.Content = "Giờ đến: {CheckInTime} | Giờ in: {PrintTime}"; newEl.Align = "Center"; newEl.FontSize = 12; break;
+                    case "TextPrintTime": newEl.Content = "Giờ in: {PrintTime}"; newEl.Align = "Center"; newEl.FontSize = 12; break;
                     case "TextDuration": newEl.Content = "Thời gian ngồi: {Duration}"; newEl.Align = "Center"; newEl.FontSize = 12; break;
 
                     case "BatchNumber": newEl.Content = "ĐỢT GỌI: {Batch}"; newEl.FontSize = 18; newEl.IsBold = true; newEl.Align = "Center"; break;
@@ -362,7 +353,9 @@ namespace PosSystem.Main.Pages
                 if (lblSelectedType != null) lblSelectedType.Text = el.ElementTypeDisplay;
 
                 // Reset các panel
+                // Reset các panel
                 if (pnlTextProp != null) pnlTextProp.Visibility = Visibility.Collapsed;
+                if (pnlAlignProp != null) pnlAlignProp.Visibility = Visibility.Collapsed;
                 if (pnlImageProp != null) pnlImageProp.Visibility = Visibility.Collapsed;
                 if (pnlOptionProp != null) pnlOptionProp.Visibility = Visibility.Collapsed;
 
@@ -371,9 +364,13 @@ namespace PosSystem.Main.Pages
 
                 if (el.ElementType == "Text")
                 {
+                    if (pnlAlignProp != null) 
+                    {
+                        pnlAlignProp.Visibility = Visibility.Visible;
+                        if (cboAlign != null) cboAlign.SelectedIndex = el.Align == "Left" ? 0 : (el.Align == "Right" ? 2 : 1);
+                    }
                     if (pnlTextProp != null) pnlTextProp.Visibility = Visibility.Visible;
                     if (txtContent != null) { txtContent.Text = el.Content; txtContent.IsEnabled = true; }
-                    if (cboAlign != null) cboAlign.SelectedIndex = el.Align == "Left" ? 0 : (el.Align == "Right" ? 2 : 1);
                     if (txtFontSize != null) txtFontSize.Text = el.FontSize.ToString();
                     if (chkBold != null) chkBold.IsChecked = el.IsBold;
                 }
@@ -382,17 +379,15 @@ namespace PosSystem.Main.Pages
                     if (pnlImageProp != null) pnlImageProp.Visibility = Visibility.Visible;
                     LoadImagePreview(el.Content);
                     if (txtImageHeight != null) txtImageHeight.Text = el.ImageHeight.ToString();
-                    // Vẫn cho chỉnh Align
-                    if (pnlTextProp != null) 
+                    
+                    // Show Align Prop only
+                    if (pnlAlignProp != null) 
                     {
-                        pnlTextProp.Visibility = Visibility.Visible;
-                        if (txtContent != null) txtContent.IsEnabled = false; // Không sửa content text
-                        if (cboAlign != null) cboAlign.SelectedIndex = el.Align == "Left" ? 0 : (el.Align == "Right" ? 2 : 1); // Cho chỉnh Align
-                        if (txtFontSize != null) txtFontSize.IsEnabled = false; 
-                        if (chkBold != null) chkBold.IsEnabled = false;
+                        pnlAlignProp.Visibility = Visibility.Visible;
+                        if (cboAlign != null) cboAlign.SelectedIndex = el.Align == "Left" ? 0 : (el.Align == "Right" ? 2 : 1);
                     }
                 }
-                else if (el.ElementType == "Separator")
+                else if (el.ElementType == "Separator" || el.ElementType == "SeparatorDashed")
                 {
                      // Separator ko có property gì mấy
                 }

@@ -1,10 +1,10 @@
 const API_URL = '/api';
-const TABLE_TYPE_NAMES = { 'DineIn': 'Tại quán', 'TakeAway': 'Mang về', 'Pickup': 'Khách lấy', 'Delivery': 'Ship' };
 
 let currentUser = null;
 let appState = {
     tables: [],
-    categories: [],
+    categories: [], // Menu Categories
+    tableCategories: [], // Table Categories from DB
     currentTableId: null,
     orderDetails: [], // Dữ liệu từ server
     tempMenuSelection: {}, // Lưu tạm món đang chọn: { dishID: { qty: 1, note: '' } }
@@ -180,26 +180,76 @@ function showToast(msg, type = 'success') {
 }
 
 // --- LOGIC BÀN ---
+// --- LOGIC BÀN ---
 async function loadTables(renderFilter = true) {
-    try { const res = await fetch(`${API_URL}/Table`); appState.tables = await res.json(); if (renderFilter) renderFilterButtons(); renderTables(appState.currentFilter); } catch (e) { }
+    try {
+        // Load Table Categories
+        const catRes = await fetch(`${API_URL}/TableCategory`);
+        if (catRes.ok) appState.tableCategories = await catRes.json();
+
+        // Load Tables
+        const res = await fetch(`${API_URL}/Table`);
+        appState.tables = await res.json();
+
+        if (renderFilter) renderFilterButtons();
+        renderTables(appState.currentFilter);
+    } catch (e) { console.error(e); }
 }
-function renderTables(filterType) {
+
+function renderTables(filterId) {
     const grid = document.getElementById('tableGrid'); grid.innerHTML = '';
-    const filtered = filterType === 'All' ? appState.tables : appState.tables.filter(t => t.tableType === filterType);
+
+    // Filter logic: Check categoryID
+    const filtered = (filterId === 'All' || filterId === null)
+        ? appState.tables
+        : appState.tables.filter(t => t.categoryID === filterId);
+
     document.querySelectorAll('#tableFilters .filter-btn').forEach(b => b.classList.remove('active'));
-    for (let b of document.querySelectorAll('#tableFilters .filter-btn')) {
-        if ((filterType === 'All' && b.innerText === 'Tất cả') || (TABLE_TYPE_NAMES[filterType] === b.innerText)) { b.classList.add('active'); break; }
+
+    // Update active button
+    const btnSelector = filterId === 'All' ? 'btn-all' : `btn-cat-${filterId}`;
+    const activeBtn = document.getElementById(btnSelector);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div class="text-center w-100 text-muted mt-3">Không tìm thấy bàn nào</div>';
+        return;
     }
+
     filtered.forEach(t => {
         const div = document.createElement('div'); div.className = `table-card ${t.tableStatus === 'Occupied' ? 'occupied' : ''}`; div.onclick = () => openTableDetail(t);
         div.innerHTML = `<div class="fs-4 mb-1"><i class="fas fa-chair"></i></div><div class="fw-bold">${t.tableName}</div><small class="${t.tableStatus === 'Occupied' ? 'text-danger' : 'text-success'}">${t.tableStatus === 'Occupied' ? 'Có khách' : 'Trống'}</small>`; grid.appendChild(div);
     });
 }
+
 function renderFilterButtons() {
     const filterContainer = document.getElementById('tableFilters'); if (!filterContainer) return; filterContainer.innerHTML = '';
-    const btnAll = document.createElement('button'); btnAll.className = `filter-btn active`; btnAll.innerText = 'Tất cả'; btnAll.onclick = () => filterTables('All'); filterContainer.appendChild(btnAll);
-    [...new Set(appState.tables.map(t => t.tableType))].forEach(type => { if (!type) return; const btn = document.createElement('button'); btn.className = `filter-btn`; btn.innerText = TABLE_TYPE_NAMES[type] || type; btn.onclick = () => filterTables(type); filterContainer.appendChild(btn); });
+
+    // All Button
+    const btnAll = document.createElement('button');
+    btnAll.className = `filter-btn active`;
+    btnAll.innerText = 'Tất cả';
+    btnAll.id = 'btn-all';
+    btnAll.onclick = () => filterTables('All');
+    filterContainer.appendChild(btnAll);
+
+    // Dynamic Buttons from API
+    if (appState.tableCategories && appState.tableCategories.length > 0) {
+        appState.tableCategories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = `filter-btn`;
+            btn.innerText = cat.categoryName;
+            btn.id = `btn-cat-${cat.categoryID}`;
+            btn.onclick = () => filterTables(cat.categoryID);
+            filterContainer.appendChild(btn);
+        });
+    } else {
+        // Fallback if no categories (use old logic or just Show All)
+        // Or if we want to show based on existing tableTypes as backup?
+        // Let's stick to API Categories. If empty, user only sees "All".
+    }
 }
+
 function filterTables(type) { appState.currentFilter = type; renderTables(type); }
 
 function openTableDetail(table) {

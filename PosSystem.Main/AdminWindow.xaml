@@ -2,9 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Quản trị hệ thống"
-        Height="600"
-        Width="1000"
-        WindowStartupLocation="CenterScreen">
+       WindowState="Maximized"
+    >
 
     <!-- 1. KHAI BÁO RESOURCES Ở ĐẦU TIÊN -->
     <Window.Resources>
@@ -46,7 +45,9 @@
     <!-- 2. GIAO DIỆN CHÍNH (GRID) Ở DƯỚI -->
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="230"/>
+           <ColumnDefinition Width="Auto"
+                  MinWidth="200"
+                  MaxWidth="280"/>
             <!-- Menu trái -->
             <ColumnDefinition Width="*"/>
             <!-- Nội dung phải -->
@@ -93,15 +94,19 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="Printer"/>
-                <RadioButton Content="🍽 Quản lý Bàn"
+                <RadioButton Content="🏷 Loại bàn" 
+                             Style="{StaticResource AdminMenuButton}"
+                             Click="Menu_Click" 
+                             Tag="TableCategory"/>
+                <RadioButton Content="🍽 Quản lý bàn"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="Table"/>
-                <RadioButton Content="👥 Quản lý Nhân viên"
+                <RadioButton Content="👥 Quản lý tài khoản"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="Account"/>
-                <RadioButton Content="👥 Chấm công nhân viên"
+                <RadioButton Content="👥 Quản lý chấm công"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="Employee"/>
@@ -109,7 +114,7 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="Menu"/>
-                <RadioButton Content="💰 Quản lý Giá"
+                <RadioButton Content="💰 Giá lễ / Tết"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="PriceRule"/>

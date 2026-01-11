@@ -106,34 +106,33 @@
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
                     <StackPanel x:Name="pnlToolbox">
-                        <!-- GROUP: TEXT & DECOR -->
-                        <TextBlock Text="CƠ BẢN" FontWeight="Bold" Foreground="#ADB5BD" FontSize="12" Margin="0,0,0,10"/>
+                        <!-- GROUP: COMMON (Used in both Bill & Kitchen) -->
+                        <TextBlock Text="CHUNG (BILL &amp; BẾP)" FontWeight="Bold" Foreground="#ADB5BD" FontSize="12" Margin="0,0,0,10"/>
                         <Button Content="📝 Văn bản tùy ý" Tag="Text" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
                         <Button Content="➖ Đường kẻ ngang" Tag="Separator" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                        <Button Content="➗ Đường kẻ nét đứt" Tag="SeparatorDashed" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
                         <Button Content="🖼️ Logo / Hình ảnh" Tag="Logo" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
-
-                        <!-- GROUP: INFO -->
-                        <TextBlock Text="THÔNG TIN ĐƠN" FontWeight="Bold" Foreground="#ADB5BD" FontSize="12" Margin="0,15,0,10"/>
                         <Button Content="🆔 Mã hóa đơn: {OrderId}" Tag="TextOrderId" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
                         <Button Content="📍 Tên bàn: {Table}" Tag="TextTable" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
-                        <Button Content="👤 Thu ngân/NV: {Staff}" Tag="TextStaff" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
-                        <Button Content="👨‍🍳 Người gửi bếp: {Sender}" Tag="TextSender" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
-                        <Button Content="🕒 Ngày giờ in" Tag="TextTime" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
-                        <Button Content="🕒 Thời gian ngồi" Tag="TextDuration" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                        <Button Content="🕒 Giờ in: {PrintTime}" Tag="TextPrintTime" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+
+                        <!-- GROUP: BILL SPECIFIC -->
+                        <StackPanel x:Name="grpBill" Visibility="Visible">
+                            <TextBlock Text="CHO HÓA ĐƠN (BILL)" FontWeight="Bold" Foreground="#ADB5BD" FontSize="12" Margin="0,15,0,10"/>
+                            <Button Content="👤 Thu ngân/NV: {Staff}" Tag="TextStaff" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                            <Button Content="🕒 Giờ đến &amp; Giờ in" Tag="TextTime" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                            <Button Content="⏳ Thời gian ngồi" Tag="TextDuration" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                            <Button Content="📋 Danh sách món (Bill)" Tag="OrderDetails" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}" Background="#D1E7DD" BorderBrush="#BADBCC"/>
+                            <Button Content="💰 Tổng tiền thanh toán" Tag="Total" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}" Background="#D1E7DD" BorderBrush="#BADBCC"/>
+                            <Button Content="⬛ Mã QR Chuyển khoản" Tag="QRCode" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                        </StackPanel>
 
                         <!-- GROUP: KITCHEN SPECIFIC -->
                         <StackPanel x:Name="grpKitchen" Visibility="Collapsed">
                             <TextBlock Text="CHO BẾP / BAR" FontWeight="Bold" Foreground="#ADB5BD" FontSize="12" Margin="0,15,0,10"/>
+                            <Button Content="👨‍🍳 Người gửi bếp: {Sender}" Tag="TextSender" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
                             <Button Content="🔔 Số đợt gọi: {Batch}" Tag="BatchNumber" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
                             <Button Content="🥘 Danh sách món (Bếp)" Tag="KitchenOrderDetails" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}" Background="#FFF3CD" BorderBrush="#FFECB5"/>
-                        </StackPanel>
-
-                        <!-- GROUP: BILL SPECIFIC -->
-                        <StackPanel x:Name="grpBill" Visibility="Collapsed">
-                            <TextBlock Text="CHO HÓA ĐƠN" FontWeight="Bold" Foreground="#ADB5BD" FontSize="12" Margin="0,15,0,10"/>
-                            <Button Content="📋 Danh sách món (Bill)" Tag="OrderDetails" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}" Background="#D1E7DD" BorderBrush="#BADBCC"/>
-                            <Button Content="💰 Tổng tiền thanh toán" Tag="Total" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}" Background="#D1E7DD" BorderBrush="#BADBCC"/>
-                            <Button Content="⬛ Mã QR Chuyển khoản" Tag="QRCode" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
@@ -189,6 +188,11 @@
                                                 Visibility="{Binding IsSeparatorVisible}" 
                                                 SnapsToDevicePixels="True"/>
 
+                                        <!-- Separator Dashed Preview -->
+                                        <Rectangle Height="1" Stroke="Black" StrokeThickness="1" StrokeDashArray="4 2" 
+                                                   Visibility="{Binding IsDashedSeparatorVisible}" 
+                                                   SnapsToDevicePixels="True"/>
+
                                         <!-- Image/Logo Preview -->
                                         <Border Background="#F1F3F5" Height="80" Width="80" 
                                                 HorizontalAlignment="{Binding HorizontalAlignDisplay}"
@@ -232,30 +236,26 @@
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
+                        <!-- ALIGNMENT PROP (Shared) -->
+                        <StackPanel x:Name="pnlAlignProp" Visibility="Collapsed" Margin="0,0,0,15">
+                            <TextBlock Text="Căn lề:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                            <ComboBox x:Name="cboAlign" SelectionChanged="Prop_Changed" Padding="5" Height="30">
+                                <ComboBoxItem Content="Left (Trái)"/>
+                                <ComboBoxItem Content="Center (Giữa)"/>
+                                <ComboBoxItem Content="Right (Phải)"/>
+                            </ComboBox>
+                        </StackPanel>
+
                         <!-- TEXT PROPERTIES -->
                         <StackPanel x:Name="pnlTextProp" Visibility="Visible">
                             <TextBlock Text="Nội dung:" FontWeight="SemiBold" Margin="0,0,0,5"/>
                             <TextBox x:Name="txtContent" Height="60" TextWrapping="Wrap" Padding="5" 
                                      TextChanged="TxtContent_TextChanged" BorderBrush="#CED4DA"/>
 
-                            <Grid Margin="0,15,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Margin="0,0,5,0">
-                                    <TextBlock Text="Căn lề:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                                    <ComboBox x:Name="cboAlign" SelectionChanged="Prop_Changed" Padding="5" Height="30">
-                                        <ComboBoxItem Content="Left (Trái)"/>
-                                        <ComboBoxItem Content="Center (Giữa)"/>
-                                        <ComboBoxItem Content="Right (Phải)"/>
-                                    </ComboBox>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="5,0,0,0">
-                                    <TextBlock Text="Cỡ chữ:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                                    <TextBox x:Name="txtFontSize" TextChanged="Prop_Changed" Height="30" Padding="5" VerticalContentAlignment="Center"/>
-                                </StackPanel>
-                            </Grid>
+                            <StackPanel Margin="0,10,0,0">
+                                <TextBlock Text="Cỡ chữ:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBox x:Name="txtFontSize" TextChanged="Prop_Changed" Height="30" Padding="5" VerticalContentAlignment="Center"/>
+                            </StackPanel>
                             
                             <CheckBox x:Name="chkBold" Content="In đậm (Bold)" Margin="0,15,0,0" Checked="Prop_Changed" Unchecked="Prop_Changed"/>
                         </StackPanel>

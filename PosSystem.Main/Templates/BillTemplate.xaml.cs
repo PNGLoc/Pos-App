@@ -40,8 +40,13 @@ namespace PosSystem.Main.Templates
                         break;
 
                     case "Separator":
-                        AddSeparator();
+                        AddSeparator(false); // Solid
                         break;
+
+                    case "SeparatorDashed":
+                        AddSeparator(true); // Dashed
+                        break;
+
 
                     case "Logo":
                         AddImage(el.Content, el.Align, el.ImageHeight);
@@ -312,14 +317,14 @@ namespace PosSystem.Main.Templates
             RootPanel.Children.Add(tb);
         }
 
-        private void AddSeparator()
+        private void AddSeparator(bool isDashed = true)
         {
             var line = new System.Windows.Shapes.Rectangle
             {
                 Height = 1,
                 Stroke = Brushes.Black,
                 StrokeThickness = 1,
-                StrokeDashArray = new DoubleCollection { 4, 2 }, // Nét đứt
+                StrokeDashArray = isDashed ? new DoubleCollection { 4, 2 } : null,
                 Margin = new Thickness(0, 5, 0, 5),
                 SnapsToDevicePixels = true
             };

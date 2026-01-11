@@ -34,6 +34,8 @@
                         FontWeight="Bold"
                         FontSize="13"
                         BorderThickness="0"
+                        HorizontalAlignment="Right"
+        Width="Auto"
                         Cursor="Hand">
                     <Button.Resources>
                         <Style TargetType="Border">
@@ -90,8 +92,8 @@
                                         Binding="{Binding TableName}"
                                         Width="*"
                                         FontWeight="SemiBold"/>
-                    <DataGridTextColumn Header="Loại bàn"
-                                        Binding="{Binding TableType}"
+                    <DataGridTextColumn Header="Loại bàn / Khu vực"
+                                        Binding="{Binding Category.CategoryName}"
                                         Width="150"/>
                     <DataGridTextColumn Header="Trạng thái"
                                         Binding="{Binding TableStatus}"
@@ -187,12 +189,10 @@
                               Height="38"
                               Margin="0,0,0,25"
                               Padding="8,5"
-                              SelectedIndex="0"
+                              ItemsSource="{Binding Categories}"
+                              DisplayMemberPath="CategoryName"
+                              SelectedValuePath="CategoryID"
                               BorderBrush="#CED4DA">
-                        <ComboBoxItem Content="Bàn ăn tại quán"/>
-                        <ComboBoxItem Content="Mang về"/>
-                        <ComboBoxItem Content="Khách lấy"/>
-                        <ComboBoxItem Content="Ship"/>
                     </ComboBox>
 
                     <StackPanel Orientation="Horizontal"

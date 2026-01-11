@@ -10,6 +10,7 @@ namespace PosSystem.Main.Database
         public DbSet<Category> Categories { get; set; }
         public DbSet<Dish> Dishes { get; set; }
         public DbSet<Account> Accounts { get; set; }
+        public DbSet<TableCategory> TableCategories { get; set; }
         public DbSet<Table> Tables { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
@@ -75,8 +76,16 @@ namespace PosSystem.Main.Database
    }
 );
             modelBuilder.Entity<Table>().HasData(
-                new Table { TableID = 1, TableName = "Bàn 1", TableType = "DineIn" },
-                new Table { TableID = 2, TableName = "Bàn 2", TableType = "DineIn" }
+                new Table { TableID = 1, TableName = "Bàn 1", TableType = "DineIn", CategoryID = 1 },
+                new Table { TableID = 2, TableName = "Bàn 2", TableType = "DineIn", CategoryID = 1 }
+            );
+
+            // Seed Table Categories
+            modelBuilder.Entity<TableCategory>().HasData(
+                new TableCategory { CategoryID = 1, CategoryName = "Bàn Thường", Description = "Bàn tiêu chuẩn" },
+                new TableCategory { CategoryID = 2, CategoryName = "Bàn VIP", Description = "Phòng lạnh, ghế sofa" },
+                new TableCategory { CategoryID = 3, CategoryName = "Mang Về", Description = "Khách mang đi" },
+                new TableCategory { CategoryID = 4, CategoryName = "Ship", Description = "Giao hàng tận nơi" }
             );
             // Seed Template Mặc định
             string defaultJson = "[{\"ElementType\":\"Text\",\"Content\":\"NHÀ HÀNG DEMO\",\"FontSize\":24,\"IsBold\":true,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"Separator\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"OrderDetails\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"Separator\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"Total\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true}]";

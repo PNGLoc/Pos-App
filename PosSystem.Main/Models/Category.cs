@@ -15,6 +15,8 @@ namespace PosSystem.Main.Models
         // ID máy in phụ trách nhóm này. 
         // Nếu null thì sẽ không in báo bếp (hoặc in máy mặc định)
         public int? PrinterID { get; set; }
+        [System.ComponentModel.DataAnnotations.Schema.ForeignKey("PrinterID")]
+        public virtual Printer? Printer { get; set; }
     }
 
 }

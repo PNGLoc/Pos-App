@@ -36,8 +36,8 @@ namespace PosSystem.Main
                     UserSession.AccRole = acc.AccRole;
 
                     // Mở màn hình chính
-                    AdminWindow admin = new AdminWindow();// màn hình nào hiển thị khi login thành công
-                    admin.Show();
+                    MainWindow main = new MainWindow();// màn hình nào hiển thị khi login thành công
+                    main.Show();
 
                     // Đóng màn hình đăng nhập
                     this.Close();

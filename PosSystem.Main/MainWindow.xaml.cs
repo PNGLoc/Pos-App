@@ -48,12 +48,17 @@ namespace PosSystem.Main
     {
         private HubConnection _connection = default!;
         private int _selectedTableId = 0;
+        private int? _selectedCategoryId = null; // Filter by CategoryID
+        private string _tableTypeFilter = "All"; // Legacy or backup
+
+        // List categories for Filter Bar
+        public List<TableCategory> FilterCategories { get; set; } = new List<TableCategory>();
+
         private List<Dish> _allDishes = new List<Dish>();
         private List<DishViewModel> _dishViewModels = new List<DishViewModel>();
         private DispatcherTimer _tableTimeTimer = new DispatcherTimer();
         private DispatcherTimer _tableListUpdateTimer = new DispatcherTimer();
         private DateTime? _currentOrderTime = null;
-        private string _tableTypeFilter = "All";  // Track current filter
         private HashSet<int> _tablesRequestingPayment = new HashSet<int>();
         // Split mode variables
         private bool _isSplitMode = false;
@@ -67,6 +72,15 @@ namespace PosSystem.Main
         public MainWindow()
         {
             InitializeComponent();
+            
+            // Load Categories for Filter
+            using (var db = new AppDbContext())
+            {
+                FilterCategories = db.TableCategories.ToList();
+            }
+            this.DataContext = this; // Bind to self
+
+            LoadTables();
             if (UserSession.IsLoggedIn) lblStaffName.Text = UserSession.AccName;
             if (UserSession.IsLoggedIn && UserSession.AccRole == "Admin") btnBackToAdmin.Visibility = Visibility.Visible;
 
@@ -95,23 +109,6 @@ namespace PosSystem.Main
             SetupRealtime();
         }
 
-        private void BtnFilterTable_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button btn && btn.Tag is string filterType)
-            {
-                _tableTypeFilter = filterType;
-
-                // Update button colors
-                btnFilterAll.Background = new SolidColorBrush(filterType == "All" ? Color.FromRgb(0, 123, 255) : Color.FromRgb(108, 117, 125));
-                btnFilterDineIn.Background = new SolidColorBrush(filterType == "DineIn" ? Color.FromRgb(0, 123, 255) : Color.FromRgb(108, 117, 125));
-                btnFilterTakeAway.Background = new SolidColorBrush(filterType == "TakeAway" ? Color.FromRgb(0, 123, 255) : Color.FromRgb(108, 117, 125));
-                btnFilterPickup.Background = new SolidColorBrush(filterType == "Pickup" ? Color.FromRgb(0, 123, 255) : Color.FromRgb(108, 117, 125));
-                btnFilterDelivery.Background = new SolidColorBrush(filterType == "Delivery" ? Color.FromRgb(0, 123, 255) : Color.FromRgb(108, 117, 125));
-
-                // Reload tables with new filter
-                LoadTables();
-            }
-        }
 
         // --- 1. CHUYỂN ĐỔI VIEW ---
         private void lstTables_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -282,9 +279,13 @@ namespace PosSystem.Main
                 var tables = db.Tables.Include(t => t.Orders).ThenInclude(o => o.OrderDetails).ToList();
 
                 // Apply filter
-                if (_tableTypeFilter != "All")
+                if (_selectedCategoryId.HasValue)
                 {
-                    tables = tables.Where(t => t.TableType == _tableTypeFilter).ToList();
+                    tables = tables.Where(t => t.CategoryID == _selectedCategoryId.Value).ToList();
+                }
+                else if (_tableTypeFilter != "All") // Backwards compatibility for old buttons if any exist
+                {
+                   tables = tables.Where(t => t.TableType == _tableTypeFilter).ToList();
                 }
 
                 lstTables.ItemsSource = tables.Select(t =>
@@ -1646,6 +1647,42 @@ namespace PosSystem.Main
             // Sau khi đóng modal, focus lại màn hình chính để bán hàng tiếp
             this.Focus();
         }
+        private void BtnLogout_Click(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show("Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            {
+                // Xóa session
+                UserSession.AccID = 0;
+                UserSession.AccName = "";
+                UserSession.AccRole = "";
+
+                // Mở lại màn hình Login
+                LoginWindow login = new LoginWindow();
+                login.Show();
+
+                // Đóng màn hình hiện tại
+                this.Close();
+            }
+        }
+
+        private void BtnFilterAll_Click(object sender, RoutedEventArgs e)
+        {
+            _selectedCategoryId = null; 
+            if (btnFilterAll != null) 
+                 btnFilterAll.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007BFF"));
+            LoadTables();
+        }
+
+        private void BtnFilterCategory_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is int catId)
+            {
+                _selectedCategoryId = catId;
+                if (btnFilterAll != null) 
+                    btnFilterAll.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6C757D"));
+                LoadTables();
+            }
+        }
     }
     // Class dùng để hiển thị lên DataGrid và hỗ trợ sửa Ghi chú
     public class OrderDetailViewModel
@@ -1751,6 +1788,7 @@ namespace PosSystem.Main
         {
             return null;
         }
-    }
 
-}
+
+    } // End of MainWindow class
+} // End of namespace

@@ -39,7 +39,10 @@ namespace PosSystem.Main.Templates
                         break;
 
                     case "Separator":
-                        AddSeparator();
+                        AddSeparator(false);
+                        break;
+                    case "SeparatorDashed":
+                        AddSeparator(true);
                         break;
 
                     case "KitchenOrderDetails":
@@ -203,13 +206,14 @@ namespace PosSystem.Main.Templates
             RootPanel.Children.Add(tb);
         }
 
-        private void AddSeparator()
+        private void AddSeparator(bool isDashed = false)
         {
             var line = new System.Windows.Shapes.Rectangle
             {
                 Height = 2, // Kẻ bếp dày hơn chút
                 Stroke = Brushes.Black,
                 StrokeThickness = 2,
+                StrokeDashArray = isDashed ? new DoubleCollection { 4, 1 } : null,
                 Margin = new Thickness(0, 5, 0, 5),
                 SnapsToDevicePixels = true
             };

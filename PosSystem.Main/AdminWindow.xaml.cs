@@ -59,6 +59,9 @@ namespace PosSystem.Main
                     case "Printer":
                         mainFrame.Navigate(new Pages.PrinterSetupPage());
                         break;
+                    case "TableCategory":
+                        mainFrame.Navigate(new Pages.TableCategorySetupPage());
+                        break;
                     case "Table":
                         mainFrame.Navigate(new Pages.TableSetupPage());
                         break;

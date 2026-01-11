@@ -17,6 +17,7 @@ namespace PosSystem.Main.Pages
         private Category? _selectedCat;
         private Dish? _selectedDish;
         private string _currentImgPath = "default.png";
+        private System.Collections.Generic.List<Dish> _allDishes = new();
 
         public MenuSetupPage()
         {
@@ -35,7 +36,7 @@ namespace PosSystem.Main.Pages
             {
                 using (var db = new AppDbContext())
                 {
-                    var list = db.Categories.OrderBy(c => c.OrderIndex).ToList();
+                    var list = db.Categories.Include(c => c.Printer).OrderBy(c => c.OrderIndex).ToList();
                     dgCats.ItemsSource = list;
 
                     // Load Data for ComboBoxes (printers & category selection for dishes)
@@ -143,10 +144,63 @@ namespace PosSystem.Main.Pages
             {
                 using (var db = new AppDbContext())
                 {
-                    dgDishes.ItemsSource = db.Dishes.Include(d => d.Category).OrderBy(d => d.Category.OrderIndex).ThenBy(d => d.DishName).ToList();
+                    _allDishes = db.Dishes.Include(d => d.Category).ThenInclude(c => c.Printer).OrderBy(d => d.Category.OrderIndex).ThenBy(d => d.DishName).ToList();
+                    dgDishes.ItemsSource = _allDishes;
                 }
             }
             catch { }
+        }
+
+        private void TxtSearchDish_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_allDishes == null) return;
+            string keyword = txtSearchDish.Text.Trim();
+            if (string.IsNullOrEmpty(keyword))
+            {
+                dgDishes.ItemsSource = _allDishes;
+            }
+            else
+            {
+                string kwNoSign = RemoveDiacritics(keyword).ToLower();
+                dgDishes.ItemsSource = _allDishes.Where(d => 
+                    IsMatch(d.DishName, kwNoSign) || 
+                    (d.Category != null && IsMatch(d.Category.CategoryName, kwNoSign))
+                ).ToList();
+            }
+        }
+
+        private bool IsMatch(string source, string keywordNoSign)
+        {
+            if (string.IsNullOrEmpty(source)) return false;
+            string sourceNoSign = RemoveDiacritics(source).ToLower();
+            
+            // 1. Match contains (e.g. "ca phe" in "Cà phê sữa")
+            if (sourceNoSign.Contains(keywordNoSign)) return true;
+
+            // 2. Match initials (e.g. "cps" matches "Cà phê sữa")
+            // Simple initials: First letter of each word
+            string initials = string.Concat(sourceNoSign.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s[0]));
+            if (initials.Contains(keywordNoSign)) return true;
+
+            return false;
+        }
+
+        public static string RemoveDiacritics(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            string normalizedString = text.Normalize(System.Text.NormalizationForm.FormD);
+            System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
+
+            foreach (char c in normalizedString)
+            {
+                System.Globalization.UnicodeCategory unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+                if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(c);
+                }
+            }
+
+            return stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC).Replace("đ", "d").Replace("Đ", "D");
         }
 
         private void BtnAddDish_Click(object sender, RoutedEventArgs e)

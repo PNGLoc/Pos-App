@@ -26,7 +26,7 @@
                                    Foreground="#333"
                                    Margin="0,0,20,0"/>
 
-                        <Button Content="+ THÊM NHÂN VIÊN"
+                        <Button Content="➕ THÊM NHÂN VIÊN"
                                 Click="BtnAddNew_Click"
                                 Height="35"
                                 Padding="15,0"

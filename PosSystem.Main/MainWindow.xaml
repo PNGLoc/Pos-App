@@ -3,8 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:PosSystem.Main"
         Title="POS SYSTEM - QUẢN LÝ BÀN"
-        Height="768"
-        Width="1366"
         WindowState="Maximized"
         Background="#F0F2F5">
 
@@ -224,6 +222,22 @@
                             </Style>
                         </Button.Resources>
                     </Button>
+                    <Button Content="🚪 ĐĂNG XUẤT"
+                            Click="BtnLogout_Click"
+                            Height="35"
+                            Background="#DC3545"
+                            Foreground="White"
+                            Padding="15,0"
+                            BorderThickness="0"
+                            FontWeight="SemiBold"
+                            Margin="0,0,10,0">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius"
+                                        Value="5"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
                 </StackPanel>
 
                 <ToggleButton x:Name="tglPrintBill"
@@ -301,60 +315,38 @@
                                             FontSize="12"
                                             FontWeight="Bold"
                                             Cursor="Hand"
-                                            Click="BtnFilterTable_Click"
+                                            Click="BtnFilterAll_Click"
                                             Tag="All"/>
-                                    <Button x:Name="btnFilterDineIn"
-                                            Content="Bàn"
-                                            Width="90"
-                                            Height="30"
-                                            Margin="3,0"
-                                            Padding="5"
-                                            Background="#6C757D"
-                                            Foreground="White"
-                                            FontSize="12"
-                                            FontWeight="Bold"
-                                            Cursor="Hand"
-                                            Click="BtnFilterTable_Click"
-                                            Tag="DineIn"/>
-                                    <Button x:Name="btnFilterTakeAway"
-                                            Content="Mang về"
-                                            Width="90"
-                                            Height="30"
-                                            Margin="3,0"
-                                            Padding="5"
-                                            Background="#6C757D"
-                                            Foreground="White"
-                                            FontSize="12"
-                                            FontWeight="Bold"
-                                            Cursor="Hand"
-                                            Click="BtnFilterTable_Click"
-                                            Tag="TakeAway"/>
-                                    <Button x:Name="btnFilterPickup"
-                                            Content="Khách lấy"
-                                            Width="90"
-                                            Height="30"
-                                            Margin="3,0"
-                                            Padding="5"
-                                            Background="#6C757D"
-                                            Foreground="White"
-                                            FontSize="12"
-                                            FontWeight="Bold"
-                                            Cursor="Hand"
-                                            Click="BtnFilterTable_Click"
-                                            Tag="Pickup"/>
-                                    <Button x:Name="btnFilterDelivery"
-                                            Content="Ship"
-                                            Width="90"
-                                            Height="30"
-                                            Margin="3,0"
-                                            Padding="5"
-                                            Background="#6C757D"
-                                            Foreground="White"
-                                            FontSize="12"
-                                            FontWeight="Bold"
-                                            Cursor="Hand"
-                                            Click="BtnFilterTable_Click"
-                                            Tag="Delivery"/>
+                                    
+                                    <ItemsControl ItemsSource="{Binding FilterCategories}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Content="{Binding CategoryName}"
+                                                        Tag="{Binding CategoryID}"
+                                                        Width="90"
+                                                        Height="30"
+                                                        Margin="3,0"
+                                                        Padding="5"
+                                                        Background="#6C757D"
+                                                        Foreground="White"
+                                                        FontSize="12"
+                                                        FontWeight="Bold"
+                                                        Cursor="Hand"
+                                                        Click="BtnFilterCategory_Click">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="CornerRadius" Value="3"/>
+                                                            </Style>
+                                                        </Button.Resources>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
                             </Grid>
                         </Border>

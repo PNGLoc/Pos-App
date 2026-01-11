@@ -33,6 +33,8 @@
                         FontWeight="Bold"
                         FontSize="13"
                         BorderThickness="0"
+                        HorizontalAlignment="Right"
+        Width="Auto"
                         Cursor="Hand">
                     <Button.Resources>
                         <Style TargetType="Border">

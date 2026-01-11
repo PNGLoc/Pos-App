@@ -22,7 +22,7 @@
 
                     <DockPanel Grid.Row="0" Margin="0,0,0,15">
                         <TextBlock Text="📂 QUẢN LÝ DANH MỤC" FontSize="18" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                        <Button Content="➕ THÊM DANH MỤC" Click="BtnAddCat_Click" DockPanel.Dock="Right" Padding="15,8" Background="#28A745" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
+                        <Button Content="➕ THÊM DANH MỤC" Click="BtnAddCat_Click" DockPanel.Dock="Right" Padding="15,8" Height="32" Background="#28A745" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Right" Width="Auto">
                             <Button.Resources>
                                 <Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style>
                             </Button.Resources>
@@ -45,6 +45,7 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Tên danh mục" Binding="{Binding CategoryName}" Width="*" FontWeight="SemiBold"/>
                             <DataGridTextColumn Header="Thứ tự hiển thị" Binding="{Binding OrderIndex}" Width="150"/>
+                            <DataGridTextColumn Header="Máy in (Bếp)" Binding="{Binding Printer.PrinterName}" Width="150" Foreground="#007BFF"/>
                              <DataGridTemplateColumn Header="Hành động" Width="180">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -98,12 +99,31 @@
                             <Button Content="📥 Nhập Excel" Click="BtnImportExcel_Click" Padding="15,0" Height="32" Background="#17A2B8" Foreground="White" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
                                 <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
                             </Button>
-                            <Button Content="📤 Xuất Excel" Click="BtnExportExcel_Click" Padding="15,0" Height="32" Background="#28A745" Foreground="White" BorderThickness="0" Cursor="Hand">
+                            <Button Content="📤 Xuất Excel" Click="BtnExportExcel_Click" Padding="15,0" Height="32" Background="#85A728" Foreground="White" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
                                 <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
                             </Button>
-                        </StackPanel>
 
-                        <Button Content="➕ THÊM MÓN ĂN" Click="BtnAddDish_Click" DockPanel.Dock="Right" Padding="15,8" Background="#007BFF" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
+                            <!-- Search Box -->
+                            <Border BorderBrush="#CED4DA" BorderThickness="1" CornerRadius="4" Height="32" Margin="10,0,0,0" Background="White" Width="250">
+                                <Grid>
+                                    <TextBlock Text="🔍 Tìm kiếm món..." Foreground="#999" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Text, ElementName=txtSearchDish}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBox x:Name="txtSearchDish" Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="10,0" TextChanged="TxtSearchDish_TextChanged"/>
+                                </Grid>
+                            </Border>
+                           
+                        </StackPanel>
+                          <Button Content="➕ THÊM MÓN ĂN" Click="BtnAddDish_Click" Padding="15,0" Height="32" Background="#28A745" Foreground="White" BorderThickness="0" Cursor="Hand"  HorizontalAlignment="Right" Width="Auto">
                             <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
                         </Button>
                     </DockPanel>

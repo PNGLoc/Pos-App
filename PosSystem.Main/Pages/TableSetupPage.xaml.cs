@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.EntityFrameworkCore; // For Include
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 
@@ -9,33 +11,28 @@ namespace PosSystem.Main.Pages
     public partial class TableSetupPage : UserControl
     {
         private Table? _selected = null;
-        public TableSetupPage() { InitializeComponent(); LoadData(); }
+        public List<TableCategory> Categories { get; set; } = new List<TableCategory>();
 
-        // Mapping giữa hiển thị tiếng Việt và giá trị database
-        private string ConvertDisplayToDb(string display) => display switch
-        {
-            "Bàn ăn tại quán" => "DineIn",
-            "Mang về" => "TakeAway",
-            "Khách lấy" => "Pickup",
-            "Ship" => "Delivery",
-            _ => display
-        };
-
-        private string ConvertDbToDisplay(string dbValue) => dbValue switch
-        {
-            "DineIn" => "Bàn ăn tại quán",
-            "TakeAway" => "Mang về",
-            "Pickup" => "Khách lấy",
-            "Delivery" => "Ship",
-            _ => dbValue
-        };
+        public TableSetupPage() 
+        { 
+            InitializeComponent(); 
+            this.DataContext = this; // Set DataContext for Binding
+            LoadData(); 
+        }
 
         void LoadData() 
         { 
             try
             {
                 using (var db = new AppDbContext()) 
-                    dgTables.ItemsSource = db.Tables.OrderBy(t => t.TableID).ToList();
+                {
+                    // Load Categories for ComboBox
+                    Categories = db.TableCategories.ToList();
+                    cboType.ItemsSource = Categories; // Refresh ItemsSource
+
+                    // Load Tables with Category info
+                    dgTables.ItemsSource = db.Tables.Include(t => t.Category).OrderBy(t => t.TableID).ToList();
+                }
             }
             catch { }
         }
@@ -47,7 +44,7 @@ namespace PosSystem.Main.Pages
             // Mở form thêm mới
             _selected = null;
             txtName.Text = "";
-            cboType.SelectedIndex = 0;
+            if (Categories.Count > 0) cboType.SelectedIndex = 0;
             
             lblModalTitle.Text = "THÊM BÀN MỚI";
             modalOverlay.Visibility = Visibility.Visible;
@@ -61,7 +58,16 @@ namespace PosSystem.Main.Pages
             {
                 _selected = t;
                 txtName.Text = t.TableName;
-                cboType.Text = ConvertDbToDisplay(t.TableType);
+                
+                // Select Category in ComboBox
+                if (t.CategoryID.HasValue)
+                {
+                    cboType.SelectedValue = t.CategoryID.Value;
+                }
+                else
+                {
+                    cboType.SelectedIndex = -1;
+                }
 
                 lblModalTitle.Text = "SỬA THÔNG TIN BÀN";
                 modalOverlay.Visibility = Visibility.Visible;
@@ -102,6 +108,25 @@ namespace PosSystem.Main.Pages
                 return;
             }
 
+            int? selectedCatId = (int?)cboType.SelectedValue;
+            string catName = "DineIn"; // Default fallback
+            
+            // Get Category Name for backward compatibility
+            if (cboType.SelectedItem is TableCategory cat)
+            {
+                // Map category name to old TableType string if needed, or just use CategoryName
+                // For now, let's keep TableType simple or map it based on known categories
+                // Simple mapping strategy: Keep TableType = "DineIn" by default or derived from CategoryName if possible.
+                // Actually, let's just save the CategoryName as TableType for now to see it in debugging, 
+                // but rely on CategoryID for logic.
+                // Better approach: If Category Name matches "Mang Về" -> "TakeAway", etc.
+                
+                if (cat.CategoryName.Contains("Mang")) catName = "TakeAway";
+                else if (cat.CategoryName.Contains("Ship")) catName = "Delivery";
+                else if (cat.CategoryName.Contains("Khách")) catName = "Pickup";
+                else catName = "DineIn"; 
+            }
+
             using (var db = new AppDbContext())
             {
                 if (_selected == null)
@@ -110,8 +135,9 @@ namespace PosSystem.Main.Pages
                     db.Tables.Add(new Table 
                     { 
                         TableName = txtName.Text, 
-                        TableType = ConvertDisplayToDb(cboType.Text), 
-                        TableStatus = "Empty" // Mặc định bàn trống 
+                        CategoryID = selectedCatId,
+                        TableType = catName, // Legacy support
+                        TableStatus = "Empty" 
                     });
                 }
                 else
@@ -121,7 +147,8 @@ namespace PosSystem.Main.Pages
                     if (t != null)
                     {
                         t.TableName = txtName.Text;
-                        t.TableType = ConvertDisplayToDb(cboType.Text);
+                        t.CategoryID = selectedCatId;
+                        t.TableType = catName; // Legacy support
                     }
                 }
                 db.SaveChanges();

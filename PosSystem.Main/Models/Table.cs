@@ -11,8 +11,12 @@ namespace PosSystem.Main.Models
         [Required]
         public string TableName { get; set; } = string.Empty; // Vd: Bàn 1, Bàn 2
 
-        // Loại bàn: DineIn (Bàn ăn tại quán), TakeAway (Mang về), Pickup (Khách lấy), Delivery (Ship)
+        // Loại bàn (Legacy - sẽ bỏ sau này)
         public string TableType { get; set; } = "DineIn";
+
+        // Category Link
+        public int? CategoryID { get; set; }
+        public TableCategory? Category { get; set; }
 
         // Trạng thái: Empty (Trống), Occupied (Có khách)
         public string TableStatus { get; set; } = "Empty";
