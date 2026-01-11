@@ -20,31 +20,82 @@ namespace PosSystem.Main.Pages
         {
             using (var db = new AppDbContext())
             {
-                dgAcc.ItemsSource = db.Accounts.ToList();
+                dgAcc.ItemsSource = db.Accounts.OrderBy(a => a.AccName).ToList();
             }
         }
 
-        // 1. Khi chọn dòng -> Đổ dữ liệu vào Form (Bao gồm CheckBox)
-        private void DgAcc_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void BtnAdd_Click(object sender, RoutedEventArgs e)
         {
-            if (dgAcc.SelectedItem is Account acc)
+            _selectedAccount = null;
+            lblModalTitle.Text = "THÊM TÀI KHOẢN MỚI";
+            
+            txtName.Text = "";
+            txtUser.Text = "";
+            txtPass.Text = "";
+            cboRole.SelectedIndex = 1; // Staff default
+            
+            // Enable username for new account
+            txtUser.IsEnabled = true;
+
+            chkMoveTable.IsChecked = false;
+            chkPayment.IsChecked = false;
+            chkCancelItem.IsChecked = false;
+
+            modalOverlay.Visibility = Visibility.Visible;
+            txtName.Focus();
+        }
+
+        private void BtnEditRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is Account acc)
             {
                 _selectedAccount = acc;
+                lblModalTitle.Text = "CHỈNH SỬA TÀI KHOẢN";
+
                 txtName.Text = acc.AccName;
                 txtUser.Text = acc.Username;
                 txtPass.Text = acc.AccPass;
                 cboRole.SelectedIndex = acc.AccRole == "Admin" ? 0 : 1;
 
-                // --- CẬP NHẬT: Load quyền lên checkbox ---
+                // Disable username editing to prevent system issues
+                txtUser.IsEnabled = false; 
+
                 chkMoveTable.IsChecked = acc.CanMoveTable;
                 chkPayment.IsChecked = acc.CanPayment;
                 chkCancelItem.IsChecked = acc.CanCancelItem;
-                // -----------------------------------------
+
+                modalOverlay.Visibility = Visibility.Visible;
+                txtName.Focus();
             }
         }
 
-        // 2. Thêm mới -> Lưu các quyền từ CheckBox vào DB
-        private void BtnAdd_Click(object sender, RoutedEventArgs e)
+        private void BtnDeleteRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is Account acc)
+            {
+                if (acc.AccID == 1 || acc.Username == "admin") 
+                {
+                    MessageBox.Show("Không thể xóa tài khoản Admin gốc!");
+                    return;
+                }
+
+                if (MessageBox.Show($"Bạn chắc chắn muốn xóa tài khoản '{acc.AccName}'?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                {
+                    using (var db = new AppDbContext())
+                    {
+                        var item = db.Accounts.Find(acc.AccID);
+                        if (item != null)
+                        {
+                            db.Accounts.Remove(item);
+                            db.SaveChanges();
+                            LoadData();
+                        }
+                    }
+                }
+            }
+        }
+
+        private void BtnSaveModal_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtUser.Text) || string.IsNullOrWhiteSpace(txtPass.Text))
             {
@@ -54,111 +105,55 @@ namespace PosSystem.Main.Pages
 
             using (var db = new AppDbContext())
             {
-                if (db.Accounts.Any(a => a.Username == txtUser.Text))
+                if (_selectedAccount == null)
                 {
-                    MessageBox.Show("Tên đăng nhập đã tồn tại!");
-                    return;
+                    // Add New
+                    if (db.Accounts.Any(a => a.Username == txtUser.Text))
+                    {
+                        MessageBox.Show("Tên đăng nhập đã tồn tại!");
+                        return;
+                    }
+
+                    var newAcc = new Account
+                    {
+                        AccName = txtName.Text,
+                        Username = txtUser.Text,
+                        AccPass = txtPass.Text,
+                        AccRole = (cboRole.SelectedIndex == 0) ? "Admin" : "Staff",
+                        CanMoveTable = chkMoveTable.IsChecked == true,
+                        CanPayment = chkPayment.IsChecked == true,
+                        CanCancelItem = chkCancelItem.IsChecked == true
+                    };
+                    db.Accounts.Add(newAcc);
                 }
-
-                var newAcc = new Account
+                else
                 {
-                    AccName = txtName.Text,
-                    Username = txtUser.Text,
-                    AccPass = txtPass.Text,
-                    AccRole = (cboRole.SelectedIndex == 0) ? "Admin" : "Staff",
-
-                    // --- CẬP NHẬT: Lấy giá trị từ CheckBox ---
-                    CanMoveTable = chkMoveTable.IsChecked == true,
-                    CanPayment = chkPayment.IsChecked == true,
-                    CanCancelItem = chkCancelItem.IsChecked == true
-                    // -----------------------------------------
-                };
-
-                db.Accounts.Add(newAcc);
-                db.SaveChanges();
-                LoadData();
-                ClearForm();
-            }
-        }
-
-        // 3. Cập nhật -> Lưu thay đổi quyền
-        private void BtnUpdate_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedAccount == null) return;
-
-            using (var db = new AppDbContext())
-            {
-                var acc = db.Accounts.Find(_selectedAccount.AccID);
-                if (acc != null)
-                {
-                    acc.AccName = txtName.Text;
-                    acc.AccPass = txtPass.Text;
-                    acc.AccRole = (cboRole.SelectedIndex == 0) ? "Admin" : "Staff";
-
-                    // Lưu ý: Không cho sửa Username để tránh lỗi logic hệ thống
-                    // acc.Username = txtUser.Text; 
-
-                    // --- CẬP NHẬT: Lưu quyền ---
-                    acc.CanMoveTable = chkMoveTable.IsChecked == true;
-                    acc.CanPayment = chkPayment.IsChecked == true;
-                    acc.CanCancelItem = chkCancelItem.IsChecked == true;
-                    // ---------------------------
-
-                    db.SaveChanges();
-                    LoadData();
-                    ClearForm();
-                    MessageBox.Show("Cập nhật thành công!");
-                }
-            }
-        }
-
-        private void BtnDelete_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedAccount == null) return;
-            if (_selectedAccount.AccID == 1) // Bảo vệ Admin gốc
-            {
-                MessageBox.Show("Không thể xóa tài khoản Admin gốc!");
-                return;
-            }
-
-            if (MessageBox.Show($"Bạn chắc chắn muốn xóa nhân viên '{_selectedAccount.AccName}'?",
-                "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
-            {
-                using (var db = new AppDbContext())
-                {
+                    // Update
                     var acc = db.Accounts.Find(_selectedAccount.AccID);
                     if (acc != null)
                     {
-                        db.Accounts.Remove(acc);
-                        db.SaveChanges();
-                        LoadData();
-                        ClearForm();
+                        acc.AccName = txtName.Text;
+                        acc.AccPass = txtPass.Text;
+                        acc.AccRole = (cboRole.SelectedIndex == 0) ? "Admin" : "Staff";
+                        
+                        // Don't update Username
+                        
+                        acc.CanMoveTable = chkMoveTable.IsChecked == true;
+                        acc.CanPayment = chkPayment.IsChecked == true;
+                        acc.CanCancelItem = chkCancelItem.IsChecked == true;
                     }
                 }
+
+                db.SaveChanges();
             }
+
+            modalOverlay.Visibility = Visibility.Collapsed;
+            LoadData();
         }
 
-        private void BtnClear_Click(object sender, RoutedEventArgs e)
+        private void BtnCloseModal_Click(object sender, RoutedEventArgs e)
         {
-            ClearForm();
-        }
-
-        // 4. Reset Form -> Bỏ chọn CheckBox
-        private void ClearForm()
-        {
-            _selectedAccount = null;
-            txtName.Text = "";
-            txtUser.Text = "";
-            txtPass.Text = "";
-            cboRole.SelectedIndex = 1;
-
-            // --- CẬP NHẬT: Reset checkbox ---
-            chkMoveTable.IsChecked = false;
-            chkPayment.IsChecked = false;
-            chkCancelItem.IsChecked = false;
-            // --------------------------------
-
-            dgAcc.SelectedItem = null;
+            modalOverlay.Visibility = Visibility.Collapsed;
         }
     }
 }

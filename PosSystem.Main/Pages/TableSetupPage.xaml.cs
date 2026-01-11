@@ -30,41 +30,106 @@ namespace PosSystem.Main.Pages
             _ => dbValue
         };
 
-        void LoadData() { using (var db = new AppDbContext()) dgTables.ItemsSource = db.Tables.ToList(); }
+        void LoadData() 
+        { 
+            try
+            {
+                using (var db = new AppDbContext()) 
+                    dgTables.ItemsSource = db.Tables.OrderBy(t => t.TableID).ToList();
+            }
+            catch { }
+        }
+
+        // --- CÁC HÀM XỬ LÝ MODAL ---
 
         private void BtnAdd_Click(object sender, RoutedEventArgs e)
         {
+            // Mở form thêm mới
+            _selected = null;
+            txtName.Text = "";
+            cboType.SelectedIndex = 0;
+            
+            lblModalTitle.Text = "THÊM BÀN MỚI";
+            modalOverlay.Visibility = Visibility.Visible;
+            txtName.Focus();
+        }
+
+        private void BtnEditRow_Click(object sender, RoutedEventArgs e)
+        {
+            // Mở form sửa từ nút trên dòng
+            if (sender is Button btn && btn.Tag is Table t)
+            {
+                _selected = t;
+                txtName.Text = t.TableName;
+                cboType.Text = ConvertDbToDisplay(t.TableType);
+
+                lblModalTitle.Text = "SỬA THÔNG TIN BÀN";
+                modalOverlay.Visibility = Visibility.Visible;
+                txtName.Focus();
+            }
+        }
+
+        private void BtnDeleteRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is Table t)
+            {
+                if (MessageBox.Show($"Bạn có chắc muốn xóa bàn '{t.TableName}'?", "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                {
+                    using (var db = new AppDbContext())
+                    {
+                        var item = db.Tables.Find(t.TableID);
+                        if (item != null)
+                        {
+                            db.Tables.Remove(item);
+                            db.SaveChanges();
+                            LoadData();
+                        }
+                    }
+                }
+            }
+        }
+
+        private void BtnCloseModal_Click(object sender, RoutedEventArgs e)
+        {
+            modalOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private void BtnSaveModal_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtName.Text))
+            {
+                MessageBox.Show("Vui lòng nhập tên bàn!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             using (var db = new AppDbContext())
             {
-                db.Tables.Add(new Table { TableName = txtName.Text, TableType = ConvertDisplayToDb(cboType.Text), TableStatus = "Empty" });
-                db.SaveChanges(); LoadData();
+                if (_selected == null)
+                {
+                    // Thêm mới
+                    db.Tables.Add(new Table 
+                    { 
+                        TableName = txtName.Text, 
+                        TableType = ConvertDisplayToDb(cboType.Text), 
+                        TableStatus = "Empty" // Mặc định bàn trống 
+                    });
+                }
+                else
+                {
+                    // Cập nhật
+                    var t = db.Tables.Find(_selected.TableID);
+                    if (t != null)
+                    {
+                        t.TableName = txtName.Text;
+                        t.TableType = ConvertDisplayToDb(cboType.Text);
+                    }
+                }
+                db.SaveChanges();
             }
-        }
 
-        private void BtnUpdate_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selected == null) return;
-            using (var db = new AppDbContext())
-            {
-                var t = db.Tables.Find(_selected.TableID);
-                if (t != null) { t.TableName = txtName.Text; t.TableType = ConvertDisplayToDb(cboType.Text); db.SaveChanges(); LoadData(); }
-            }
+            // Đóng modal và tải lại dữ liệu
+            modalOverlay.Visibility = Visibility.Collapsed;
+            LoadData();
         }
-
-        private void BtnDelete_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selected == null) return;
-            if (MessageBox.Show("Xóa bàn này?", "Confirm", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-            {
-                using (var db = new AppDbContext()) { var t = db.Tables.Find(_selected.TableID); if (t != null) db.Tables.Remove(t); db.SaveChanges(); LoadData(); }
-            }
-        }
-
-        private void dgTables_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (dgTables.SelectedItem is Table t) { _selected = t; txtName.Text = t.TableName; cboType.Text = ConvertDbToDisplay(t.TableType); }
-        }
-
-        private void BtnClear_Click(object sender, RoutedEventArgs e) { _selected = null; txtName.Text = ""; }
     }
 }

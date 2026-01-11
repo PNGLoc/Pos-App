@@ -5,7 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Win32; // Để dùng OpenFileDialog
+using Microsoft.Win32;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 using PosSystem.Main.Services;
@@ -14,10 +14,9 @@ namespace PosSystem.Main.Pages
 {
     public partial class MenuSetupPage : UserControl
     {
-        // Biến lưu trạng thái
         private Category? _selectedCat;
         private Dish? _selectedDish;
-        private string _currentImgPath = "default.png"; // Ảnh mặc định
+        private string _currentImgPath = "default.png";
 
         public MenuSetupPage()
         {
@@ -27,137 +26,257 @@ namespace PosSystem.Main.Pages
         }
 
         // ==========================================
-        // PHẦN 1: QUẢN LÝ DANH MỤC (CATEGORY)
+        // 1. QUẢN LÝ DANH MỤC (CATEGORY)
         // ==========================================
 
         void LoadCats()
         {
-            using (var db = new AppDbContext())
+            try
             {
-                var list = db.Categories.OrderBy(c => c.OrderIndex).ToList();
-                dgCats.ItemsSource = list;
+                using (var db = new AppDbContext())
+                {
+                    var list = db.Categories.OrderBy(c => c.OrderIndex).ToList();
+                    dgCats.ItemsSource = list;
 
-                // Load danh sách máy in vào ComboBox
-                cboPrinters.ItemsSource = db.Printers.Where(p => p.IsActive).ToList();
-
-                // Cập nhật luôn ComboBox chọn nhóm bên Tab Món ăn
-                cboDishCat.ItemsSource = list;
+                    // Load Data for ComboBoxes (printers & category selection for dishes)
+                    var printers = db.Printers.Where(p => p.IsActive).ToList();
+                    cboPrinters.ItemsSource = printers;
+                    cboDishCat.ItemsSource = list;
+                }
             }
-        }
-
-        private void dgCats_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (dgCats.SelectedItem is Category c)
-            {
-                _selectedCat = c;
-                txtCatName.Text = c.CategoryName;
-                txtCatIndex.Text = c.OrderIndex.ToString();
-                cboPrinters.SelectedValue = c.PrinterID;
-            }
+            catch { }
         }
 
         private void BtnAddCat_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtCatName.Text)) return;
+            // Open Modal for Category
+            _selectedCat = null;
+            txtCatName.Text = "";
+            txtCatIndex.Text = "0";
+            cboPrinters.SelectedIndex = -1;
 
-            using (var db = new AppDbContext())
+            ShowModal(isCategory: true);
+            txtCatName.Focus();
+        }
+
+        private void BtnEditCatRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is Category cat)
             {
-                var cat = new Category
-                {
-                    CategoryName = txtCatName.Text,
-                    OrderIndex = int.TryParse(txtCatIndex.Text, out int idx) ? idx : 0,
-                    PrinterID = (int?)cboPrinters.SelectedValue
-                };
-                db.Categories.Add(cat);
-                db.SaveChanges();
-                LoadCats();
-                ClearCatForm();
+                _selectedCat = cat;
+                txtCatName.Text = cat.CategoryName;
+                txtCatIndex.Text = cat.OrderIndex.ToString();
+                cboPrinters.SelectedValue = cat.PrinterID;
+
+                ShowModal(isCategory: true);
+                txtCatName.Focus();
             }
         }
 
-        private void BtnUpdateCat_Click(object sender, RoutedEventArgs e)
+        private void BtnDeleteCatRow_Click(object sender, RoutedEventArgs e)
         {
-            if (_selectedCat == null) return;
-            using (var db = new AppDbContext())
+            if (sender is Button btn && btn.Tag is Category cat)
             {
-                var cat = db.Categories.Find(_selectedCat.CategoryID);
-                if (cat != null)
+                if (MessageBox.Show($"Xóa danh mục '{cat.CategoryName}' sẽ xóa TẤT CẢ món ăn thuộc danh mục này.\nBạn có chắc chắn không?", "Cảnh báo xóa", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
-                    cat.CategoryName = txtCatName.Text;
-                    cat.OrderIndex = int.TryParse(txtCatIndex.Text, out int idx) ? idx : 0;
-                    cat.PrinterID = (int?)cboPrinters.SelectedValue;
-
-                    db.SaveChanges();
-                    LoadCats();
-                    ClearCatForm();
-                }
-            }
-        }
-
-        private void BtnDeleteCat_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedCat == null) return;
-
-            if (MessageBox.Show("Xóa danh mục này sẽ xóa luôn các món bên trong. Tiếp tục?", "Cảnh báo", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
-            {
-                using (var db = new AppDbContext())
-                {
-                    var cat = db.Categories.Find(_selectedCat.CategoryID);
-                    if (cat != null)
+                    using (var db = new AppDbContext())
                     {
-                        db.Categories.Remove(cat);
-                        db.SaveChanges();
-                        LoadCats();
-                        LoadDishes(); // Reload cả món vì món bị xóa theo
-                        ClearCatForm();
+                        var item = db.Categories.Find(cat.CategoryID);
+                        if (item != null)
+                        {
+                            db.Categories.Remove(item);
+                            db.SaveChanges();
+                            LoadCats();
+                            LoadDishes(); // Refresh dishes too
+                        }
                     }
                 }
             }
         }
 
-        void ClearCatForm()
+        private void BtnSaveCategory_Click(object sender, RoutedEventArgs e)
         {
-            _selectedCat = null;
-            txtCatName.Text = "";
-            txtCatIndex.Text = "0";
-            cboPrinters.SelectedValue = null;
-            dgCats.SelectedItem = null;
+            if (string.IsNullOrWhiteSpace(txtCatName.Text))
+            {
+                MessageBox.Show("Vui lòng nhập tên danh mục!", "Thiếu thông tin");
+                return;
+            }
+
+            using (var db = new AppDbContext())
+            {
+                if (_selectedCat == null)
+                {
+                    // Add
+                    var cat = new Category
+                    {
+                        CategoryName = txtCatName.Text,
+                        OrderIndex = int.TryParse(txtCatIndex.Text, out int idx) ? idx : 0,
+                        PrinterID = (int?)cboPrinters.SelectedValue
+                    };
+                    db.Categories.Add(cat);
+                }
+                else
+                {
+                    // Update
+                    var item = db.Categories.Find(_selectedCat.CategoryID);
+                    if (item != null)
+                    {
+                        item.CategoryName = txtCatName.Text;
+                        item.OrderIndex = int.TryParse(txtCatIndex.Text, out int idx) ? idx : 0;
+                        item.PrinterID = (int?)cboPrinters.SelectedValue;
+                    }
+                }
+                db.SaveChanges();
+            }
+
+            CloseModal();
+            LoadCats();
         }
 
-
         // ==========================================
-        // PHẦN 2: QUẢN LÝ MÓN ĂN (DISH)
+        // 2. QUẢN LÝ MÓN ĂN (DISH)
         // ==========================================
 
         void LoadDishes()
         {
-            using (var db = new AppDbContext())
+            try
             {
-                // Include Category để hiển thị tên nhóm trong DataGrid
-                dgDishes.ItemsSource = db.Dishes.Include(d => d.Category).ToList();
+                using (var db = new AppDbContext())
+                {
+                    dgDishes.ItemsSource = db.Dishes.Include(d => d.Category).OrderBy(d => d.Category.OrderIndex).ThenBy(d => d.DishName).ToList();
+                }
             }
+            catch { }
         }
 
-        private void dgDishes_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void BtnAddDish_Click(object sender, RoutedEventArgs e)
         {
-            if (dgDishes.SelectedItem is Dish d)
+            // Open Modal for Dish
+            _selectedDish = null;
+            txtDishName.Text = "";
+            txtPrice.Text = "0";
+            txtUnit.Text = "Phần";
+            cboDishCat.SelectedIndex = 0;
+            chkActive.IsChecked = true;
+            _currentImgPath = "default.png";
+            imgPreview.Source = null;
+
+            ShowModal(isCategory: false);
+            txtDishName.Focus();
+        }
+
+        private void BtnEditDishRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is Dish d)
             {
                 _selectedDish = d;
                 txtDishName.Text = d.DishName;
                 txtPrice.Text = d.Price.ToString("0");
                 txtUnit.Text = d.Unit;
-
                 cboDishCat.SelectedValue = d.CategoryID;
-
                 chkActive.IsChecked = d.DishStatus == "Active";
-
-                // Load ảnh
                 _currentImgPath = d.ImagePath;
                 LoadImageToPreview(_currentImgPath);
+
+                ShowModal(isCategory: false);
+                txtDishName.Focus();
             }
         }
 
-        // --- XỬ LÝ UPLOAD ẢNH ---
+        private void BtnDeleteDishRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is Dish d)
+            {
+                if (MessageBox.Show($"Xóa món '{d.DishName}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                {
+                    using (var db = new AppDbContext())
+                    {
+                        var item = db.Dishes.Find(d.DishID);
+                        if (item != null)
+                        {
+                            db.Dishes.Remove(item);
+                            db.SaveChanges();
+                            LoadDishes();
+                        }
+                    }
+                }
+            }
+        }
+
+        private void BtnSaveDish_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtDishName.Text) || cboDishCat.SelectedValue == null)
+            {
+                MessageBox.Show("Vui lòng nhập tên món và chọn danh mục!");
+                return;
+            }
+
+            using (var db = new AppDbContext())
+            {
+                if (_selectedDish == null)
+                {
+                    // Add
+                    var dish = new Dish
+                    {
+                        DishName = txtDishName.Text,
+                        Price = decimal.TryParse(txtPrice.Text, out decimal p) ? p : 0,
+                        Unit = txtUnit.Text,
+                        CategoryID = (int)cboDishCat.SelectedValue,
+                        DishStatus = chkActive.IsChecked == true ? "Active" : "Inactive",
+                        ImagePath = _currentImgPath
+                    };
+                    db.Dishes.Add(dish);
+                }
+                else
+                {
+                    // Update
+                    var item = db.Dishes.Find(_selectedDish.DishID);
+                    if (item != null)
+                    {
+                        item.DishName = txtDishName.Text;
+                        item.Price = decimal.TryParse(txtPrice.Text, out decimal p) ? p : 0;
+                        item.Unit = txtUnit.Text;
+                        item.CategoryID = (int)cboDishCat.SelectedValue;
+                        item.DishStatus = chkActive.IsChecked == true ? "Active" : "Inactive";
+                        item.ImagePath = _currentImgPath;
+                    }
+                }
+                db.SaveChanges();
+            }
+
+            CloseModal();
+            LoadDishes();
+        }
+
+        // ==========================================
+        // 3. COMMON / MODAL / UTILS
+        // ==========================================
+
+        private void ShowModal(bool isCategory)
+        {
+            modalOverlay.Visibility = Visibility.Visible;
+            if (isCategory)
+            {
+                panelCategoryForm.Visibility = Visibility.Visible;
+                panelDishForm.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                panelCategoryForm.Visibility = Visibility.Collapsed;
+                panelDishForm.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void CloseModal()
+        {
+            modalOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private void BtnCloseModal_Click(object sender, RoutedEventArgs e)
+        {
+            CloseModal();
+        }
+
         private void BtnUploadImg_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog dlg = new OpenFileDialog();
@@ -170,7 +289,6 @@ namespace PosSystem.Main.Pages
                     string destFolder = Path.Combine(AppContext.BaseDirectory, "Images");
                     if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder);
 
-                    // Tạo tên file ngẫu nhiên để tránh trùng
                     string ext = Path.GetExtension(dlg.FileName);
                     string newName = $"dish_{DateTime.Now.Ticks}{ext}";
                     string destPath = Path.Combine(destFolder, newName);
@@ -197,7 +315,7 @@ namespace PosSystem.Main.Pages
                 {
                     BitmapImage bmp = new BitmapImage();
                     bmp.BeginInit();
-                    bmp.CacheOption = BitmapCacheOption.OnLoad; // Để không bị lock file
+                    bmp.CacheOption = BitmapCacheOption.OnLoad;
                     bmp.UriSource = new Uri(path);
                     bmp.EndInit();
                     imgPreview.Source = bmp;
@@ -210,97 +328,8 @@ namespace PosSystem.Main.Pages
             catch { imgPreview.Source = null; }
         }
 
-        // --- CRUD MÓN ĂN ---
-
-        private void BtnAddDish_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(txtDishName.Text) || cboDishCat.SelectedValue == null)
-            {
-                MessageBox.Show("Vui lòng nhập tên món và chọn nhóm!");
-                return;
-            }
-
-            using (var db = new AppDbContext())
-            {
-                var dish = new Dish
-                {
-                    DishName = txtDishName.Text,
-                    Price = decimal.TryParse(txtPrice.Text, out decimal p) ? p : 0,
-                    Unit = txtUnit.Text,
-                    CategoryID = (int)cboDishCat.SelectedValue,
-                    DishStatus = chkActive.IsChecked == true ? "Active" : "Inactive",
-                    ImagePath = _currentImgPath
-                };
-
-                db.Dishes.Add(dish);
-                db.SaveChanges();
-                LoadDishes();
-                ClearDishForm();
-                MessageBox.Show("Đã thêm món mới!");
-            }
-        }
-
-        private void BtnUpdateDish_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedDish == null) return;
-            using (var db = new AppDbContext())
-            {
-                var dish = db.Dishes.Find(_selectedDish.DishID);
-                if (dish != null)
-                {
-                    dish.DishName = txtDishName.Text;
-                    dish.Price = decimal.TryParse(txtPrice.Text, out decimal p) ? p : 0;
-                    dish.Unit = txtUnit.Text;
-                    dish.CategoryID = (int)cboDishCat.SelectedValue;
-                    dish.DishStatus = chkActive.IsChecked == true ? "Active" : "Inactive";
-                    dish.ImagePath = _currentImgPath;
-
-                    db.SaveChanges();
-                    LoadDishes();
-                    ClearDishForm();
-                    MessageBox.Show("Cập nhật món thành công!");
-                }
-            }
-        }
-
-        private void BtnDeleteDish_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedDish == null) return;
-            if (MessageBox.Show("Xóa món này?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-            {
-                using (var db = new AppDbContext())
-                {
-                    var dish = db.Dishes.Find(_selectedDish.DishID);
-                    if (dish != null)
-                    {
-                        db.Dishes.Remove(dish);
-                        db.SaveChanges();
-                        LoadDishes();
-                        ClearDishForm();
-                    }
-                }
-            }
-        }
-
-        private void BtnClearDish_Click(object sender, RoutedEventArgs e)
-        {
-            ClearDishForm();
-        }
-
-        void ClearDishForm()
-        {
-            _selectedDish = null;
-            txtDishName.Text = "";
-            txtPrice.Text = "0";
-            txtUnit.Text = "";
-            cboDishCat.SelectedIndex = -1;
-            chkActive.IsChecked = true;
-            _currentImgPath = "default.png";
-            imgPreview.Source = null;
-            dgDishes.SelectedItem = null;
-        }
         // ==========================================
-        // PHẦN 4: IMPORT/EXPORT EXCEL
+        // 4. IMPORT / EXPORT EXCEL
         // ==========================================
 
         private void BtnExportExcel_Click(object sender, RoutedEventArgs e)
@@ -320,12 +349,13 @@ namespace PosSystem.Main.Pages
                     var window = Window.GetWindow(this);
                     if (window is MainWindow mainWindow)
                     {
-                        mainWindow.ShowToast($"✅ Xuất Excel thành công: {Path.GetFileName(saveDialog.FileName)}");
+                        mainWindow.ShowToast($"Xuất Excel thành công: {Path.GetFileName(saveDialog.FileName)}");
                     }
+                    MessageBox.Show("Xuất file thành công!");
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Lỗi: {ex.Message}");
                 }
             }
         }
@@ -343,30 +373,18 @@ namespace PosSystem.Main.Pages
                 try
                 {
                     var (importedCount, errors) = ExcelService.ImportDishesFromExcel(openDialog.FileName);
+                    if (importedCount > 0) LoadDishes();
 
-                    if (importedCount > 0)
-                    {
-                        LoadDishes(); // Reload the dish list
-                    }
-
-                    // Show result message
-                    string message = $"✅ Nhập thành công: {importedCount} món\n";
+                    string msg = $"Nhập thành công {importedCount} món.";
                     if (errors.Count > 0)
                     {
-                        message += $"\n⚠️ {errors.Count} lỗi:\n";
-                        message += string.Join("\n", errors.Take(10)); // Show first 10 errors
-                        if (errors.Count > 10)
-                        {
-                            message += $"\n... và {errors.Count - 10} lỗi khác";
-                        }
+                        msg += $"\nCó {errors.Count} lỗi (xem chi tiết?)";
                     }
-
-                    MessageBox.Show(message, "Kết quả nhập Excel", MessageBoxButton.OK,
-                        errors.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+                    MessageBox.Show(msg);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Lỗi khi nhập Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Lỗi: {ex.Message}");
                 }
             }
         }
