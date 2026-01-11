@@ -380,14 +380,14 @@ async function confirmMenuSelection() {
 
     // Nếu chưa có đơn -> Create, ngược lại -> Add
     let url = appState.orderDetails.length === 0 ? `${API_URL}/Order/create` : `${API_URL}/Order/${appState.currentTableId}/add`;
-    let payload = appState.orderDetails.length === 0 ? { tableID: appState.currentTableId, accID: currentUser.accID || 1, items: itemsToAdd } : { details: itemsToAdd };
+    let payload = appState.orderDetails.length === 0 ? { tableID: appState.currentTableId, accID: currentUser.accID || 1, items: itemsToAdd } : { accID: currentUser.accID || 1, details: itemsToAdd };
 
     try { const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (res.ok) { showToast("Đã thêm vào giỏ"); appState.tempMenuSelection = {}; showView('view-detail'); document.querySelector('a[href="#tab-cart"]').click(); loadOrderData(appState.currentTableId); } else { showToast("Lỗi: " + await res.text(), 'danger'); } } catch (e) { showToast("Lỗi kết nối", 'danger'); }
 }
 
 async function sendOrderToKitchen() {
     const btn = document.querySelector('#cartActionBar button'); btn.disabled = true;
-    try { const res = await fetch(`${API_URL}/Order/${appState.currentTableId}/send`, { method: 'POST' }); if (res.ok) { showToast('Đã gửi bếp thành công!'); document.querySelector('a[href="#tab-confirmed"]').click(); loadOrderData(appState.currentTableId); } else { showToast('Không có món mới để gửi', 'warning'); } } catch (e) { showToast('Lỗi kết nối!', 'danger'); } finally { btn.disabled = false; }
+    try { const res = await fetch(`${API_URL}/Order/${appState.currentTableId}/send?accID=${currentUser.accID || 0}`, { method: 'POST' }); if (res.ok) { showToast('Đã gửi bếp thành công!'); document.querySelector('a[href="#tab-confirmed"]').click(); loadOrderData(appState.currentTableId); } else { showToast('Không có món mới để gửi', 'warning'); } } catch (e) { showToast('Lỗi kết nối!', 'danger'); } finally { btn.disabled = false; }
 }
 
 function cancelMenuSelection() { appState.tempMenuSelection = {}; showView('view-detail'); }

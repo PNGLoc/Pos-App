@@ -4,563 +4,342 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
-             Background="#F0F2F5"
+             Background="#F4F6F9"
              d:DesignHeight="700"
              d:DesignWidth="1200">
 
-        <UserControl.Resources>
-                <DropShadowEffect x:Key="ShadowEffect"
-                                  Color="Black"
-                                  BlurRadius="15"
-                                  ShadowDepth="0"
-                                  Opacity="0.1"/>
+    <UserControl.Resources>
+        <!-- Card Style -->
+        <DropShadowEffect x:Key="CardShadow" Color="Black" BlurRadius="20" ShadowDepth="5" Opacity="0.1"/>
+        
+        <Style TargetType="Border" x:Key="CardBorder">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+        </Style>
 
-                <Style x:Key="ToolboxButtonStyle"
-                       TargetType="Button">
-                        <Setter Property="Height"
-                                Value="40"/>
-                        <Setter Property="HorizontalContentAlignment"
-                                Value="Left"/>
-                        <Setter Property="Padding"
-                                Value="15,0"/>
-                        <Setter Property="Margin"
-                                Value="0,0,0,8"/>
-                        <Setter Property="Background"
-                                Value="White"/>
-                        <Setter Property="BorderBrush"
-                                Value="#E0E0E0"/>
-                        <Setter Property="BorderThickness"
-                                Value="1"/>
-                        <Setter Property="Template">
-                                <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                                <Border x:Name="bd"
-                                                        Background="{TemplateBinding Background}"
-                                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                                        CornerRadius="5">
-                                                        <ContentPresenter HorizontalAlignment="Left"
-                                                                          VerticalAlignment="Center"
-                                                                          Margin="{TemplateBinding Padding}"/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsMouseOver"
-                                                                 Value="True">
-                                                                <Setter TargetName="bd"
-                                                                        Property="Background"
-                                                                        Value="#F0F8FF"/>
-                                                                <Setter TargetName="bd"
-                                                                        Property="BorderBrush"
-                                                                        Value="#007BFF"/>
-                                                        </Trigger>
-                                                </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                </Setter.Value>
-                        </Setter>
-                </Style>
-
-                <Style x:Key="ActionButtonStyle"
-                       TargetType="Button">
-                        <Setter Property="Padding"
-                                Value="15,8"/>
-                        <Setter Property="Background"
-                                Value="White"/>
-                        <Setter Property="BorderBrush"
-                                Value="#DDD"/>
-                        <Setter Property="BorderThickness"
-                                Value="1"/>
-                        <Setter Property="FontWeight"
-                                Value="SemiBold"/>
-                        <Setter Property="Template">
-                                <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                                <Border x:Name="bd"
-                                                        Background="{TemplateBinding Background}"
-                                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                                        CornerRadius="4">
-                                                        <ContentPresenter HorizontalAlignment="Center"
-                                                                          VerticalAlignment="Center"/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsMouseOver"
-                                                                 Value="True">
-                                                                <Setter TargetName="bd"
-                                                                        Property="Background"
-                                                                        Value="#EEE"/>
-                                                        </Trigger>
-                                                </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                </Setter.Value>
-                        </Setter>
-                </Style>
-
-                <Style x:Key="ReceiptItemContainerStyle"
-                       TargetType="ListBoxItem">
-                        <Setter Property="HorizontalContentAlignment"
-                                Value="Stretch"/>
-                        <Setter Property="Padding"
-                                Value="0"/>
-                        <Setter Property="Margin"
-                                Value="0,2"/>
-                        <Setter Property="BorderThickness"
-                                Value="1"/>
-                        <Setter Property="BorderBrush"
-                                Value="Transparent"/>
-                        <Setter Property="Background"
-                                Value="Transparent"/>
-                        <Setter Property="Template">
-                                <Setter.Value>
-                                        <ControlTemplate TargetType="ListBoxItem">
-                                                <Border x:Name="bd"
-                                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                                        Background="{TemplateBinding Background}"
-                                                        CornerRadius="3"
-                                                        Padding="5">
-                                                        <ContentPresenter/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsSelected"
-                                                                 Value="True">
-                                                                <Setter TargetName="bd"
-                                                                        Property="BorderBrush"
-                                                                        Value="#007BFF"/>
-                                                                <Setter TargetName="bd"
-                                                                        Property="Background"
-                                                                        Value="#E3F2FD"/>
-                                                        </Trigger>
-                                                        <Trigger Property="IsMouseOver"
-                                                                 Value="True">
-                                                                <Setter TargetName="bd"
-                                                                        Property="Background"
-                                                                        Value="#F5F5F5"/>
-                                                        </Trigger>
-                                                </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                </Setter.Value>
-                        </Setter>
-                </Style>
-        </UserControl.Resources>
-
-        <Grid Margin="15">
-                <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="280"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="320"/>
-                </Grid.ColumnDefinitions>
-
-                <Border Grid.Column="0"
-                        Background="White"
-                        CornerRadius="8"
-                        Margin="0,0,15,0"
-                        Padding="15">
-                        <Border.Effect>
-                                <DropShadowEffect Color="#DDD"
-                                                  BlurRadius="10"
-                                                  ShadowDepth="2"
-                                                  Opacity="0.3"/>
-                        </Border.Effect>
-                        <Grid>
-                                <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <StackPanel>
-                                        <TextBlock x:Name="txtTitle"
-                                                   Text="THIẾT KẾ MẪU IN"
-                                                   FontSize="18"
-                                                   FontWeight="Bold"
-                                                   Foreground="#333"
-                                                   Margin="0,0,0,5"/>
-                                        <TextBlock Text="Chọn thành phần để thêm vào mẫu"
-                                                   FontSize="12"
-                                                   Foreground="Gray"
-                                                   Margin="0,0,0,20"/>
-                                </StackPanel>
-                                <ScrollViewer Grid.Row="1"
-                                              VerticalScrollBarVisibility="Auto">
-                                        <StackPanel x:Name="pnlToolbox">
-                                                <TextBlock Text="CƠ BẢN"
-                                                           FontWeight="Bold"
-                                                           Foreground="#888"
-                                                           Margin="0,0,0,5"/>
-                                                <Button Content="📝 Văn bản tùy ý"
-                                                        Tag="Text"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-                                                <Button Content="➖ Đường kẻ ngang"
-                                                        Tag="Separator"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-                                                <Button Content="🖼️ Logo / Ảnh"
-                                                        Tag="Logo"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-                                                <Button Content="⬛ Mã QR"
-                                                        Tag="QRCode"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-
-                                                <TextBlock Text="THÔNG TIN (Biến số)"
-                                                           FontWeight="Bold"
-                                                           Foreground="#888"
-                                                           Margin="0,15,0,5"/>
-                                                <Button Content="📍 Tên bàn: {Table}"
-                                                        Tag="TextTable"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-                                                <Button Content="👤 Thu ngân: {Staff}"
-                                                        Tag="TextStaff"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-                                                <Button Content="🕒 Giờ vào &amp; Giờ in"
-                                                        Tag="TextTime"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-                                                <Button Content="⏳ Thời gian ngồi"
-                                                        Tag="TextDuration"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-
-                                                <TextBlock Text="BẾP / BAR"
-                                                           FontWeight="Bold"
-                                                           Foreground="#888"
-                                                           Margin="0,15,0,5"/>
-                                                <Button Content="🔔 Số đợt gọi: {Batch}"
-                                                        Tag="BatchNumber"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-                                                <Button Content="🥘 Danh sách món (Bếp)"
-                                                        Tag="KitchenOrderDetails"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-
-                                                <TextBlock Text="HÓA ĐƠN"
-                                                           FontWeight="Bold"
-                                                           Foreground="#888"
-                                                           Margin="0,15,0,5"/>
-                                                <Button Content="📋 Danh sách món (Bill)"
-                                                        Tag="OrderDetails"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-                                                <Button Content="💰 Tổng cộng tiền"
-                                                        Tag="Total"
-                                                        Click="BtnToolbox_Click"
-                                                        Style="{StaticResource ToolboxButtonStyle}"/>
-                                        </StackPanel>
-                                </ScrollViewer>
-                        </Grid>
-                </Border>
-
-                <Grid Grid.Column="1">
-                        <Grid.RowDefinitions>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <Border Background="#555"
-                                CornerRadius="8"
-                                Padding="20">
-                                <Border Background="White"
-                                        Width="380"
-                                        VerticalAlignment="Stretch"
-                                        Effect="{StaticResource ShadowEffect}">
-                                        <Grid>
-                                                <Grid.RowDefinitions>
-                                                        <RowDefinition Height="Auto"/>
-                                                        <RowDefinition Height="*"/>
-                                                        <RowDefinition Height="Auto"/>
-                                                </Grid.RowDefinitions>
-                                                <ListBox x:Name="lstElements"
-                                                         Grid.Row="1"
-                                                         SelectionChanged="LstElements_SelectionChanged"
-                                                         ItemContainerStyle="{StaticResource ReceiptItemContainerStyle}"
-                                                         BorderThickness="0"
-                                                         Background="Transparent"
-                                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                                         Padding="10">
-                                                        <ListBox.ItemTemplate>
-                                                                <DataTemplate>
-                                                                        <Grid>
-                                                                                <TextBlock Text="{Binding DisplayPreview}"
-                                                                                           FontSize="{Binding FontSize}"
-                                                                                           FontWeight="{Binding FontWeightDisplay}"
-                                                                                           TextAlignment="{Binding TextAlignmentDisplay}"
-                                                                                           TextWrapping="Wrap"
-                                                                                           Visibility="{Binding IsTextVisible}"/>
-                                                                                <Border BorderBrush="Black"
-                                                                                        BorderThickness="0,0,0,1"
-                                                                                        Height="1"
-                                                                                        Visibility="{Binding IsSeparatorVisible}"/>
-                                                                                <Border Background="#F0F0F0"
-                                                                                        Height="80"
-                                                                                        Width="80"
-                                                                                        HorizontalAlignment="{Binding HorizontalAlignDisplay}"
-                                                                                        Visibility="{Binding IsImageVisible}">
-                                                                                        <StackPanel VerticalAlignment="Center"
-                                                                                                    HorizontalAlignment="Center">
-                                                                                                <TextBlock Text="🖼️"
-                                                                                                           FontSize="20"
-                                                                                                           HorizontalAlignment="Center"/>
-                                                                                                <TextBlock Text="{Binding Content}"
-                                                                                                           FontSize="10"
-                                                                                                           Foreground="Gray"/>
-                                                                                        </StackPanel>
-                                                                                </Border>
-                                                                        </Grid>
-                                                                </DataTemplate>
-                                                        </ListBox.ItemTemplate>
-                                                </ListBox>
-                                        </Grid>
-                                </Border>
+        <!-- Toolbox Button Style -->
+        <Style x:Key="ToolboxBtnStyle" TargetType="Button">
+            <Setter Property="Height" Value="45"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#DEE2E6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="15,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#495057"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="6">
+                            <ContentPresenter VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                         </Border>
-                        <Border Grid.Row="1"
-                                Background="White"
-                                CornerRadius="8"
-                                Margin="0,15,0,0"
-                                Padding="10">
-                                <StackPanel Orientation="Horizontal"
-                                            HorizontalAlignment="Center">
-                                        <Button Content="⬆ Lên"
-                                                Click="BtnUp_Click"
-                                                Style="{StaticResource ActionButtonStyle}"
-                                                Margin="0,0,10,0"/>
-                                        <Button Content="⬇ Xuống"
-                                                Click="BtnDown_Click"
-                                                Style="{StaticResource ActionButtonStyle}"
-                                                Margin="0,0,10,0"/>
-                                        <Button Content="🗑 Xóa dòng"
-                                                Click="BtnDelete_Click"
-                                                Background="#DC3545"
-                                                Foreground="White"
-                                                Style="{StaticResource ActionButtonStyle}"/>
-                                </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#E9ECEF"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#ADB5BD"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ListBox Item Style -->
+        <Style x:Key="PreviewItemStyle" TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bd" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="4" 
+                                Padding="8,4">
+                            <ContentPresenter/>
                         </Border>
-                </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#007BFF"/>
+                                <Setter TargetName="bd" Property="Background" Value="#E7F3FF"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#F8F9FA"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
 
-                <Border Grid.Column="2"
-                        Background="White"
-                        CornerRadius="8"
-                        Margin="15,0,0,0"
-                        Padding="15">
-                        <Border.Effect>
-                                <DropShadowEffect Color="#DDD"
-                                                  BlurRadius="10"
-                                                  ShadowDepth="2"
-                                                  Opacity="0.3"/>
-                        </Border.Effect>
-                        <StackPanel x:Name="pnlProperties"
-                                    IsEnabled="False">
-                                <TextBlock Text="TÙY CHỈNH"
-                                           FontSize="16"
-                                           FontWeight="Bold"
-                                           Margin="0,0,0,15"/>
-                                <TextBlock Text="Đang chọn:"
-                                           Foreground="Gray"
-                                           FontSize="12"/>
-                                <TextBlock x:Name="lblSelectedType"
-                                           Text="None"
-                                           FontWeight="Bold"
-                                           FontSize="14"
-                                           Margin="0,0,0,15"/>
+    <Grid Margin="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300" /> <!-- Toolbox -->
+            <ColumnDefinition Width="*" />   <!-- Preview -->
+            <ColumnDefinition Width="320" /> <!-- Properties -->
+        </Grid.ColumnDefinitions>
 
-                                <StackPanel x:Name="pnlTextProp">
-                                        <TextBlock Text="Nội dung hiển thị:"
-                                                   Margin="0,0,0,5"/>
-                                        <TextBox x:Name="txtContent"
-                                                 Height="80"
-                                                 TextWrapping="Wrap"
-                                                 Padding="5"
-                                                 TextChanged="TxtContent_TextChanged"
-                                                 BorderBrush="#DDD"
-                                                 BorderThickness="1"/>
-                                        <TextBlock Text="Định dạng:"
-                                                   Margin="0,15,0,5"/>
-                                        <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                        <TextBlock Text="Căn lề:"
-                                                                   FontSize="12"
-                                                                   Foreground="Gray"/>
-                                                        <ComboBox x:Name="cboAlign"
-                                                                  SelectionChanged="Prop_Changed"
-                                                                  Margin="0,5,5,0"
-                                                                  Padding="5">
-                                                                <ComboBoxItem Content="Left (Trái)"/>
-                                                                <ComboBoxItem Content="Center (Giữa)"/>
-                                                                <ComboBoxItem Content="Right (Phải)"/>
-                                                        </ComboBox>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="Cỡ chữ:"
-                                                                   FontSize="12"
-                                                                   Foreground="Gray"/>
-                                                        <TextBox x:Name="txtFontSize"
-                                                                 TextChanged="Prop_Changed"
-                                                                 Margin="5,5,0,0"
-                                                                 Padding="5"/>
-                                                </StackPanel>
-                                        </Grid>
-                                        <CheckBox x:Name="chkBold"
-                                                  Content="In đậm (Bold)"
-                                                  Margin="0,15,0,0"
-                                                  Checked="Prop_Changed"
-                                                  Unchecked="Prop_Changed"/>
-                                </StackPanel>
+        <!-- COLUMN 1: TOOLBOX -->
+        <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,20,0">
+            <Grid Margin="20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock x:Name="txtTitle" Text="🛠 KHO GIAO DIỆN" FontSize="18" FontWeight="Bold" Foreground="#343A40"/>
+                    <TextBlock Text="Chọn thành phần để thêm vào mẫu in" FontSize="13" Foreground="#868E96" Margin="0,5,0,0"/>
+                </StackPanel>
 
-                                <StackPanel x:Name="pnlOptionProp"
-                                            Visibility="Collapsed"
-                                            Margin="0,15,0,0">
-                                        <TextBlock Text="TÙY CHỌN NÂNG CAO"
-                                                   FontWeight="Bold"
-                                                   FontSize="12"
-                                                   Foreground="Gray"
-                                                   Margin="0,0,0,5"/>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+                    <StackPanel x:Name="pnlToolbox">
+                        <!-- GROUP: TEXT & DECOR -->
+                        <TextBlock Text="CƠ BẢN" FontWeight="Bold" Foreground="#ADB5BD" FontSize="12" Margin="0,0,0,10"/>
+                        <Button Content="📝 Văn bản tùy ý" Tag="Text" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                        <Button Content="➖ Đường kẻ ngang" Tag="Separator" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                        <Button Content="🖼️ Logo / Hình ảnh" Tag="Logo" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
 
-                                        <StackPanel x:Name="optOrderDetails">
-                                                <CheckBox x:Name="chkShowNote"
-                                                          Content="In ghi chú (Note)"
-                                                          Checked="Prop_Changed"
-                                                          Unchecked="Prop_Changed"
-                                                          Margin="0,5"/>
-                                                <CheckBox x:Name="chkOrderDetailsBold"
-                                                          Content="In đậm danh sách món"
-                                                          Checked="Prop_Changed"
-                                                          Unchecked="Prop_Changed"
-                                                          Margin="0,5"/>
-                                                <StackPanel Orientation="Horizontal"
-                                                            Margin="0,5,0,0">
-                                                        <TextBlock Text="Cỡ chữ Header:"
-                                                                   VerticalAlignment="Center"
-                                                                   Width="100"/>
-                                                        <TextBox x:Name="txtHeaderSize"
-                                                                 Width="50"
-                                                                 Padding="3"
-                                                                 TextChanged="TxtContent_TextChanged"/>
-                                                </StackPanel>
-                                                <StackPanel Orientation="Horizontal"
-                                                            Margin="0,5,0,0">
-                                                        <TextBlock Text="Cỡ chữ món:"
-                                                                   VerticalAlignment="Center"
-                                                                   Width="100"/>
-                                                        <TextBox x:Name="txtItemSize"
-                                                                 Width="50"
-                                                                 Padding="3"
-                                                                 TextChanged="TxtContent_TextChanged"/>
-                                                </StackPanel>
-                                                <StackPanel Orientation="Horizontal"
-                                                            Margin="0,5,0,0">
-                                                        <TextBlock Text="Cỡ chữ Note:"
-                                                                   VerticalAlignment="Center"
-                                                                   Width="100"/>
-                                                        <TextBox x:Name="txtNoteSize"
-                                                                 Width="50"
-                                                                 Padding="3"
-                                                                 TextChanged="TxtContent_TextChanged"/>
-                                                </StackPanel>
-                                                <StackPanel Orientation="Horizontal"
-                                                            Margin="0,5,0,0">
-                                                        <TextBlock Text="Khoảng cách cột:"
-                                                                   VerticalAlignment="Center"
-                                                                   Width="100"/>
-                                                        <TextBox x:Name="txtColumnSpacing"
-                                                                 Width="50"
-                                                                 Padding="3"
-                                                                 TextChanged="TxtContent_TextChanged"/>
-                                                </StackPanel>
-                                        </StackPanel>
+                        <!-- GROUP: INFO -->
+                        <TextBlock Text="THÔNG TIN ĐƠN" FontWeight="Bold" Foreground="#ADB5BD" FontSize="12" Margin="0,15,0,10"/>
+                        <Button Content="🆔 Mã hóa đơn: {OrderId}" Tag="TextOrderId" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                        <Button Content="📍 Tên bàn: {Table}" Tag="TextTable" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                        <Button Content="👤 Thu ngân/NV: {Staff}" Tag="TextStaff" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                        <Button Content="👨‍🍳 Người gửi bếp: {Sender}" Tag="TextSender" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                        <Button Content="🕒 Ngày giờ in" Tag="TextTime" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                        <Button Content="🕒 Thời gian ngồi" Tag="TextDuration" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
 
-                                        <StackPanel x:Name="optTotal">
-                                                <CheckBox x:Name="chkShowSubTotal"
-                                                          Content="In dòng Tạm tính"
-                                                          Checked="Prop_Changed"
-                                                          Unchecked="Prop_Changed"
-                                                          Margin="0,5"/>
-                                                <CheckBox x:Name="chkShowDiscount"
-                                                          Content="In dòng Giảm giá / Thuế"
-                                                          Checked="Prop_Changed"
-                                                          Unchecked="Prop_Changed"
-                                                          Margin="0,5"/>
-                                                <CheckBox x:Name="chkTotalBold"
-                                                          Content="In đậm Tổng cộng"
-                                                          Checked="Prop_Changed"
-                                                          Unchecked="Prop_Changed"
-                                                          Margin="0,5"/>
-                                                <StackPanel Orientation="Horizontal"
-                                                            Margin="0,5,0,0">
-                                                        <TextBlock Text="Cỡ chữ Tổng:"
-                                                                   VerticalAlignment="Center"
-                                                                   Width="100"/>
-                                                        <TextBox x:Name="txtTotalHeaderSize"
-                                                                 Width="50"
-                                                                 Padding="3"
-                                                                 TextChanged="TxtContent_TextChanged"/>
-                                                </StackPanel>
-                                                <StackPanel Orientation="Horizontal"
-                                                            Margin="0,5,0,0">
-                                                        <TextBlock Text="Cỡ chữ phụ:"
-                                                                   VerticalAlignment="Center"
-                                                                   Width="100"/>
-                                                        <TextBox x:Name="txtSubSize"
-                                                                 Width="50"
-                                                                 Padding="3"
-                                                                 TextChanged="TxtContent_TextChanged"/>
-                                                </StackPanel>
-                                        </StackPanel>
-                                </StackPanel>
-
-                                <StackPanel x:Name="pnlImageProp"
-                                            Visibility="Collapsed">
-                                        <Button Content="📂 Tải ảnh lên..."
-                                                Click="BtnUploadImage_Click"
-                                                Padding="10"
-                                                Background="#EEE"
-                                                BorderThickness="0"
-                                                Margin="0,0,0,10"/>
-                                        <Image x:Name="imgPreview"
-                                               Height="120"
-                                               Stretch="Uniform"/>
-                                        <TextBlock Text="Độ lớn ảnh (px):"
-                                                   Margin="0,15,0,5"
-                                                   FontSize="12"/>
-                                        <TextBox x:Name="txtImageHeight"
-                                                 Text="300"
-                                                 Height="30"
-                                                 Padding="5"
-                                                 PreviewTextInput="NumberValidationTextBox"
-                                                 TextChanged="Prop_Changed"/>
-                                        <TextBlock Text="(Gợi ý: 200-400 cho in đẹp)"
-                                                   Margin="0,5,0,0"
-                                                   FontSize="10"
-                                                   Foreground="#999"/>
-                                </StackPanel>
-
-                                <Separator Margin="0,20"/>
-                                <CheckBox x:Name="chkVisible"
-                                          Content="Hiển thị trên mẫu in"
-                                          IsChecked="True"
-                                          Checked="Prop_Changed"
-                                          Unchecked="Prop_Changed"/>
-                                <Button Content="💾 LƯU CẤU TRÚC"
-                                        Click="BtnSave_Click"
-                                        Height="45"
-                                        Margin="0,30,0,0"
-                                        Background="#007BFF"
-                                        Foreground="White"
-                                        FontWeight="Bold"
-                                        FontSize="16"
-                                        BorderThickness="0">
-                                        <Button.Resources>
-                                                <Style TargetType="Border">
-                                                        <Setter Property="CornerRadius"
-                                                                Value="5"/>
-                                                </Style>
-                                        </Button.Resources>
-                                </Button>
+                        <!-- GROUP: KITCHEN SPECIFIC -->
+                        <StackPanel x:Name="grpKitchen" Visibility="Collapsed">
+                            <TextBlock Text="CHO BẾP / BAR" FontWeight="Bold" Foreground="#ADB5BD" FontSize="12" Margin="0,15,0,10"/>
+                            <Button Content="🔔 Số đợt gọi: {Batch}" Tag="BatchNumber" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                            <Button Content="🥘 Danh sách món (Bếp)" Tag="KitchenOrderDetails" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}" Background="#FFF3CD" BorderBrush="#FFECB5"/>
                         </StackPanel>
+
+                        <!-- GROUP: BILL SPECIFIC -->
+                        <StackPanel x:Name="grpBill" Visibility="Collapsed">
+                            <TextBlock Text="CHO HÓA ĐƠN" FontWeight="Bold" Foreground="#ADB5BD" FontSize="12" Margin="0,15,0,10"/>
+                            <Button Content="📋 Danh sách món (Bill)" Tag="OrderDetails" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}" Background="#D1E7DD" BorderBrush="#BADBCC"/>
+                            <Button Content="💰 Tổng tiền thanh toán" Tag="Total" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}" Background="#D1E7DD" BorderBrush="#BADBCC"/>
+                            <Button Content="⬛ Mã QR Chuyển khoản" Tag="QRCode" Click="BtnToolbox_Click" Style="{StaticResource ToolboxBtnStyle}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- COLUMN 2: PREVIEW -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Toolbar -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,15">
+                <Button Content="⬆ Lên" Click="BtnUp_Click" Width="80" Height="35" Margin="5" Background="White" BorderBrush="#DEE2E6" BorderThickness="1"/>
+                <Button Content="⬇ Xuống" Click="BtnDown_Click" Width="80" Height="35" Margin="5" Background="White" BorderBrush="#DEE2E6" BorderThickness="1"/>
+                <Button Content="🗑 Xóa" Click="BtnDelete_Click" Width="80" Height="35" Margin="5" Background="#FFE3E3" Foreground="#DC3545" BorderThickness="0"/>
+            </StackPanel>
+
+            <!-- Paper Representation -->
+            <Border Grid.Row="1" Background="#505050" CornerRadius="8" Padding="20">
+                <Border Background="White" Width="380" VerticalAlignment="Stretch" Effect="{StaticResource CardShadow}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> <!-- Header Placeholder -->
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/> <!-- Cutter Placeholder -->
+                        </Grid.RowDefinitions>
+
+                        <!-- Content List -->
+                        <ListBox x:Name="lstElements" Grid.Row="1"
+                                 SelectionChanged="LstElements_SelectionChanged"
+                                 ItemContainerStyle="{StaticResource PreviewItemStyle}"
+                                 BorderThickness="0" Background="Transparent"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 Padding="15">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <!-- Text Preview -->
+                                        <TextBlock Text="{Binding DisplayPreview}" 
+                                                   FontSize="{Binding FontSize}" 
+                                                   FontWeight="{Binding FontWeightDisplay}" 
+                                                   TextAlignment="{Binding TextAlignmentDisplay}"
+                                                   TextWrapping="Wrap"
+                                                   Visibility="{Binding IsTextVisible}"
+                                                   Foreground="Black"/>
+                                        
+                                        <!-- Separator Preview -->
+                                        <Border BorderBrush="Black" BorderThickness="0,0,0,1" Height="1" 
+                                                Visibility="{Binding IsSeparatorVisible}" 
+                                                SnapsToDevicePixels="True"/>
+
+                                        <!-- Image/Logo Preview -->
+                                        <Border Background="#F1F3F5" Height="80" Width="80" 
+                                                HorizontalAlignment="{Binding HorizontalAlignDisplay}"
+                                                Visibility="{Binding IsImageVisible}"
+                                                CornerRadius="4">
+                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                <TextBlock Text="🖼" FontSize="24" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
                 </Border>
+            </Border>
+
+            <!-- Save Button -->
+            <Button Grid.Row="2" Content="💾 LƯU MẪU IN" Click="BtnSave_Click" 
+                    Height="45" Width="200" Margin="0,20,0,0"
+                    Background="#28A745" Foreground="White" FontWeight="Bold" FontSize="15"
+                    BorderThickness="0">
+                <Button.Resources>
+                    <Style TargetType="Border"> <Setter Property="CornerRadius" Value="25"/> </Style>
+                </Button.Resources>
+            </Button>
         </Grid>
+
+        <!-- COLUMN 3: PROPERTIES -->
+        <Border Grid.Column="2" Style="{StaticResource CardBorder}" Margin="20,0,0,0">
+            <Grid x:Name="pnlProperties" IsEnabled="False" Margin="20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="⚙ TÙY CHỈNH" FontSize="18" FontWeight="Bold" Foreground="#343A40"/>
+                    <TextBlock x:Name="lblSelectedType" Text="Chưa chọn thành phần" FontSize="13" Foreground="#007BFF" Margin="0,5,0,0" FontWeight="SemiBold"/>
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <!-- TEXT PROPERTIES -->
+                        <StackPanel x:Name="pnlTextProp" Visibility="Visible">
+                            <TextBlock Text="Nội dung:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                            <TextBox x:Name="txtContent" Height="60" TextWrapping="Wrap" Padding="5" 
+                                     TextChanged="TxtContent_TextChanged" BorderBrush="#CED4DA"/>
+
+                            <Grid Margin="0,15,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,5,0">
+                                    <TextBlock Text="Căn lề:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                    <ComboBox x:Name="cboAlign" SelectionChanged="Prop_Changed" Padding="5" Height="30">
+                                        <ComboBoxItem Content="Left (Trái)"/>
+                                        <ComboBoxItem Content="Center (Giữa)"/>
+                                        <ComboBoxItem Content="Right (Phải)"/>
+                                    </ComboBox>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="5,0,0,0">
+                                    <TextBlock Text="Cỡ chữ:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                    <TextBox x:Name="txtFontSize" TextChanged="Prop_Changed" Height="30" Padding="5" VerticalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                            
+                            <CheckBox x:Name="chkBold" Content="In đậm (Bold)" Margin="0,15,0,0" Checked="Prop_Changed" Unchecked="Prop_Changed"/>
+                        </StackPanel>
+
+                        <!-- ADVANCED OPTIONS (LISTS/TOTALS) -->
+                        <StackPanel x:Name="pnlOptionProp" Visibility="Collapsed" Margin="0,20,0,0">
+                            <TextBlock Text="CÀI ĐẶT NÂNG CAO" FontWeight="Bold" Foreground="#6C757D" Margin="0,0,0,10"/>
+                            
+                            <StackPanel x:Name="optOrderDetails">
+                                <CheckBox x:Name="chkShowNote" Content="Hiển thị Ghi chú món" Margin="0,5" Checked="Prop_Changed" Unchecked="Prop_Changed"/>
+                                <CheckBox x:Name="chkOrderDetailsBold" Content="In đậm tên món" Margin="0,5" Checked="Prop_Changed" Unchecked="Prop_Changed"/>
+                                
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Cỡ chữ Header:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtHeaderSize" Grid.Column="1" Height="28" Padding="3" TextChanged="TxtContent_TextChanged"/>
+                                </Grid>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Cỡ chữ Món:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtItemSize" Grid.Column="1" Height="28" Padding="3" TextChanged="TxtContent_TextChanged"/>
+                                </Grid>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Cỡ chữ Ghi chú:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtNoteSize" Grid.Column="1" Height="28" Padding="3" TextChanged="TxtContent_TextChanged"/>
+                                </Grid>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Khoảng cách cột:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtColumnSpacing" Grid.Column="1" Height="28" Padding="3" TextChanged="TxtContent_TextChanged"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel x:Name="optTotal">
+                                <CheckBox x:Name="chkShowSubTotal" Content="Hiện Tạm tính" Margin="0,5" Checked="Prop_Changed" Unchecked="Prop_Changed"/>
+                                <CheckBox x:Name="chkShowDiscount" Content="Hiện Giảm giá/Thuế" Margin="0,5" Checked="Prop_Changed" Unchecked="Prop_Changed"/>
+                                <CheckBox x:Name="chkTotalBold" Content="In đậm Tổng cộng" Margin="0,5" Checked="Prop_Changed" Unchecked="Prop_Changed"/>
+                                
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Cỡ chữ Tổng:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtTotalHeaderSize" Grid.Column="1" Height="28" Padding="3" TextChanged="TxtContent_TextChanged"/>
+                                </Grid>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Cỡ chữ Phụ:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtSubSize" Grid.Column="1" Height="28" Padding="3" TextChanged="TxtContent_TextChanged"/>
+                                </Grid>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- IMAGE PROPERTIES -->
+                        <StackPanel x:Name="pnlImageProp" Visibility="Collapsed" Margin="0,10,0,0">
+                            <Button Content="📂 Chọn ảnh từ máy..." Click="BtnUploadImage_Click" Padding="10,8" Background="#E9ECEF" BorderThickness="0" Margin="0,0,0,15"/>
+                            <Image x:Name="imgPreview" Height="100" Stretch="Uniform" Margin="0,0,0,10"/>
+                            
+                            <TextBlock Text="Chiều cao ảnh (px):" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                            <TextBox x:Name="txtImageHeight" Text="300" Height="30" Padding="5" PreviewTextInput="NumberValidationTextBox" TextChanged="Prop_Changed"/>
+                        </StackPanel>
+
+                        <Separator Margin="0,20"/>
+                        <CheckBox x:Name="chkVisible" Content="Hiển thị thành phần này" IsChecked="True" Checked="Prop_Changed" Unchecked="Prop_Changed" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

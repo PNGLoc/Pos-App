@@ -5,7 +5,7 @@ namespace PosSystem.Main.Helpers
 {
     public static class PrintContentHelper
     {
-        public static string ReplacePlaceholders(string content, Order order, int batchNumber = 0)
+        public static string ReplacePlaceholders(string content, Order order, int batchNumber = 0, string senderName = "")
         {
             if (string.IsNullOrEmpty(content)) return "";
 
@@ -17,9 +17,10 @@ namespace PosSystem.Main.Helpers
             res = res.Replace("{TableType}", order.Table?.TableType ?? "");
             res = res.Replace("{OrderId}", order.OrderID.ToString());
 
-            // --- 2. THÔNG TIN NHÂN VIÊN ---
-            // Cần đảm bảo query Order có Include Account
+            // --- 2. THÔNG TIN NHÂN VIÊN & NGƯỜI GỬI ---
             res = res.Replace("{Staff}", order.Account?.AccName ?? "Admin");
+            // [NEW] Người thực hiện lệnh in (Sender)
+            res = res.Replace("{Sender}", !string.IsNullOrEmpty(senderName) ? senderName : (order.Account?.AccName ?? "Admin"));
 
             // --- 3. THỜI GIAN ---
             res = res.Replace("{PrintTime}", now.ToString("HH:mm")); // Giờ in phiếu

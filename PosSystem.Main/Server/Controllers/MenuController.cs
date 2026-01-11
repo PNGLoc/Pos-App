@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Database;
+using PosSystem.Main.Services; // Import PriceService
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -27,11 +28,24 @@ namespace PosSystem.Main.Server.Controllers
             var dishes = await _context.Dishes.Where(d => d.DishStatus == "Active").ToListAsync();
 
             // Nhóm lại để Mobile dễ hiển thị dạng Tabs
+            // [Fix] Sử dụng viewModel/DTO tại chỗ để update giá theo Rule
             var result = categories.Select(cat => new
             {
                 cat.CategoryID,
                 cat.CategoryName,
-                Dishes = dishes.Where(d => d.CategoryID == cat.CategoryID).ToList()
+                Dishes = dishes.Where(d => d.CategoryID == cat.CategoryID)
+                               .Select(d => new 
+                               {
+                                   d.DishID,
+                                   d.DishName,
+                                   d.Unit,
+                                   Image = d.ImagePath, // Map ImagePath -> Image for frontend compatibility if needed, or just use d.ImagePath
+                                   // [Important] Tính lại giá theo Rule
+                                   Price = PriceService.GetCurrentPrice(d.DishID, _context),
+                                   OriginalPrice = d.Price, // Giá gốc để tham khảo nếu cần
+                                   d.DishStatus,
+                                   d.CategoryID
+                               }).ToList()
             });
 
             return Ok(result);

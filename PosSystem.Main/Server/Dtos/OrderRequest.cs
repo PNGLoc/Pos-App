@@ -19,6 +19,7 @@ namespace PosSystem.Main.Server.Dtos
     // DTO cho Mobile API POST /api/order/{tableId}
     public class AddOrderItemsRequest
     {
+        public int AccID { get; set; } // [NEW] Track nhân viên bấm thêm món
         public List<OrderItemDto> Details { get; set; } = new();
     }
     public class UpdateItemRequest

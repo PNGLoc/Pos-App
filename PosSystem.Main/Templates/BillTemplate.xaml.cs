@@ -96,21 +96,20 @@ namespace PosSystem.Main.Templates
             }
 
             // 2. Định nghĩa cấu trúc cột (7 cột: Tên | Spacing | Kẻ | SL | Kẻ | Spacing | Tiền)
-            // ColumnSpacing dùng để di chuyển cột SL sang trái/phải, không ảnh hưởng width của cột kẻ
-            // Cột kẻ luôn có width cố định 5px để đường kẻ | | hiển thị rõ
-            const int lineColumnWidth = 5; // Width cố định cho cột kẻ
-            const int qtyColumnWidth = 40; // Width cố định cho cột số lượng
-            const int priceColumnWidth = 120; // Width cố định cho cột tiền (đủ để hiển thị 1.000.000)
+            // Tổng width khoảng 530px (trừ margin)
+            const int lineColumnWidth = 5; 
+            const int qtyColumnWidth = 45; // Tăng nhẹ để số lượng 2 chữ số thoải mái
+            const int priceColumnWidth = 140; // Tăng lên 140 để hiển thị được 100.000.000
 
             Action<Grid> setupColumns = (g) =>
             {
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 0. Tên
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(columnSpacing) });        // 1. Spacing trái
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(lineColumnWidth) });      // 2. Kẻ trái - width cố định
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(qtyColumnWidth) });       // 3. SL - width cố định
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(lineColumnWidth) });      // 4. Kẻ phải - width cố định
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(columnSpacing) });        // 5. Spacing phải
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(priceColumnWidth) });     // 6. Tiền - width cố định 120px
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 0. Tên (Tự co giãn)
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(columnSpacing) });        // 1. Spacing
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(lineColumnWidth) });      // 2. Kẻ
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(qtyColumnWidth) });       // 3. SL
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(lineColumnWidth) });      // 4. Kẻ
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(columnSpacing) });        // 5. Spacing
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(priceColumnWidth) });     // 6. Tiền
             };
 
             // 3. Vẽ Header

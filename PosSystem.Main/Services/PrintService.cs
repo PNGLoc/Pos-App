@@ -162,7 +162,7 @@ namespace PosSystem.Main.Services
         }
 
         // 2. HÀM IN BẾP - ĐÃ SỬA GỘP MÓN
-        public static void PrintKitchen(Order orderInfo, List<OrderDetail> itemsToPrint, int batchNumber)
+        public static void PrintKitchen(Order orderInfo, List<OrderDetail> itemsToPrint, int batchNumber, string senderName = "")
         {
             if (itemsToPrint == null || !itemsToPrint.Any()) return;
 
@@ -224,7 +224,7 @@ namespace PosSystem.Main.Services
                         try
                         {
                             var template = new Templates.KitchenTemplate();
-                            template.SetData(filteredOrder, batchNumber, elements);
+                            template.SetData(filteredOrder, batchNumber, elements, senderName);
 
                             int width = printer.PaperSize == 58 ? 380 : 550;
                             using (var bmp = EscPosImageHelper.RenderVisualToBitmap(template, width))

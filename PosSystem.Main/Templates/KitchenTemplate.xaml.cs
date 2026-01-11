@@ -16,7 +16,7 @@ namespace PosSystem.Main.Templates
             InitializeComponent();
         }
 
-        public void SetData(Order order, int batchNumber, List<PrintElement> layoutElements)
+        public void SetData(Order order, int batchNumber, List<PrintElement> layoutElements, string senderName = "")
         {
             RootPanel.Children.Clear();
 
@@ -34,7 +34,7 @@ namespace PosSystem.Main.Templates
                     case "TableNumberBig":
                     case "BatchNumber":
                         // Dùng Helper thay thế {Table}, {Batch}...
-                        string finalContent = PrintContentHelper.ReplacePlaceholders(el.Content, order, batchNumber);
+                        string finalContent = PrintContentHelper.ReplacePlaceholders(el.Content, order, batchNumber, senderName);
                         AddTextBlock(finalContent, el);
                         break;
 

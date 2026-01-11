@@ -562,9 +562,14 @@ namespace PosSystem.Main
                 var dishInfo = db.Dishes.Find(dishId);
                 if (dishInfo == null) return;
 
+                // [FIX] Lấy giá hiện tại (áp dụng rule giá nếu có)
+                decimal currentPrice = Services.PriceService.GetCurrentPrice(dishId);
+
                 if (existingDetail != null)
                 {
                     // TÌM THẤY món New -> Cộng dồn
+                    // Cập nhật lại giá mới nhất cho dòng đang chờ (nếu giá có thay đổi)
+                    existingDetail.UnitPrice = currentPrice;
                     existingDetail.Quantity++;
                     existingDetail.TotalAmount = existingDetail.Quantity * existingDetail.UnitPrice;
                 }
@@ -575,10 +580,10 @@ namespace PosSystem.Main
                     {
                         DishID = dishId,
                         Quantity = 1,
-                        UnitPrice = dishInfo.Price,
+                        UnitPrice = currentPrice,
                         ItemStatus = "New", // Luôn là New
                         PrintedQuantity = 0,
-                        TotalAmount = dishInfo.Price,
+                        TotalAmount = currentPrice,
                         Note = "",
                         ItemOrderTime = DateTime.Now
                     });
@@ -899,6 +904,7 @@ namespace PosSystem.Main
                 {
                     var order = db.Orders
                         .Include(o => o.Table)
+                        .Include(o => o.Account) // [FIX] Include Account to get Staff Name
                         .Include(o => o.OrderDetails).ThenInclude(d => d.Dish).ThenInclude(c => c.Category)
                         .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
 
@@ -970,7 +976,9 @@ namespace PosSystem.Main
                     if (itemsToPrint.Any())
                     {
                         // Gọi hàm PrintKitchen mới (đã sửa ở Bước 2)
-                        Services.PrintService.PrintKitchen(order, itemsToPrint, nextBatch);
+                        // [FIX] Truyền thêm tên người bấm (Sender)
+                        string senderName = UserSession.AccName ?? "Admin";
+                        Services.PrintService.PrintKitchen(order, itemsToPrint, nextBatch, senderName);
                     }
 
                     // ⭐ Notify mobile via SignalR

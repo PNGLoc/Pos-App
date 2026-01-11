@@ -94,6 +94,12 @@ namespace PosSystem.Main.Server.Controllers
 
             if (currentOrder == null) return BadRequest("Bàn chưa mở, vui lòng mở bàn trước!");
 
+            // [NEW] Cập nhật nhân viên phục vụ nếu có gửi AccID lên
+            if (request.AccID > 0)
+            {
+                currentOrder.AccID = request.AccID;
+            }
+
             foreach (var itemDto in request.Details)
             {
                 var dish = await _context.Dishes.FindAsync(itemDto.DishID);
@@ -135,15 +141,31 @@ namespace PosSystem.Main.Server.Controllers
 
         // 3. API GỬI BẾP (Tìm món New -> In -> Chuyển thành Sent)
         // Mobile nút "Gửi thực đơn" sẽ gọi cái này
+        // 3. API GỬI BẾP (Tìm món New -> In -> Chuyển thành Sent)
+        // Mobile nút "Gửi thực đơn" sẽ gọi cái này
         [HttpPost("{tableId}/send")]
-        public async Task<IActionResult> SendToKitchen(int tableId)
+        public async Task<IActionResult> SendToKitchen(int tableId, [FromQuery] int accID = 0)
         {
             var order = await _context.Orders
                 .Include(o => o.OrderDetails).ThenInclude(d => d.Dish).ThenInclude(c => c.Category)
                 .Include(o => o.Table)
+                .Include(o => o.Account) // <--- [NEW] Thêm dòng này để lấy tên người bấm
                 .FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
 
             if (order == null) return BadRequest("Bàn này không có đơn hàng!");
+
+            // [NEW] Lấy tên người gửi (Sender)
+            string senderName = "Admin";
+            if (accID > 0)
+            {
+                var senderAcc = await _context.Accounts.FindAsync(accID);
+                if (senderAcc != null) senderName = senderAcc.AccName;
+            }
+            else
+            {
+                // Fallback: Nếu không gửi accID, lấy tên từ Account của Order (người tạo đơn)
+                 senderName = order.Account?.AccName ?? "Admin";
+            }
 
             // Lấy các món chưa in (New) hoặc số lượng tăng thêm
             var itemsToPrint = order.OrderDetails
@@ -185,7 +207,8 @@ namespace PosSystem.Main.Server.Controllers
             await _context.SaveChangesAsync();
 
             // Gọi Service In Bếp (Code có sẵn của bạn)
-            Services.PrintService.PrintKitchen(order, printQueue, batchNumber);
+            // [FIX] Truyền senderName vào
+            Services.PrintService.PrintKitchen(order, printQueue, batchNumber, senderName);
 
             // Bắn SignalR
             await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);

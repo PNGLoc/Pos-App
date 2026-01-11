@@ -14,39 +14,44 @@ namespace PosSystem.Main.Services
         {
             using (var db = new AppDbContext())
             {
-                var dish = db.Dishes.Find(dishId);
-                if (dish == null) return 0;
+                return GetCurrentPrice(dishId, db);
+            }
+        }
 
-                // Lấy rule đang được kích hoạt
-                var activeSetting = db.GlobalSettings
-                    .FirstOrDefault(g => g.Key == "activePriceRule");
+        public static decimal GetCurrentPrice(int dishId, AppDbContext db)
+        {
+            var dish = db.Dishes.Find(dishId);
+            if (dish == null) return 0;
 
-                if (activeSetting == null || string.IsNullOrEmpty(activeSetting.Value))
-                {
-                    // Nếu không có setting hoặc value rỗng -> dùng giá gốc
-                    return dish.Price;
-                }
+            // Lấy rule đang được kích hoạt
+            var activeSetting = db.GlobalSettings
+                .FirstOrDefault(g => g.Key == "activePriceRule");
 
-                // Tìm rule phù hợp
-                var priceRule = db.DishPriceRules
-                    .FirstOrDefault(p => p.DishID == dishId
-                        && p.RuleType == activeSetting.Value
-                        && p.IsActive);
-
-                if (priceRule != null)
-                {
-                    // Kiểm tra thời gian có hợp lệ không
-                    DateTime now = DateTime.Now;
-                    if ((priceRule.StartDate == null || priceRule.StartDate <= now) &&
-                        (priceRule.EndDate == null || priceRule.EndDate >= now))
-                    {
-                        return priceRule.Price;
-                    }
-                }
-
-                // Nếu rule hết hạn -> dùng giá gốc
+            if (activeSetting == null || string.IsNullOrEmpty(activeSetting.Value))
+            {
+                // Nếu không có setting hoặc value rỗng -> dùng giá gốc
                 return dish.Price;
             }
+
+            // Tìm rule phù hợp
+            var priceRule = db.DishPriceRules
+                .FirstOrDefault(p => p.DishID == dishId
+                    && p.RuleType == activeSetting.Value
+                    && p.IsActive);
+
+            if (priceRule != null)
+            {
+                // Kiểm tra thời gian có hợp lệ không
+                DateTime now = DateTime.Now;
+                if ((priceRule.StartDate == null || priceRule.StartDate <= now) &&
+                    (priceRule.EndDate == null || priceRule.EndDate >= now))
+                {
+                    return priceRule.Price;
+                }
+            }
+
+            // Nếu rule hết hạn -> dùng giá gốc
+            return dish.Price;
         }
 
         /// <summary>

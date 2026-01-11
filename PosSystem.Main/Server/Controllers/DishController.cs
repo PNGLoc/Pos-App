@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Database;
+using PosSystem.Main.Services; // Import
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -33,7 +34,9 @@ namespace PosSystem.Main.Server.Controllers
             {
                 d.DishID,
                 d.DishName,
-                d.Price,
+                // [Fix] Dùng PriceService
+                Price = PriceService.GetCurrentPrice(d.DishID, _context),
+                OriginalPrice = d.Price,
                 Category = d.Category != null ? new
                 {
                     d.Category.CategoryID,
@@ -60,7 +63,9 @@ namespace PosSystem.Main.Server.Controllers
             {
                 dish.DishID,
                 dish.DishName,
-                dish.Price,
+                // [Fix] Dùng PriceService
+                Price = PriceService.GetCurrentPrice(dish.DishID, _context),
+                OriginalPrice = dish.Price,
                 Category = dish.Category != null ? new
                 {
                     dish.Category.CategoryID,
