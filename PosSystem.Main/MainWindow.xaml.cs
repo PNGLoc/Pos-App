@@ -1159,8 +1159,8 @@ namespace PosSystem.Main
 
             if (payWindow.IsPaidSuccess)
             {
-                // --- SỬA: Kiểm tra ToggleButton (tglPrintBill) ---
-                if (tglPrintBill.IsChecked == true)
+                // --- SỬA: Kiểm tra ToggleButton (tglPrintBill) VÀ lựa chọn từ PaymentWindow ---
+                if (tglPrintBill.IsChecked == true && payWindow.ShouldPrint)
                 {
                     Services.PrintService.PrintBill(orderId);
                     ShowToast("🖨 Đã in hóa đơn & Thanh toán xong!");

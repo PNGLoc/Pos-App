@@ -15,6 +15,7 @@ namespace PosSystem.Main
         private int _orderId;
         private int _tableId;
         public bool IsPaidSuccess { get; private set; } = false; // Để MainWindow biết mà reload
+        public bool ShouldPrint { get; private set; } = true;
 
         public PaymentWindow(int orderId)
         {
@@ -141,6 +142,7 @@ namespace PosSystem.Main
                 // -------------------------------
 
                 IsPaidSuccess = true;
+                ShouldPrint = chkNoPrint.IsChecked != true;
                 this.Close();
             }
         }

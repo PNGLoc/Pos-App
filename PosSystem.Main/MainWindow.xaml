@@ -170,7 +170,22 @@
                                    Foreground="#007BFF"
                                    VerticalAlignment="Center"/>
                     </StackPanel>
-
+                        <Button Content="🚪 ĐĂNG XUẤT"
+                            Click="BtnLogout_Click"
+                            Height="35"
+                            Background="#DC3545"
+                            Foreground="White"
+                            Padding="15,0"
+                            BorderThickness="0"
+                            FontWeight="SemiBold"
+                            Margin="0,0,10,0">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius"
+                                        Value="5"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
                     <Button x:Name="btnBackToAdmin"
                             Content="⚙ ADMIN"
                             Click="BtnBackToAdmin_Click"
@@ -210,22 +225,6 @@
                             Click="BtnTimeKeeping_Click"
                             Height="35"
                             Background="#47a67f"
-                            Foreground="White"
-                            Padding="15,0"
-                            BorderThickness="0"
-                            FontWeight="SemiBold"
-                            Margin="0,0,10,0">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius"
-                                        Value="5"/>
-                            </Style>
-                        </Button.Resources>
-                    </Button>
-                    <Button Content="🚪 ĐĂNG XUẤT"
-                            Click="BtnLogout_Click"
-                            Height="35"
-                            Background="#DC3545"
                             Foreground="White"
                             Padding="15,0"
                             BorderThickness="0"
