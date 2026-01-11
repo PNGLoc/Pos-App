@@ -66,6 +66,7 @@
                         Background="Transparent"
                         BorderThickness="0"
                         Foreground="#888"
+                        FontSize="16"
                         Click="BtnExit_Click"/>
             </StackPanel>
         </Grid>

@@ -80,8 +80,23 @@
                                    FontWeight="Bold"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
-                </Border>
-
+                </Border> <!-- NÚT CHUYỂN SANG BÁN HÀNG -->
+                <Button Content="➡ VÀO BÁN HÀNG"
+                        Height="45"
+                        Background="#28A745"
+                        Foreground="White"
+                        FontWeight="Bold"
+                        FontSize="14"
+                        Click="BtnGoToPOS_Click">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius"
+                                    Value="5"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+                    <Separator Background="#555"
+                           Margin="10"/>
                 <!-- Lúc này StaticResource đã được định nghĩa ở trên nên sẽ không lỗi nữa -->
                 <RadioButton Content="🏠 Thống kê"
                              Style="{StaticResource AdminMenuButton}"
@@ -89,7 +104,7 @@
                              Tag="Dashboard"
                              IsChecked="True"/>
                 <Separator Background="#555"
-                           Margin="10"/>
+                           Margin="5"/>
                 <RadioButton Content="🖨 Cấu hình Máy in"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
@@ -122,22 +137,7 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="OrderHistory"/>
-                <!-- NÚT CHUYỂN SANG BÁN HÀNG -->
-                <Button Content="➡ VÀO BÁN HÀNG"
-                        Margin="10,50,10,0"
-                        Height="50"
-                        Background="#28A745"
-                        Foreground="White"
-                        FontWeight="Bold"
-                        FontSize="14"
-                        Click="BtnGoToPOS_Click">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius"
-                                    Value="5"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
+               
             </StackPanel>
         </Border>
 

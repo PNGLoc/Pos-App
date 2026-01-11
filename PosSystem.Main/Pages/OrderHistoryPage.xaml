@@ -12,52 +12,58 @@
         </Grid.RowDefinitions>
 
         <Border Background="White"
-                CornerRadius="5"
-                Padding="15"
+                CornerRadius="8"
+                Padding="15,10"
                 Margin="0,0,0,15">
-            <StackPanel Orientation="Horizontal"
-                    VerticalAlignment="Center">
-                <TextBlock Text="📅 Từ: "
-                        VerticalAlignment="Center"/>
-                <DatePicker x:Name="dpFrom"
-                        Width="110"
-                        Margin="5,0,15,0"/>
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Direction="270" Color="#CCCCCC" Opacity="0.3"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                <TextBlock Text="Đến: "
-                        VerticalAlignment="Center"/>
-                <DatePicker x:Name="dpTo"
-                        Width="110"
-                        Margin="5,0,15,0"/>
+                <!-- Date Range -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <TextBlock Text="📅 Từ ngày:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,5,0" Foreground="#495057"/>
+                    <DatePicker x:Name="dpFrom" Width="120" SelectedDateChanged="Filter_Changed" Padding="5"/>
+                </StackPanel>
 
-                <TextBlock Text="PTTT: "
-                        VerticalAlignment="Center"/>
-                <ComboBox x:Name="cboPaymentMethod"
-                        Width="120"
-                        Margin="5,0,15,0"
-                        SelectedIndex="0"
-                        VerticalContentAlignment="Center">
-                    <ComboBoxItem Content="Tất cả"/>
-                    <ComboBoxItem Content="Tiền mặt"
-                            Tag="Cash"/>
-                    <ComboBoxItem Content="Chuyển khoản"
-                            Tag="Transfer"/>
-                </ComboBox>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <TextBlock Text="Đến ngày:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,5,0" Foreground="#495057"/>
+                    <DatePicker x:Name="dpTo" Width="120" SelectedDateChanged="Filter_Changed" Padding="5"/>
+                </StackPanel>
 
-                <Button Content="🔍 Tìm"
-                        Click="BtnSearch_Click"
-                        Width="80"
-                        Background="#007BFF"
-                        Foreground="White"
-                        FontWeight="Bold"/>
-
-                <Button Content="💥 Xóa tất cả"
+                <!-- Payment Method Filter -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <TextBlock Text="💳 PTTT:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,5,0" Foreground="#495057"/>
+                    <ComboBox x:Name="cboPaymentMethod" Width="140" SelectionChanged="Filter_Changed" Padding="5" VerticalContentAlignment="Center">
+                        <ComboBoxItem Content="Tất cả"/>
+                        <ComboBoxItem Content="Tiền mặt" Tag="Cash"/>
+                        <ComboBoxItem Content="Chuyển khoản (QR)" Tag="Transfer"/>
+                    </ComboBox>
+                </StackPanel>
+                
+                <!-- Delete All Button -->
+                <Button Grid.Column="4"
+                        Content="🗑️ XÓA TẤT CẢ"
                         Click="BtnDeleteAll_Click"
-                        Width="100"
-                        Margin="20,0,0,0"
+                        Padding="15,8"
                         Background="#DC3545"
                         Foreground="White"
-                        FontWeight="Bold"/>
-            </StackPanel>
+                        FontWeight="Bold"
+                        BorderThickness="0">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="5"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </Grid>
         </Border>
 
         <DataGrid Grid.Row="1"

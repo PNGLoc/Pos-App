@@ -9,24 +9,36 @@ namespace PosSystem.Main.Pages
 {
     public partial class OrderHistoryPage : Page
     {
+        private bool _isLoaded = false;
+
         public OrderHistoryPage()
         {
             InitializeComponent();
+            
+            // Set default dates
             dpFrom.SelectedDate = DateTime.Today;
             dpTo.SelectedDate = DateTime.Today;
-            LoadData();
+            
+            _isLoaded = true;
+            LoadData(); // Initial load
         }
 
-        private void BtnSearch_Click(object sender, RoutedEventArgs e) => LoadData();
+        private void Filter_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isLoaded) LoadData();
+        }
 
         private void LoadData()
         {
+            // Null check important if triggered early
+            if (dpFrom == null || dpTo == null) return;
+            
             DateTime from = dpFrom.SelectedDate ?? DateTime.MinValue;
             DateTime to = dpTo.SelectedDate?.AddDays(1).AddTicks(-1) ?? DateTime.MaxValue;
 
             // Lấy giá trị lọc PTTT
             string ptttFilter = "";
-            if (cboPaymentMethod.SelectedItem is ComboBoxItem item && item.Tag != null)
+            if (cboPaymentMethod != null && cboPaymentMethod.SelectedItem is ComboBoxItem item && item.Tag != null)
             {
                 ptttFilter = item.Tag.ToString() ?? "";
             }
@@ -58,10 +70,13 @@ namespace PosSystem.Main.Pages
                     })
                     .ToList();
 
-                dgOrders.ItemsSource = list;
+                if (dgOrders != null) dgOrders.ItemsSource = list;
 
                 // Tính tổng chỉ với đơn đã thanh toán
-                lblTotalRevenue.Text = list.Where(x => x.OrderStatus == "Paid").Sum(x => x.FinalAmount).ToString("N0") + "đ";
+                if (lblTotalRevenue != null)
+                {
+                    lblTotalRevenue.Text = list.Where(x => x.OrderStatus == "Paid").Sum(x => x.FinalAmount).ToString("N0") + "đ";
+                }
             }
         }
 
