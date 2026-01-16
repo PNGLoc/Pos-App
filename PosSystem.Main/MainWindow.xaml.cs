@@ -109,9 +109,7 @@ namespace PosSystem.Main
         private DispatcherTimer _tableListUpdateTimer = new DispatcherTimer();
         private DateTime? _currentOrderTime = null;
         private HashSet<int> _tablesRequestingPayment = new HashSet<int>();
-        // Split mode variables
-        private bool _isSplitMode = false;
-        private Dictionary<long, int> _splitQuantities = new Dictionary<long, int>();  // OrderDetailID -> Qty to split
+
         private bool _isWaitingForTargetTable = false;  // True when waiting for user to click target table
         private Dictionary<long, int> _pendingSplitItems = new Dictionary<long, int>();  // Items to split when table selected
 
@@ -253,13 +251,9 @@ namespace PosSystem.Main
             btnReprintKitchen.Visibility = Visibility.Collapsed;
 
             // Reset split mode when returning to table list
-            _isSplitMode = false;
-            _splitQuantities.Clear();
             _isWaitingForTargetTable = false;
             _pendingSplitItems.Clear();
-            btnTransferSplit.Visibility = Visibility.Collapsed;
             btnDiscountBill.Visibility = Visibility.Visible;
-            colSplitQuantity.Visibility = Visibility.Collapsed;
 
             // Reset move mode when returning to table list
             _isWaitingForMoveTargetTable = false;
@@ -436,9 +430,7 @@ namespace PosSystem.Main
                                             (g.Key.ItemStatus == "Sent" ? "✓ Đã gửi" : "Mới"),
 
                             RowColor = g.Sum(x => x.Quantity) == 0 ? "#FFCCCC" :
-                                       (g.Key.ItemStatus == "Sent" ? "#D4EDDA" : "#FFF3CD"),
-
-                            IsInSplitMode = _isSplitMode
+                                       (g.Key.ItemStatus == "Sent" ? "#D4EDDA" : "#FFF3CD")
                         })
                         // --- [SỬA ĐỔI QUAN TRỌNG: LOGIC SẮP XẾP] ---
                         // Ưu tiên 1: Món Mới (New) luôn nằm trên cùng
@@ -1487,122 +1479,7 @@ namespace PosSystem.Main
                 pnlSplitPopup.Visibility = Visibility.Visible;
             }
         }
-        private void LoadOrderDetailsInSplitMode()
-        {
-            using (var db = new AppDbContext())
-            {
-                var order = db.Orders
-                    .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
-                    .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
 
-                if (order != null)
-                {
-                    var viewModels = order.OrderDetails.OrderBy(d => d.OrderDetailID).Select(d => new OrderDetailViewModel
-                    {
-                        OrderDetailID = d.OrderDetailID,
-                        DishName = d.Dish != null ? d.Dish.DishName : "Unknown",
-                        Quantity = d.Quantity,
-                        TotalAmount = d.TotalAmount,
-                        DiscountRate = d.DiscountRate,
-                        ItemStatus = d.ItemStatus,
-                        Note = d.Note ?? "",
-                        BatchDisplay = d.PrintedQuantity == 0 ? "⏳" : (d.KitchenBatch > 0 ? $"Đợt {d.KitchenBatch}" : "---"),
-                        // Kiểm tra ItemStatus từ mobile: Nếu 'Sent' thì đã gửi từ điện thoại
-                        StatusDisplay = d.Quantity == 0 ? "❌ CHỜ HỦY" :
-                                       (d.ItemStatus == "Sent" ? "✓ Từ Mobile" :
-                                       (d.Quantity != d.PrintedQuantity ? "Cần Gửi" : "OK")),
-                        RowColor = d.Quantity == 0 ? "#FFCCCC" :
-                                  (d.ItemStatus == "Sent" ? "#D4EDDA" :  // Green cho items từ mobile
-                                  (d.Quantity != d.PrintedQuantity ? "#FFF3CD" : "White")),  // Yellow cho items chưa gửi
-                        SplitQuantity = 0,
-                        IsInSplitMode = true  // Set để ẩn nút +/-
-                    }).ToList();
-
-                    lstOrderDetails.ItemsSource = viewModels;
-                }
-            }
-        }
-
-        private void NumericOnly_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
-        {
-            e.Handled = !int.TryParse(e.Text, out _);
-        }
-
-        private void TxtSplitQty_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (sender is TextBox txt && txt.Tag is long orderDetailId)
-            {
-                if (int.TryParse(txt.Text, out int splitQty))
-                {
-                    // Find the corresponding order detail to validate
-                    if (lstOrderDetails.ItemsSource is System.Collections.IEnumerable items)
-                    {
-                        foreach (var item in items)
-                        {
-                            if (item is OrderDetailViewModel vm && vm.OrderDetailID == orderDetailId)
-                            {
-                                if (splitQty > vm.Quantity)
-                                {
-                                    ShowToast("❌ Số lượng tách không vượt quá hiện có!", 2000);
-                                    txt.Text = "0";
-                                    vm.SplitQuantity = 0;
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private void BtnTransferSplit_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedTableId == 0) return;
-
-            // Collect all items with split quantity > 0
-            var itemsToTransfer = new Dictionary<long, int>();
-            if (lstOrderDetails.ItemsSource is System.Collections.IEnumerable items)
-            {
-                foreach (var item in items)
-                {
-                    if (item is OrderDetailViewModel vm && vm.SplitQuantity > 0)
-                    {
-                        itemsToTransfer[vm.OrderDetailID] = vm.SplitQuantity;
-                    }
-                }
-            }
-
-            if (itemsToTransfer.Count == 0)
-            {
-                ShowToast("❌ Vui lòng chọn ít nhất một món để tách!", 2000);
-                return;
-            }
-
-            // Validate quantities
-            using (var db = new AppDbContext())
-            {
-                foreach (var kvp in itemsToTransfer)
-                {
-                    var detail = db.OrderDetails.FirstOrDefault(d => d.OrderDetailID == kvp.Key);
-                    if (detail != null && kvp.Value > detail.Quantity)
-                    {
-                        ShowToast("❌ Số lượng tách vượt quá hiện có!", 2000);
-                        return;
-                    }
-                }
-            }
-
-            // Set waiting mode and show persistent popup to select destination table
-            _isWaitingForTargetTable = true;
-            _pendingSplitItems = itemsToTransfer;
-
-            ShowToastPersistent("📍 Chọn bàn đích để tách...");
-
-            // Switch back to table list view
-            pnlMenu.Visibility = Visibility.Collapsed;
-            pnlTableList.Visibility = Visibility.Visible;
-            _tableTimeTimer.Stop();
-        }
 
         private void BtnReprint_Click(object sender, RoutedEventArgs e)
         {
@@ -1943,12 +1820,7 @@ namespace PosSystem.Main
                         _pendingSplitItems.Clear();
                         HideToast();
 
-                        // Reset split mode UI when transfer completes
-                        _isSplitMode = false;
-                        _splitQuantities.Clear();
-                        btnTransferSplit.Visibility = Visibility.Collapsed;
                         btnDiscountBill.Visibility = Visibility.Visible;
-                        colSplitQuantity.Visibility = Visibility.Collapsed;
 
                         LoadTables();
                         SelectAndLoadTable(targetTableId);
@@ -2045,13 +1917,9 @@ namespace PosSystem.Main
         public string BatchDisplay { get; set; } = "";
         public string StatusDisplay { get; set; } = "";
         public string RowColor { get; set; } = "White";
-
-        // Split mode property - để kiểm soát visibility nút +/-
-        public bool IsInSplitMode { get; set; } = false;
-
-        // Split mode properties
-        public int SplitQuantity { get; set; } = 0;  // Quantity to split in split mode
     }
+
+
 
     // Extension methods để tìm visual children
     public static class VisualTreeHelper_Extensions
@@ -2087,29 +1955,7 @@ namespace PosSystem.Main
         }
     }
 
-    // Converter để convert boolean thành visibility (Inverse)
-    public class InverseBooleanToVisibilityConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is bool boolValue)
-            {
-                // Nếu true (split mode) -> Collapsed (ẩn nút)
-                // Nếu false (normal mode) -> Visible (hiện nút)
-                return boolValue ? Visibility.Collapsed : Visibility.Visible;
-            }
-            return Visibility.Visible;
-        }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (value is Visibility visibility)
-            {
-                return visibility != Visibility.Visible;
-            }
-            return false;
-        }
-    }
 
     // Converter để hiển thị placeholder khi text rỗng
     public class EmptyStringToVisibilityConverter : IValueConverter

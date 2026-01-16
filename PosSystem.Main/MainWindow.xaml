@@ -8,7 +8,7 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <local:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+
         <local:EmptyStringToVisibilityConverter x:Key="EmptyStringToVisibilityConverter"/>
         <local:NotEmptyStringToVisibilityConverter x:Key="NotEmptyStringToVisibilityConverter"/>
 
@@ -874,8 +874,7 @@
                                                         Foreground="#DC3545"
                                                         Cursor="Hand"
                                                         Margin="0,0,5,0"
-                                                        x:Name="btnDecreaseControl"
-                                                        Visibility="{Binding IsInSplitMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                        x:Name="btnDecreaseControl"/>
                                                 <TextBlock x:Name="txtQuantityDisplay"
                                                            Text="{Binding Quantity}"
                                                            Width="30"
@@ -909,8 +908,7 @@
                                                         Foreground="#28A745"
                                                         Cursor="Hand"
                                                         Margin="5,0,0,0"
-                                                        x:Name="btnIncreaseControl"
-                                                        Visibility="{Binding IsInSplitMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                        x:Name="btnIncreaseControl"/>
                                             </StackPanel>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
@@ -947,23 +945,6 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="Tách"
-                                                        Width="60"
-                                                        x:Name="colSplitQuantity"
-                                                        Visibility="Collapsed">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBox Text="{Binding SplitQuantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                     Tag="{Binding OrderDetailID}"
-                                                     TextAlignment="Center"
-                                                     MaxLength="3"
-                                                     PreviewTextInput="NumericOnly_PreviewTextInput"
-                                                     LostFocus="TxtSplitQty_LostFocus"
-                                                     ToolTip="Nhập số lượng cần tách"
-                                                     Padding="5"/>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -983,17 +964,6 @@
                                             Foreground="#007BFF"
                                             BorderThickness="0"
                                             Click="BtnDiscountBill_Click"/>
-                                    <Button x:Name="btnTransferSplit"
-                                            Content="✓ Chuyển"
-                                            Background="#28A745"
-                                            Foreground="White"
-                                            Padding="15,5"
-                                            FontWeight="Bold"
-                                            BorderThickness="0"
-                                            Click="BtnTransferSplit_Click"
-                                            Margin="10,0,0,0"
-                                            Visibility="Collapsed"
-                                            ToolTip="Chuyển những món đã chọn sang bàn khác"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1"
                                             HorizontalAlignment="Right">
