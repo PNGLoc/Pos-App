@@ -29,7 +29,8 @@ namespace PosSystem.Main
         public required string TableStatus { get; set; }
         public string TimeDisplay { get; set; } = "";
         public string StatusDisplay => TableStatus == "Occupied" ? "Có khách" : "Trống";
-        public SolidColorBrush ColorBrush => TableStatus == "Occupied" ? new SolidColorBrush(Color.FromRgb(220, 53, 69)) : new SolidColorBrush(Color.FromRgb(40, 167, 69));
+        public bool IsGrayedOut { get; set; } = false; // [NEW] Gray out source table
+        public SolidColorBrush ColorBrush => IsGrayedOut ? new SolidColorBrush(Colors.Gray) : (TableStatus == "Occupied" ? new SolidColorBrush(Color.FromRgb(220, 53, 69)) : new SolidColorBrush(Color.FromRgb(40, 167, 69)));
         public bool IsRequestingPayment { get; set; } = false;
         public bool HasProvisionalBill { get; set; } = false; // [NEW]
     }
@@ -162,6 +163,13 @@ namespace PosSystem.Main
         {
             if (lstTables.SelectedItem is TableViewModel selected)
             {
+                // [NEW] Prevent selecting grayed-out tables (Source table in split mode)
+                if (selected.IsGrayedOut)
+                {
+                    lstTables.SelectedItem = null;
+                    return;
+                }
+
                 // If waiting for target table in split mode, transfer items instead of opening menu
                 if (_isWaitingForTargetTable && _pendingSplitItems.Count > 0)
                 {
@@ -357,7 +365,9 @@ namespace PosSystem.Main
                         TableID = t.TableID,
                         TableName = t.TableName,
                         TableStatus = t.TableStatus,
-                        TimeDisplay = ""
+                        TimeDisplay = "",
+                        // [NEW] Gray out if this is the source table and we are waiting for target
+                        IsGrayedOut = (_isWaitingForTargetTable && t.TableID == _selectedTableId)
                     };
 
                     // Calculate time for occupied tables with pending orders that have been sent to kitchen
@@ -1696,8 +1706,22 @@ namespace PosSystem.Main
                 pnlSplitPopup.Visibility = Visibility.Collapsed;
                 pnlMenu.Visibility = Visibility.Collapsed;
                 pnlTableList.Visibility = Visibility.Visible;
+                btnCancelSplit.Visibility = Visibility.Visible; // [NEW] Show Cancel button
+                
+                LoadTables(); // [NEW] Refresh to gray out source table
                 _tableTimeTimer.Stop();
             }
+        }
+
+        private void BtnCancelSplit_Click(object sender, RoutedEventArgs e)
+        {
+            _isWaitingForTargetTable = false;
+            _pendingSplitItems.Clear();
+            btnCancelSplit.Visibility = Visibility.Collapsed;
+            HideToast();
+            
+            // Return to Menu / Order Screen for the current table
+            SelectAndLoadTable(_selectedTableId);
         }
 
         private void ExecuteSplitTransfer(int targetTableId)
@@ -1821,6 +1845,7 @@ namespace PosSystem.Main
                         HideToast();
 
                         btnDiscountBill.Visibility = Visibility.Visible;
+                        btnCancelSplit.Visibility = Visibility.Collapsed; // [NEW] Hide Cancel button
 
                         LoadTables();
                         SelectAndLoadTable(targetTableId);

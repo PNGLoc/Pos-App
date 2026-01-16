@@ -300,6 +300,21 @@
                                             HorizontalAlignment="Right"
                                             VerticalAlignment="Center"
                                             Margin="20,0,0,0">
+                                    <Button x:Name="btnCancelSplit"
+                                            Content="❌ Hủy tách bàn"
+                                            Background="#DC3545"
+                                            Foreground="White"
+                                            FontWeight="Bold"
+                                            Padding="10,5"
+                                            Margin="0,0,20,0"
+                                            Visibility="Collapsed"
+                                            Click="BtnCancelSplit_Click">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="5"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
                                     <TextBlock Text="Lọc:"
                                                VerticalAlignment="Center"
                                                Margin="0,0,10,0"
