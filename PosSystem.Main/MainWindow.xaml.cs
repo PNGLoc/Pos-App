@@ -1199,6 +1199,11 @@ namespace PosSystem.Main
                 LoadTables();
                 LoadOrderDetails(_selectedTableId);
             }
+            else if (payWindow.IsProvisionalSuccess)
+            {
+                LoadTables(); // Update icon
+                ShowToast("🧾 Đã in tạm tính thành công!");
+            }
         }
 
         private void BtnHistory_Click(object sender, RoutedEventArgs e)

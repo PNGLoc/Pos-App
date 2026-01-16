@@ -14,7 +14,8 @@ namespace PosSystem.Main
     {
         private int _orderId;
         private int _tableId;
-        public bool IsPaidSuccess { get; private set; } = false; // Để MainWindow biết mà reload
+        public bool IsPaidSuccess { get; private set; } = false;
+        public bool IsProvisionalSuccess { get; private set; } = false; // [NEW] Flag for Provisional Print
         public bool ShouldPrint { get; private set; } = true;
 
         public PaymentWindow(int orderId)
@@ -69,9 +70,12 @@ namespace PosSystem.Main
 
             // In bill với phương thức thanh toán vừa lưu, chế độ Tạm Tính
             PrintService.PrintBill(_orderId, isProvisional: true);
-            ShowToast("✅ Đã gửi lệnh in tạm tính!");
+            
+            // [FIX] Set flag and Close
+            IsProvisionalSuccess = true;
+            this.Close();
 
-            // [FIX] Bắn SignalR cập nhật UI
+            // Notify others
             if (App.WebHost != null)
             {
                 var hubContext = App.WebHost.Services.GetService<IHubContext<PosHub>>();
