@@ -697,6 +697,12 @@ namespace PosSystem.Main
                         detail.Quantity++;
                         detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100);
 
+                        // [FIX] Nếu khôi phục lại số lượng bằng số đã in -> Trả về trạng thái Sent
+                        if (detail.ItemStatus == "Modified" && detail.Quantity == detail.PrintedQuantity)
+                        {
+                            detail.ItemStatus = "Sent";
+                        }
+
                         db.SaveChanges();
 
                         // Cập nhật UI
