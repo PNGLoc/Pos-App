@@ -8,7 +8,8 @@ let appState = {
     currentTableId: null,
     orderDetails: [], // Dữ liệu từ server
     tempMenuSelection: {}, // Lưu tạm món đang chọn: { dishID: { qty: 1, note: '' } }
-    currentFilter: 'All'
+    currentFilter: 'All',
+    currentMenuCategory: 'All' // [NEW] Filter cho Menu
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -389,32 +390,57 @@ function renderConfirmedTab() {
 }
 // --- MENU & SELECTION ---
 async function loadMenuData() { const res = await fetch(`${API_URL}/Menu`); appState.categories = await res.json(); }
-function openMenuSelection() { appState.tempMenuSelection = {}; renderMenuUI(); showView('view-menu'); }
+function openMenuSelection() { appState.tempMenuSelection = {}; appState.currentMenuCategory = 'All'; renderMenuUI(); showView('view-menu'); }
 
 function renderMenuUI() {
     const catBar = document.getElementById('categoryBar'); const dishList = document.getElementById('dishList');
     catBar.innerHTML = ''; dishList.innerHTML = '';
 
     // 1. Tab Tất Cả
-    const btnAll = document.createElement('button'); btnAll.className = `filter-btn active`; btnAll.innerText = "Tất cả";
-    btnAll.onclick = (e) => { document.querySelectorAll('#categoryBar .filter-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); document.getElementById('view-menu').scrollTo({ top: 0, behavior: 'smooth' }); }; catBar.appendChild(btnAll);
+    const btnAll = document.createElement('button');
+    btnAll.className = `filter-btn ${appState.currentMenuCategory === 'All' ? 'active' : ''}`;
+    btnAll.innerText = "Tất cả";
+    btnAll.onclick = () => { appState.currentMenuCategory = 'All'; renderMenuUI(); };
+    catBar.appendChild(btnAll);
 
     appState.categories.forEach((cat) => {
-        const btn = document.createElement('button'); btn.className = `filter-btn`; btn.innerText = cat.categoryName;
-        btn.onclick = (e) => { document.querySelectorAll('#categoryBar .filter-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); document.getElementById(`cat-${cat.categoryID}`).scrollIntoView({ behavior: 'smooth', block: 'start' }); }; catBar.appendChild(btn);
-        const catHeader = document.createElement('h6'); catHeader.className = 'bg-light p-2 m-0 border-top border-bottom text-uppercase text-secondary fw-bold'; catHeader.innerText = cat.categoryName; catHeader.id = `cat-${cat.categoryID}`; dishList.appendChild(catHeader);
+        // [MODIFIED] Filter logic
+        const btn = document.createElement('button');
+        btn.className = `filter-btn ${appState.currentMenuCategory === cat.categoryID ? 'active' : ''}`;
+        btn.innerText = cat.categoryName;
+        btn.onclick = () => { appState.currentMenuCategory = cat.categoryID; renderMenuUI(); };
+        catBar.appendChild(btn);
+
+        // [MODIFIED] Chỉ render category đc chọn (Hoặc All)
+        if (appState.currentMenuCategory !== 'All' && appState.currentMenuCategory !== cat.categoryID) return;
+
+        const catHeader = document.createElement('h6'); catHeader.className = 'menu-category-header bg-light p-2 m-0 border-top border-bottom text-uppercase text-secondary fw-bold'; catHeader.innerText = cat.categoryName; catHeader.id = `cat-${cat.categoryID}`; dishList.appendChild(catHeader);
 
         (cat.dishes || cat.Dishes || []).forEach(dish => {
             const wrapper = document.createElement('div'); wrapper.dataset.id = dish.dishID;
-            const selection = appState.tempMenuSelection[dish.dishID]; const qty = selection ? selection.qty : 0; const note = selection ? selection.note : "";
+            const selection = appState.tempMenuSelection[dish.dishID];
+            const qty = selection ? selection.qty : 0;
+            const note = selection ? selection.note : "";
+
+            // [NEW] Tính số lượng đã có trong Cart (Status = New)
+            const cartQty = appState.orderDetails
+                .filter(d => d.dishID === dish.dishID && d.itemStatus === 'New')
+                .reduce((sum, d) => sum + d.quantity, 0);
 
             // 2. UI Chọn món mới (Click hiện controls)
             if (qty === 0) {
                 wrapper.className = 'dish-item';
-                wrapper.innerHTML = `<div class="w-100" onclick="incrementDish(${dish.dishID})"><div class="d-flex justify-content-between align-items-center"><h6 class="m-0">${dish.dishName}</h6><div class="fw-bold text-primary">${dish.price.toLocaleString()}đ</div></div></div>`;
+                // Nếu có trong giỏ hàng thì highlight nhẹ hoặc hiện số lượng
+                const cartBadge = cartQty > 0 ? `<span class="badge bg-danger rounded-pill ms-2">${cartQty}</span>` : '';
+
+                wrapper.innerHTML = `<div class="w-100" onclick="incrementDish(${dish.dishID})"><div class="d-flex justify-content-between align-items-center"><h6 class="m-0">${dish.dishName} ${cartBadge}</h6><div class="fw-bold text-primary">${dish.price.toLocaleString()}đ</div></div></div>`;
             } else {
                 wrapper.className = 'dish-item bg-light border border-primary';
-                wrapper.innerHTML = `<div class="w-100"><div class="d-flex justify-content-between align-items-center mb-2"><h6 class="m-0 text-primary fw-bold">${dish.dishName}</h6><div class="fw-bold">${dish.price.toLocaleString()}đ</div></div><div class="d-flex justify-content-between align-items-center"><div class="btn-group btn-group-sm"><button class="btn btn-secondary" onclick="updateTempQty(${dish.dishID}, -1)">-</button><span class="btn btn-light border fw-bold" style="min-width:35px">${qty}</span><button class="btn btn-secondary" onclick="updateTempQty(${dish.dishID}, 1)">+</button></div><button class="btn btn-sm ${note ? 'btn-warning' : 'btn-outline-secondary'}" onclick="openNoteModal(${dish.dishID}, 'menu', '${note}')"><i class="fas fa-comment-dots"></i> ${note ? 'Sửa Note' : 'Ghi chú'}</button></div>${note ? `<div class="text-warning small fst-italic mt-1 ms-1"><i class="fas fa-pen"></i> ${note}</div>` : ''}</div>`;
+
+                // Nếu đang chọn thêm, cũng hiện số lượng đã có trong giỏ để user biết
+                const cartInfo = cartQty > 0 ? `<div class="text-danger small fw-bold mb-1">Đã có trong giỏ: ${cartQty}</div>` : '';
+
+                wrapper.innerHTML = `<div class="w-100"><div class="d-flex justify-content-between align-items-center mb-2"><h6 class="m-0 text-primary fw-bold">${dish.dishName}</h6><div class="fw-bold">${dish.price.toLocaleString()}đ</div></div>${cartInfo}<div class="d-flex justify-content-between align-items-center"><div class="btn-group btn-group-sm"><button class="btn btn-secondary" onclick="updateTempQty(${dish.dishID}, -1)">-</button><span class="btn btn-light border fw-bold" style="min-width:35px">${qty}</span><button class="btn btn-secondary" onclick="updateTempQty(${dish.dishID}, 1)">+</button></div><button class="btn btn-sm ${note ? 'btn-warning' : 'btn-outline-secondary'}" onclick="openNoteModal(${dish.dishID}, 'menu', '${note}')"><i class="fas fa-comment-dots"></i> ${note ? 'Sửa Note' : 'Ghi chú'}</button></div>${note ? `<div class="text-warning small fst-italic mt-1 ms-1"><i class="fas fa-pen"></i> ${note}</div>` : ''}</div>`;
             }
             dishList.appendChild(wrapper);
         });
@@ -453,6 +479,11 @@ async function saveNote() {
 // --- SEARCH VIẾT TẮT ---
 function searchMenu() {
     const term = removeAccents(document.getElementById('searchDish').value.toLowerCase());
+
+    // [NEW] Ẩn/Hiện tiêu đề Category khi search
+    const catHeaders = document.querySelectorAll('.menu-category-header');
+    catHeaders.forEach(h => h.style.display = term ? 'none' : 'block');
+
     document.querySelectorAll('.dish-item').forEach(wrapper => {
         const nameEl = wrapper.querySelector('h6');
         if (nameEl) {

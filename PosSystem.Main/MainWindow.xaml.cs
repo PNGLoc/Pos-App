@@ -931,6 +931,7 @@ namespace PosSystem.Main
                         var printItem = new OrderDetail
                         {
                             Dish = item.Dish,          // Giữ thông tin món (để lấy Tên, PrinterID)
+                            DishID = item.DishID,      // [FIX] Gán DishID để không bị gộp sai
                             Quantity = diff,           // Số lượng thay đổi (Dương = Thêm, Âm = Hủy)
                             Note = item.Note,
                             KitchenBatch = nextBatch   // Gán đợt mới
