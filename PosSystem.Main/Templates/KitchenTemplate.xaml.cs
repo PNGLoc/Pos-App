@@ -57,6 +57,9 @@ namespace PosSystem.Main.Templates
         {
             // 1. Parse cấu hình
             bool showNote = !config.Contains("ShowNote=False");
+            bool showItemSep = config.Contains("ItemSep=True"); // [NEW]
+            bool isDashedSep = config.Contains("SepStyle=Dashed"); // [NEW]
+
             int noteSize = Math.Max(10, fontSize - 2);
             int itemSize = fontSize > 0 ? fontSize : 14;
             int headerSize = fontSize > 0 ? fontSize : 14;
@@ -174,18 +177,31 @@ namespace PosSystem.Main.Templates
                     RootPanel.Children.Add(note);
                 }
 
-                // Đường kẻ mờ ngăn cách giữa các món
-                RootPanel.Children.Add(new System.Windows.Shapes.Rectangle
+                // [NEW] Kẻ ngăn cách từng món (Nếu được bật)
+                if (showItemSep)
                 {
-                    Height = 1,
-                    Fill = Brushes.Black,
-                    Opacity = 0.2,
-                    Margin = new Thickness(0, 2, 0, 2)
-                });
+                    var line = new System.Windows.Shapes.Rectangle
+                    {
+                        Height = 1,
+                        Stroke = Brushes.Black,
+                        StrokeThickness = 1,
+                        Margin = new Thickness(0, 2, 0, 2),
+                        SnapsToDevicePixels = true
+                    };
+
+                     // Nếu là Dash
+                    if (isDashedSep)
+                    {
+                        line.StrokeDashArray = new DoubleCollection { 4, 1 };
+                    }
+                    // Nếu là Solid thì mặc định Stroke đã là liền
+                    
+                    RootPanel.Children.Add(line);
+                }
             }
 
             // Đường kẻ ngang kết thúc list
-            AddSeparator();
+            //AddSeparator();
         }
 
         private void AddTextBlock(string text, PrintElement style)

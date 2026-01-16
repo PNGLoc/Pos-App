@@ -160,6 +160,9 @@ namespace PosSystem.Main.Pages
             return "";
         }
         public bool ShowNote => GetConfig("ShowNote") != "False";
+        public bool ShowItemSeparator => GetConfig("ItemSep") == "True"; // NEW
+        public string SeparatorStyle => GetConfig("SepStyle") == "Dashed" ? "Dashed" : "Solid"; // NEW
+
         public bool ShowSubTotal => GetConfig("ShowSub") == "True";
         public bool ShowDiscount => GetConfig("ShowDisc") == "True";
         public int NoteFontSize { get { if (int.TryParse(GetConfig("NoteSize"), out int s)) return s; return Math.Max(10, FontSize - 2); } }
@@ -409,6 +412,10 @@ namespace PosSystem.Main.Pages
                              if (txtNoteSize != null) txtNoteSize.Text = el.NoteFontSize.ToString();
                              if (txtColumnSpacing != null) txtColumnSpacing.Text = el.ColumnSpacing.ToString();
                              if (chkOrderDetailsBold != null) chkOrderDetailsBold.IsChecked = el.IsBold;
+                             
+                             // [NEW] Bind Separator options
+                             if (chkItemSep != null) chkItemSep.IsChecked = el.ShowItemSeparator;
+                             if (cboItemSepStyle != null) cboItemSepStyle.SelectedIndex = (el.SeparatorStyle == "Dashed") ? 1 : 0;
                          }
                          else if (el.ElementType == "Total")
                          {
@@ -461,6 +468,10 @@ namespace PosSystem.Main.Pages
                 if (txtNoteSize != null && int.TryParse(txtNoteSize.Text, out int nSize)) configs.Add($"NoteSize={nSize}");
                 if (txtColumnSpacing != null && int.TryParse(txtColumnSpacing.Text, out int cSpacing)) configs.Add($"ColumnSpacing={cSpacing}");
                 
+                // [NEW] Save Separator options
+                if (chkItemSep != null && chkItemSep.IsChecked == true) configs.Add("ItemSep=True");
+                if (cboItemSepStyle != null && cboItemSepStyle.SelectedIndex == 1) configs.Add("SepStyle=Dashed");
+
                 _selectedElement.Content = string.Join(";", configs);
                 if (chkOrderDetailsBold != null) _selectedElement.IsBold = chkOrderDetailsBold.IsChecked == true;
             }
