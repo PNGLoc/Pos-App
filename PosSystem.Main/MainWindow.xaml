@@ -10,6 +10,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <local:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
         <local:EmptyStringToVisibilityConverter x:Key="EmptyStringToVisibilityConverter"/>
+        <local:NotEmptyStringToVisibilityConverter x:Key="NotEmptyStringToVisibilityConverter"/>
 
         <Style x:Key="PrinterToggleStyle"
                TargetType="ToggleButton">
@@ -139,7 +140,8 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="10">
+    <Grid>
+        <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -665,22 +667,21 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="lblSelectedTable"
-                                   Text="Chưa chọn bàn"
-                                   Foreground="White"
-                                   FontWeight="Bold"
-                                   FontSize="20"
-                                   VerticalAlignment="Center"
-                                   HorizontalAlignment="Left"
-                                   Margin="20,0,0,0"/>
-                        <TextBlock x:Name="lblTableTime"
-                                   Grid.Column="1"
-                                   Text=""
-                                   Foreground="White"
-                                   FontSize="16"
-                                   VerticalAlignment="Center"
-                                   HorizontalAlignment="Right"
-                                   Margin="0,0,15,0"/>
+                        <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center" Margin="20,0,0,0">
+                            <TextBlock x:Name="lblSelectedTable"
+                                       Text="Chưa chọn bàn"
+                                       Foreground="White"
+                                       FontWeight="Bold"
+                                       FontSize="20"
+                                       HorizontalAlignment="Left"/>
+                            <TextBlock x:Name="lblTableTime"
+                                       Text=""
+                                       Foreground="#FFEB3B"
+                                       FontSize="14"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Left"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
                         <Button Grid.Column="2"
                                 x:Name="btnSplitTable"
                                 Content="📤 Tách bàn"
@@ -718,6 +719,8 @@
                             </Button.Resources>
                         </Button>
                         <Button Grid.Column="4"
+                                x:Name="btnReprintKitchen"
+                                Visibility="Collapsed"
                                 Content="🖨 In lại bếp"
                                 Click="BtnReprint_Click"
                                 Background="#6F42C1"
@@ -1064,6 +1067,120 @@
                                        FontSize="14"/>
                         </Border>
                     </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+        </Grid>
+
+        <!-- Reprint Popup Overlay -->
+        <Grid x:Name="pnlReprintPopup" Visibility="Collapsed" Panel.ZIndex="1000">
+            <Border Background="#99000000" MouseLeftButtonDown="PnlReprintPopup_OutsideClick"/>
+            <Border Width="500" Height="600" Background="White" CornerRadius="12" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="0">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="0" Opacity="0.4"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="60"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="70"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="#EEE" Padding="20,0" Background="#F8F9FA" CornerRadius="12,12,0,0">
+                        <Grid>
+                            <TextBlock Text="🖨 CHỌN MÓN IN LẠI" FontWeight="Bold" FontSize="18" VerticalAlignment="Center" Foreground="#333"/>
+                            <Button Content="✕" HorizontalAlignment="Right" VerticalAlignment="Center" Width="30" Height="30" Background="Transparent" BorderThickness="0" FontSize="16" Foreground="#999" Click="BtnCloseReprintPopup_Click" Cursor="Hand"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Select All -->
+                    <Border Grid.Row="1" Padding="15,10" BorderThickness="0,0,0,1" BorderBrush="#F0F0F0">
+                        <Button x:Name="btnSelectAllReprint" Content="Chọn tất cả" FontSize="14" FontWeight="SemiBold" 
+                                Click="BtnSelectAllReprint_Click" HorizontalAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Foreground="#007BFF" Cursor="Hand"/>
+                    </Border>
+
+                    <!-- List Items -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="10">
+                        <ItemsControl x:Name="lstReprintItems">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="10" Margin="5" BorderThickness="1" CornerRadius="8"
+                                            MouseLeftButtonDown="ReprintItem_Click" Cursor="Hand">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="White"/>
+                                                <Setter Property="BorderBrush" Value="#EEE"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Background" Value="#E3F2FD"/> <!-- Use a stronger blue for visibility -->
+                                                        <Setter Property="BorderBrush" Value="#007BFF"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding DisplayText}" FontWeight="Bold" FontSize="15" Foreground="#333"/>
+                                                <TextBlock Text="{Binding Note}" FontSize="13" Foreground="#666" FontStyle="Italic" Visibility="{Binding Note, Converter={StaticResource NotEmptyStringToVisibilityConverter}}"/>
+                                            </StackPanel>
+
+                                            <Border Grid.Column="1" Background="#E3F2FD" CornerRadius="4" Padding="0">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <!-- Decrease Button -->
+                                                    <Button Width="30" Height="30" Background="Transparent" BorderThickness="0" 
+                                                            Content="-" FontWeight="Bold" Foreground="#007BFF" FontSize="16" Cursor="Hand"
+                                                            Click="BtnDecreaseReprint_Click"
+                                                            IsEnabled="{Binding IsSelected}">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style>
+                                                        </Button.Resources>
+                                                    </Button>
+
+                                                    <!-- Quantity Text -->
+                                                    <TextBlock Text="{Binding QuantityDisplay}" FontWeight="Bold" Foreground="#007BFF" 
+                                                               VerticalAlignment="Center" Margin="5,0" MinWidth="40" TextAlignment="Center"/>
+
+                                                    <!-- Increase Button -->
+                                                    <Button Width="30" Height="30" Background="Transparent" BorderThickness="0" 
+                                                            Content="+" FontWeight="Bold" Foreground="#007BFF" FontSize="16" Cursor="Hand"
+                                                            Click="BtnIncreaseReprint_Click"
+                                                            IsEnabled="{Binding IsSelected}">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style>
+                                                        </Button.Resources>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Footer -->
+                    <Border Grid.Row="3" BorderThickness="0,1,0,0" BorderBrush="#EEE" Background="#F8F9FA" CornerRadius="0,0,12,12" Padding="20,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button Content="Hủy bỏ" Click="BtnCloseReprintPopup_Click" Width="100" Height="40" Background="White" BorderBrush="#DDD" BorderThickness="1" Foreground="#666" FontWeight="SemiBold" Margin="0,0,10,0" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                </Button.Resources>
+                            </Button>
+                            <Button Content="🖨 In lại ngay" Click="BtnConfirmReprint_Click" Width="140" Height="40" Background="#6F42C1" BorderThickness="0" Foreground="White" FontWeight="Bold" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                </Button.Resources>
+                            </Button>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Border>
         </Grid>

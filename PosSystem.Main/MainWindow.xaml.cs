@@ -45,6 +45,54 @@ namespace PosSystem.Main
         public int CategoryID { get; set; }
     }
 
+    public class ReprintItemViewModel : System.ComponentModel.INotifyPropertyChanged
+    {
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(name));
+
+        public List<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
+        public string DisplayText { get; set; }
+        
+        public int TotalQuantity => OrderDetails.Sum(d => d.Quantity);
+
+        private int _selectedQuantity;
+        public int SelectedQuantity
+        {
+            get => _selectedQuantity;
+            set
+            {
+                if (_selectedQuantity != value)
+                {
+                    _selectedQuantity = value;
+                    OnPropertyChanged(nameof(SelectedQuantity));
+                    OnPropertyChanged(nameof(QuantityDisplay));
+                }
+            }
+        }
+
+        public string QuantityDisplay => $"{SelectedQuantity}/{TotalQuantity}";
+        public string Note => OrderDetails.FirstOrDefault()?.Note ?? "";
+
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    // If selected -> Default to Max, else 0? 
+                    // Let's keep SelectedQuantity sticky or reset? 
+                    // Logic: If checking, ensure at least 1 is selected (Max).
+                    if (value && SelectedQuantity == 0) SelectedQuantity = TotalQuantity;
+                    
+                    OnPropertyChanged(nameof(IsSelected));
+                }
+            }
+        }
+    }
+
     public partial class MainWindow : Window
     {
         private HubConnection _connection = default!;
@@ -164,6 +212,7 @@ namespace PosSystem.Main
                 // Show split and move buttons when selecting a table
                 btnSplitTable.Visibility = Visibility.Visible;
                 btnMoveTable.Visibility = Visibility.Visible;
+                btnReprintKitchen.Visibility = Visibility.Visible;
 
                 // Stop timer when entering a table (will start only when sending kitchen)
                 _tableTimeTimer.Stop();
@@ -201,6 +250,7 @@ namespace PosSystem.Main
             // Hide split and move buttons when returning to table list
             btnSplitTable.Visibility = Visibility.Collapsed;
             btnMoveTable.Visibility = Visibility.Collapsed;
+            btnReprintKitchen.Visibility = Visibility.Collapsed;
 
             // Reset split mode when returning to table list
             _isSplitMode = false;
@@ -244,6 +294,7 @@ namespace PosSystem.Main
             pnlMenu.Visibility = Visibility.Visible;
             btnSplitTable.Visibility = Visibility.Visible;
             btnMoveTable.Visibility = Visibility.Visible;
+            btnReprintKitchen.Visibility = Visibility.Visible;
 
             // Stop timer when entering a table
             _tableTimeTimer.Stop();
@@ -1551,8 +1602,7 @@ namespace PosSystem.Main
             using (var db = new AppDbContext())
             {
                 var order = db.Orders
-                    .Include(o => o.OrderDetails).ThenInclude(d => d.Dish).ThenInclude(c => c.Category)
-                    .Include(o => o.Table)
+                    .Include(o => o.OrderDetails).ThenInclude(d => d.Dish)
                     .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
 
                 if (order == null || !order.OrderDetails.Any())
@@ -1561,23 +1611,137 @@ namespace PosSystem.Main
                     return;
                 }
 
-                // Show Reprint Dialog
-                var dialog = new ReprintWindow(order.OrderDetails.ToList());
-                dialog.Owner = this;
-                dialog.ShowDialog();
+                // Load items to popup
+                var items = order.OrderDetails
+                    .Where(d => d.Quantity > 0)
+                    .GroupBy(d => new { d.DishID, Note = (d.Note ?? "").Trim() })
+                    .Select(g => new ReprintItemViewModel
+                    {
+                        OrderDetails = g.ToList(),
+                        DisplayText = g.First().Dish?.DishName ?? "Unknown",
+                        IsSelected = false,
+                        SelectedQuantity = g.Sum(d => d.Quantity) // Default to Max
+                    })
+                    .ToList();
 
-                if (dialog.IsConfirmed)
+                lstReprintItems.ItemsSource = items;
+                btnSelectAllReprint.Content = "Chọn tất cả";
+                pnlReprintPopup.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void BtnCloseReprintPopup_Click(object sender, RoutedEventArgs e)
+        {
+            pnlReprintPopup.Visibility = Visibility.Collapsed;
+        }
+
+        private void PnlReprintPopup_OutsideClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            pnlReprintPopup.Visibility = Visibility.Collapsed;
+        }
+
+        private void BtnSelectAllReprint_Click(object sender, RoutedEventArgs e)
+        {
+            if (lstReprintItems.ItemsSource is List<ReprintItemViewModel> items)
+            {
+                // Check if currently all selected
+                bool allSelected = items.All(i => i.IsSelected);
+                
+                // Toggle: If all selected -> Deselect all. Otherwise -> Select all.
+                bool newValue = !allSelected;
+                
+                foreach (var item in items) item.IsSelected = newValue;
+                lstReprintItems.Items.Refresh();
+                
+                // Update button text if needed, but for now purely logic
+                if (sender is Button btn)
                 {
-                     var items = dialog.SelectedItems.Select(i => i.OrderDetail).ToList();
-                     if (items.Any())
-                     {
-                         int maxBatch = order.OrderDetails.Max(d => (int?)d.KitchenBatch) ?? 1;
-                         Services.PrintService.PrintKitchen(order, items, maxBatch, "Admin (IN LẠI)");
-                         ShowToast($"✅ Đã gửi lệnh in lại {items.Count} món!");
-                     }
+                    btn.Content = newValue ? "Bỏ chọn tất cả" : "Chọn tất cả";
                 }
             }
         }
+
+        private void BtnConfirmReprint_Click(object sender, RoutedEventArgs e)
+        {
+            if (lstReprintItems.ItemsSource is List<ReprintItemViewModel> items)
+            {
+                var selected = items.Where(i => i.IsSelected).SelectMany(i => i.OrderDetails).ToList();
+                if (!selected.Any())
+                {
+                    ShowToast("⚠️ Vui lòng chọn ít nhất 1 món!");
+                    return;
+                }
+
+                using (var db = new AppDbContext())
+                {
+                    var order = db.Orders
+                       .Include(o => o.OrderDetails).ThenInclude(d => d.Dish).ThenInclude(c => c.Category)
+                       .Include(o => o.Table)
+                       .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+
+                    if (order == null) return;
+
+                    // Filter selected items from THIS order context
+                    // Logic: For each selected group, pick TOP N items
+                    var itemsToPrint = new List<OrderDetail>();
+
+                    foreach (var vm in items.Where(x => x.IsSelected && x.SelectedQuantity > 0))
+                    {
+                        // Get IDs of the items we want to print
+                        var idsToPrint = vm.OrderDetails.Take(vm.SelectedQuantity).Select(d => d.OrderDetailID).ToList();
+                        
+                        // Fetch the actual entities from the current 'order' context (which has Category loaded)
+                        var details = order.OrderDetails.Where(d => idsToPrint.Contains(d.OrderDetailID)).ToList();
+                        itemsToPrint.AddRange(details);
+                    }
+
+                    if (itemsToPrint.Any())
+                    {
+                        int maxBatch = order.OrderDetails.Max(d => (int?)d.KitchenBatch) ?? 1;
+                        string senderName = UserSession.AccName ?? "Admin";
+                        Services.PrintService.PrintKitchen(order, itemsToPrint, maxBatch, senderName + " (IN LẠI)");
+
+                        ShowToast($"✅ Đã gửi lệnh in lại {itemsToPrint.Count} món!");
+                        pnlReprintPopup.Visibility = Visibility.Collapsed;
+                    }
+                }
+            }
+        }
+
+        private void BtnIncreaseReprint_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is ReprintItemViewModel vm)
+            {
+                if (vm.SelectedQuantity < vm.TotalQuantity)
+                {
+                    vm.SelectedQuantity++;
+                    if (!vm.IsSelected) vm.IsSelected = true;
+                }
+            }
+        }
+
+        private void BtnDecreaseReprint_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is ReprintItemViewModel vm)
+            {
+                if (vm.SelectedQuantity > 1)
+                {
+                    vm.SelectedQuantity--;
+                }
+            }
+        }
+
+        private void ReprintItem_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is Border border && border.DataContext is ReprintItemViewModel vm)
+            {
+                // Toggle selection
+                vm.IsSelected = !vm.IsSelected;
+                
+                // Note: IsSelected setter in ViewModel handles the default quantity logic (defaults to max if 0).
+            }
+        }
+
         private void ExecuteSplitTransfer(int targetTableId)
         {
             if (targetTableId == _selectedTableId)
@@ -1886,5 +2050,22 @@ namespace PosSystem.Main
         }
 
 
-    } // End of MainWindow class
+    }
+
+    public class NotEmptyStringToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is string text)
+            {
+                return !string.IsNullOrEmpty(text) ? Visibility.Visible : Visibility.Collapsed;
+            }
+            return Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return null;
+        }
+    }
 } // End of namespace
