@@ -1184,5 +1184,118 @@
                 </Grid>
             </Border>
         </Grid>
+
+        <!-- Split Table Popup -->
+        <Grid x:Name="pnlSplitPopup" Visibility="Collapsed" Panel.ZIndex="1000">
+            <Border Background="Black" Opacity="0.5" MouseDown="PnlSplitPopup_OutsideClick"/>
+            <Border Width="500" Height="600" Background="White" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="0" Opacity="0.4"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="60"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="70"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="#EEE" Padding="20,0" Background="#F8F9FA" CornerRadius="12,12,0,0">
+                        <Grid>
+                            <TextBlock Text="📤 TÁCH BÀN - CHỌN MÓN" FontWeight="Bold" FontSize="18" VerticalAlignment="Center" Foreground="#333"/>
+                            <Button Content="✕" HorizontalAlignment="Right" VerticalAlignment="Center" Width="30" Height="30" Background="Transparent" BorderThickness="0" FontSize="16" Foreground="#999" Click="BtnCloseSplitPopup_Click" Cursor="Hand"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Select All -->
+                    <Border Grid.Row="1" Padding="15,10" BorderThickness="0,0,0,1" BorderBrush="#F0F0F0">
+                        <Button x:Name="btnSelectAllSplit" Content="Chọn tất cả" FontSize="14" FontWeight="SemiBold" 
+                                Click="BtnSelectAllSplit_Click" HorizontalAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Foreground="#007BFF" Cursor="Hand"/>
+                    </Border>
+
+                    <!-- List Items -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="10">
+                        <ItemsControl x:Name="lstSplitItems">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="10" Margin="5" BorderThickness="1" CornerRadius="8"
+                                            MouseLeftButtonDown="ReprintItem_Click" Cursor="Hand">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="White"/>
+                                                <Setter Property="BorderBrush" Value="#EEE"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Background" Value="#E3F2FD"/>
+                                                        <Setter Property="BorderBrush" Value="#007BFF"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding DisplayText}" FontWeight="Bold" FontSize="15" Foreground="#333"/>
+                                                <TextBlock Text="{Binding Note}" FontSize="13" Foreground="#666" FontStyle="Italic" Visibility="{Binding Note, Converter={StaticResource NotEmptyStringToVisibilityConverter}}"/>
+                                            </StackPanel>
+
+                                            <Border Grid.Column="1" Background="#E3F2FD" CornerRadius="4" Padding="0">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <!-- Decrease Button -->
+                                                    <Button Width="30" Height="30" Background="Transparent" BorderThickness="0" 
+                                                            Content="-" FontWeight="Bold" Foreground="#007BFF" FontSize="16" Cursor="Hand"
+                                                            Click="BtnDecreaseReprint_Click"
+                                                            IsEnabled="{Binding IsSelected}">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style>
+                                                        </Button.Resources>
+                                                    </Button>
+
+                                                    <!-- Quantity Text -->
+                                                    <TextBlock Text="{Binding QuantityDisplay}" FontWeight="Bold" Foreground="#007BFF" 
+                                                               VerticalAlignment="Center" Margin="5,0" MinWidth="40" TextAlignment="Center"/>
+
+                                                    <!-- Increase Button -->
+                                                    <Button Width="30" Height="30" Background="Transparent" BorderThickness="0" 
+                                                            Content="+" FontWeight="Bold" Foreground="#007BFF" FontSize="16" Cursor="Hand"
+                                                            Click="BtnIncreaseReprint_Click"
+                                                            IsEnabled="{Binding IsSelected}">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style>
+                                                        </Button.Resources>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Footer -->
+                    <Border Grid.Row="3" BorderThickness="0,1,0,0" BorderBrush="#EEE" Background="#F8F9FA" CornerRadius="0,0,12,12" Padding="20,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button Content="Hủy bỏ" Click="BtnCloseSplitPopup_Click" Width="100" Height="40" Background="White" BorderBrush="#DDD" BorderThickness="1" Foreground="#666" FontWeight="SemiBold" Margin="0,0,10,0" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                </Button.Resources>
+                            </Button>
+                            <Button Content="➡ Chọn bàn đến" Click="BtnConfirmSplit_Click" Width="150" Height="40" Background="#28A745" BorderThickness="0" Foreground="White" FontWeight="Bold" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="6"/></Style>
+                                </Button.Resources>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

@@ -1458,24 +1458,33 @@ namespace PosSystem.Main
         {
             if (_selectedTableId == 0) return;
 
-            _isSplitMode = !_isSplitMode;
-            _splitQuantities.Clear();
+            using (var db = new AppDbContext())
+            {
+                var order = db.Orders
+                    .Include(o => o.OrderDetails).ThenInclude(d => d.Dish)
+                    .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
 
-            if (_isSplitMode)
-            {
-                // Enter split mode
-                btnTransferSplit.Visibility = Visibility.Visible;
-                btnDiscountBill.Visibility = Visibility.Collapsed;
-                colSplitQuantity.Visibility = Visibility.Visible;  // Show split column
-                LoadOrderDetailsInSplitMode();
-            }
-            else
-            {
-                // Exit split mode
-                btnTransferSplit.Visibility = Visibility.Collapsed;
-                btnDiscountBill.Visibility = Visibility.Visible;
-                colSplitQuantity.Visibility = Visibility.Collapsed;  // Hide split column
-                LoadOrderDetails(_selectedTableId);
+                if (order == null || !order.OrderDetails.Any())
+                {
+                    ShowToast("❌ Không có món để tách!");
+                    return;
+                }
+
+                var items = order.OrderDetails
+                    .Where(d => d.Quantity > 0)
+                    .GroupBy(d => new { d.DishID, Note = (d.Note ?? "").Trim() })
+                    .Select(g => new ReprintItemViewModel
+                    {
+                        OrderDetails = g.ToList(),
+                        DisplayText = g.First().Dish?.DishName ?? "Unknown",
+                        IsSelected = false,
+                        SelectedQuantity = 0 // Initially 0 for Split
+                    })
+                    .ToList();
+
+                lstSplitItems.ItemsSource = items;
+                btnSelectAllSplit.Content = "Chọn tất cả";
+                pnlSplitPopup.Visibility = Visibility.Visible;
             }
         }
         private void LoadOrderDetailsInSplitMode()
@@ -1739,6 +1748,78 @@ namespace PosSystem.Main
                 vm.IsSelected = !vm.IsSelected;
                 
                 // Note: IsSelected setter in ViewModel handles the default quantity logic (defaults to max if 0).
+            }
+        }
+
+        private void BtnCloseSplitPopup_Click(object sender, RoutedEventArgs e)
+        {
+            pnlSplitPopup.Visibility = Visibility.Collapsed;
+        }
+
+        private void PnlSplitPopup_OutsideClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            pnlSplitPopup.Visibility = Visibility.Collapsed;
+        }
+
+        private void BtnSelectAllSplit_Click(object sender, RoutedEventArgs e)
+        {
+            if (lstSplitItems.ItemsSource is List<ReprintItemViewModel> items)
+            {
+                bool allSelected = items.All(i => i.IsSelected);
+                bool newValue = !allSelected;
+                
+                foreach (var item in items) item.IsSelected = newValue;
+                lstSplitItems.Items.Refresh();
+                
+                if (sender is Button btn)
+                {
+                    btn.Content = newValue ? "Bỏ chọn tất cả" : "Chọn tất cả";
+                }
+            }
+        }
+
+        private void BtnConfirmSplit_Click(object sender, RoutedEventArgs e)
+        {
+            if (lstSplitItems.ItemsSource is List<ReprintItemViewModel> items)
+            {
+                var selectedItems = items.Where(x => x.IsSelected && x.SelectedQuantity > 0).ToList();
+                if (!selectedItems.Any())
+                {
+                    ShowToast("❌ Vui lòng chọn món để tách!", 2000);
+                    return;
+                }
+
+                // Prepare transfer dictionary
+                var itemsToTransfer = new Dictionary<long, int>();
+                
+                foreach (var vm in selectedItems)
+                {
+                    int quantityRemainingToSplit = vm.SelectedQuantity;
+                    
+                    // Iterate through the underlying OrderDetails in this group
+                    foreach (var detail in vm.OrderDetails)
+                    {
+                        if (quantityRemainingToSplit <= 0) break;
+
+                        int take = Math.Min(detail.Quantity, quantityRemainingToSplit);
+                        itemsToTransfer[detail.OrderDetailID] = take;
+                        quantityRemainingToSplit -= take;
+                    }
+                }
+
+                if (itemsToTransfer.Count == 0) return;
+
+                // Set waiting mode and show persistent popup to select destination table
+                _isWaitingForTargetTable = true;
+                _pendingSplitItems = itemsToTransfer;
+
+                ShowToastPersistent("📍 Chọn bàn đích để tách...");
+
+                // Switch back to table list view
+                pnlSplitPopup.Visibility = Visibility.Collapsed;
+                pnlMenu.Visibility = Visibility.Collapsed;
+                pnlTableList.Visibility = Visibility.Visible;
+                _tableTimeTimer.Stop();
             }
         }
 
