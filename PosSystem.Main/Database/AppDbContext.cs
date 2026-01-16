@@ -16,6 +16,7 @@ namespace PosSystem.Main.Database
         public DbSet<OrderDetail> OrderDetails { get; set; }
         public DbSet<Printer> Printers { get; set; }
         public DbSet<PrintTemplate> PrintTemplates { get; set; }
+        public DbSet<CancelledLog> CancelledLogs { get; set; }
         public DbSet<DishPriceRule> DishPriceRules { get; set; }
         public DbSet<GlobalSetting> GlobalSettings { get; set; }
         public DbSet<PriceRuleType> PriceRuleTypes { get; set; }

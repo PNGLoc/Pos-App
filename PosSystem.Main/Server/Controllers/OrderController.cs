@@ -520,6 +520,20 @@ namespace PosSystem.Main.Server.Controllers
                 order.FinalAmount = order.SubTotal;
             }
 
+            // [NEW] Lưu log hủy món
+            var log = new CancelledLog
+            {
+                TableID = order.TableID,
+                OrderID = order.OrderID,
+                DishName = detail.Dish?.DishName ?? "Unknown",
+                Quantity = req.Quantity,
+                Amount = req.Quantity * detail.UnitPrice,
+                // Reason removed
+                DeletedBy = acc.AccName, // Lấy tên người hủy từ Account check quyền
+                CancelTime = DateTime.Now
+            };
+            _context.CancelledLogs.Add(log);
+
             await _context.SaveChangesAsync();
 
             // 3. IN PHIẾU HỦY XUỐNG BẾP

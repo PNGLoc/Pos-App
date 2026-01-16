@@ -662,18 +662,35 @@ namespace PosSystem.Main
             {
                 using (var db = new AppDbContext())
                 {
-                    var detail = db.OrderDetails.Find(detailId);
+                    // [FIX] Load Dish to get Name for Log
+                    var detail = db.OrderDetails.Include(d => d.Dish).FirstOrDefault(d => d.OrderDetailID == detailId);
                     if (detail == null) return;
 
-                    long currentOrderId = detail.OrderID; // Lưu lại ID đơn hàng để kiểm tra sau
+                    long currentOrderId = detail.OrderID; 
 
                     // 1. GIẢM SỐ LƯỢNG (Nếu đang > 0)
                     if (detail.Quantity > 0)
                     {
+                        // [NEW] Log if Item was Sent
+                        if (detail.ItemStatus == "Sent")
+                        {
+                            var log = new CancelledLog
+                            {
+                                TableID = db.Orders.Where(o => o.OrderID == currentOrderId).Select(o => o.TableID).FirstOrDefault(),
+                                OrderID = detail.OrderID,
+                                DishName = detail.Dish?.DishName ?? "Unknown",
+                                Quantity = 1, // Decrease 1
+                                Amount = detail.UnitPrice,
+                                DeletedBy = UserSession.AccName ?? "Admin",
+                                CancelTime = DateTime.Now
+                            };
+                            db.CancelledLogs.Add(log);
+                            
+                            detail.ItemStatus = "Modified";
+                        }
+
                         detail.Quantity--;
                         detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100);
-
-                        if (detail.ItemStatus == "Sent") detail.ItemStatus = "Modified";
                     }
 
                     // 2. LOGIC XÓA
@@ -794,7 +811,8 @@ namespace PosSystem.Main
 
             using (var db = new AppDbContext())
             {
-                var detail = db.OrderDetails.Find(detailId);
+                // [FIX] Load Dish for Log Name
+                var detail = db.OrderDetails.Include(d => d.Dish).FirstOrDefault(d => d.OrderDetailID == detailId);
                 if (detail == null) return;
 
                 long currentOrderId = detail.OrderID;
@@ -805,6 +823,24 @@ namespace PosSystem.Main
                 if (newQuantity != oldQuantity && detail.ItemStatus == "Sent")
                 {
                     detail.ItemStatus = "Modified";
+
+                    // [NEW] Nếu giảm số lượng món đã gửi bếp -> Ghi log hủy
+                    if (newQuantity < oldQuantity)
+                    {
+                        int cancelQty = oldQuantity - newQuantity;
+                        var log = new CancelledLog
+                        {
+                            TableID = db.Orders.Where(o => o.OrderID == detail.OrderID).Select(o => o.TableID).FirstOrDefault(),
+                            OrderID = detail.OrderID,
+                            DishName = detail.Dish?.DishName ?? "Unknown",
+                            Quantity = cancelQty,
+                            Amount = cancelQty * detail.UnitPrice,
+                            // Reason removed
+                            DeletedBy = UserSession.AccName ?? "Admin",
+                            CancelTime = DateTime.Now
+                        };
+                        db.CancelledLogs.Add(log);
+                    }
                 }
 
                 bool isRemoved = false;
@@ -1508,6 +1544,40 @@ namespace PosSystem.Main
             _tableTimeTimer.Stop();
         }
 
+        private void BtnReprint_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedTableId == 0) return;
+
+            using (var db = new AppDbContext())
+            {
+                var order = db.Orders
+                    .Include(o => o.OrderDetails).ThenInclude(d => d.Dish).ThenInclude(c => c.Category)
+                    .Include(o => o.Table)
+                    .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+
+                if (order == null || !order.OrderDetails.Any())
+                {
+                    ShowToast("❌ Không có món nào để in lại!");
+                    return;
+                }
+
+                // Show Reprint Dialog
+                var dialog = new ReprintWindow(order.OrderDetails.ToList());
+                dialog.Owner = this;
+                dialog.ShowDialog();
+
+                if (dialog.IsConfirmed)
+                {
+                     var items = dialog.SelectedItems.Select(i => i.OrderDetail).ToList();
+                     if (items.Any())
+                     {
+                         int maxBatch = order.OrderDetails.Max(d => (int?)d.KitchenBatch) ?? 1;
+                         Services.PrintService.PrintKitchen(order, items, maxBatch, "Admin (IN LẠI)");
+                         ShowToast($"✅ Đã gửi lệnh in lại {items.Count} món!");
+                     }
+                }
+            }
+        }
         private void ExecuteSplitTransfer(int targetTableId)
         {
             if (targetTableId == _selectedTableId)

@@ -171,6 +171,23 @@ namespace PosSystem.Main
                     })
                     .ToList();
                 dgItems.ItemsSource = items;
+
+                // 3. TAB 3: LỊCH SỬ HỦY MÓN
+                var cancelledLogs = db.CancelledLogs
+                    .Include(l => l.Table)
+                    .Where(l => l.CancelTime.Date == selectedDate)
+                    .OrderByDescending(l => l.CancelTime)
+                    .Select(l => new 
+                    {
+                        LogTime = l.CancelTime,
+                        TableName = l.Table != null ? l.Table.TableName : (l.TableID == 0 ? "Mang về" : "---"),
+                        l.DishName,
+                        l.Quantity,
+                        l.Amount,
+                        l.DeletedBy
+                    })
+                    .ToList();
+                if (dgCancelledLogs != null) dgCancelledLogs.ItemsSource = cancelledLogs;
             }
         }
         // [MỚI] Xử lý nút In lại

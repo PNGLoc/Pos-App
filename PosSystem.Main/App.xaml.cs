@@ -56,9 +56,30 @@ namespace PosSystem.Main
                 }
                 catch { }
 
+                // [NEW] Tạo bảng CancelledLogs nếu chưa có
                 try
                 {
-                    db.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN IsRequestingPayment INTEGER NOT NULL DEFAULT 0;");
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS ""CancelledLogs"" (
+                            ""LogID"" INTEGER NOT NULL CONSTRAINT ""PK_CancelledLogs"" PRIMARY KEY AUTOINCREMENT,
+                            ""TableID"" INTEGER NULL,
+                            ""OrderID"" INTEGER NULL,
+                            ""DishName"" TEXT NOT NULL,
+                            ""Quantity"" INTEGER NOT NULL,
+                            ""Amount"" TEXT NOT NULL DEFAULT '0',
+                            -- Reason removed
+                            ""DeletedBy"" TEXT NULL,
+                            ""CancelTime"" TEXT NOT NULL DEFAULT (datetime('now')),
+                            CONSTRAINT ""FK_CancelledLogs_Tables_TableID"" FOREIGN KEY (""TableID"") REFERENCES ""Tables"" (""TableID"") ON DELETE RESTRICT
+                        );
+                    ");
+                }
+                catch { }
+
+                // [EXISTING CODE]
+                try
+                {
+                   db.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN IsRequestingPayment INTEGER NOT NULL DEFAULT 0;");
                 }
                 catch { }
             }

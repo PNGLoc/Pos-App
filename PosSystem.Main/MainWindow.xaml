@@ -663,6 +663,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock x:Name="lblSelectedTable"
                                    Text="Chưa chọn bàn"
@@ -706,6 +707,23 @@
                                 Foreground="White"
                                 Height="36"
                                 Width="120"
+                                Margin="5,12,5,12"
+                                FontWeight="Bold"
+                                BorderThickness="0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius"
+                                            Value="4"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                        <Button Grid.Column="4"
+                                Content="🖨 In lại bếp"
+                                Click="BtnReprint_Click"
+                                Background="#6F42C1"
+                                Foreground="White"
+                                Height="36"
+                                Width="110"
                                 Margin="5,12,15,12"
                                 FontWeight="Bold"
                                 BorderThickness="0">

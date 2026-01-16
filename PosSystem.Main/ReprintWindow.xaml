@@ -1,0 +1,37 @@
+<Window x:Class="PosSystem.Main.ReprintWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Chọn món để in lại" Height="400" Width="400"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Chọn món cần in lại bếp:"
+                   FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+
+        <Border Grid.Row="1" BorderBrush="#DDD" BorderThickness="1" CornerRadius="4">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="lstItems">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding DisplayText}"
+                                      IsChecked="{Binding IsSelected}"
+                                      Margin="10,8"
+                                      FontSize="14"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="Hủy bỏ" Click="BtnCancel_Click" Width="80" Height="30" Margin="0,0,10,0"/>
+            <Button Content="🖨 In lại" Click="BtnPrint_Click" Width="80" Height="30" Background="#007BFF" Foreground="White" FontWeight="Bold"/>
+        </StackPanel>
+    </Grid>
+</Window>
