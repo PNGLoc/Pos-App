@@ -343,6 +343,38 @@ namespace PosSystem.Main.Server.Controllers
 
             return Ok(new { Message = "Đã thanh toán & In hóa đơn!" });
         }
+        
+        public class PrintProvisionalRequest
+        {
+            public int AccID { get; set; }
+        }
+
+        [HttpPost("{tableId}/print-provisional")]
+        public async Task<IActionResult> PrintProvisional(int tableId, [FromBody] PrintProvisionalRequest req)
+        {
+            // 1. Check quyền (Dùng quyền riêng)
+            var acc = await _context.Accounts.FindAsync(req.AccID);
+            if (acc == null || !acc.CanPrintProvisional) return StatusCode(403, "Bạn không có quyền in tạm tính!");
+
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
+            if (order == null) return BadRequest("Bàn không có đơn!");
+
+            // 2. Cập nhật cờ
+            order.IsPreCalculated = true;
+            await _context.SaveChangesAsync();
+
+            // 3. Gọi in (IsProvisional = true)
+            try
+            {
+                Services.PrintService.PrintBill(order.OrderID, true);
+            }
+            catch { }
+
+            // 4. Bắn SignalR
+            await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+
+            return Ok(new { Message = "Đã in tạm tính!" });
+        }
 
         // [POST] api/Order/{tableId}/request-payment
         [HttpPost("{tableId}/request-payment")]

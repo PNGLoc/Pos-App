@@ -221,6 +221,9 @@
                             <CheckBox x:Name="chkCancelItem"
                                       Content="Được hủy món"
                                       Margin="0,5"/>
+                            <CheckBox x:Name="chkPrintProvisional"
+                                      Content="Được in tạm tính"
+                                      Margin="0,5"/>
                         </StackPanel>
                     </GroupBox>
 

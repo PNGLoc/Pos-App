@@ -15,6 +15,7 @@ namespace PosSystem.Main.Models
         public DateTime? FirstSentTime { get; set; } // Thời điểm gửi bếp lần đầu tiên
 
         public string OrderStatus { get; set; } = "Pending"; // Pending (Đang phục vụ), Paid (Đã thanh toán), Cancelled
+        public bool IsPreCalculated { get; set; } = false; // [NEW] Đã in tạm tính chưa
 
         // --- TÍNH TIỀN ---
         public decimal SubTotal { get; set; } = 0; // Tổng tiền hàng (chưa giảm giá)

@@ -31,6 +31,7 @@ namespace PosSystem.Main
         public string StatusDisplay => TableStatus == "Occupied" ? "Có khách" : "Trống";
         public SolidColorBrush ColorBrush => TableStatus == "Occupied" ? new SolidColorBrush(Color.FromRgb(220, 53, 69)) : new SolidColorBrush(Color.FromRgb(40, 167, 69));
         public bool IsRequestingPayment { get; set; } = false;
+        public bool HasProvisionalBill { get; set; } = false; // [NEW]
     }
 
     public class CategoryViewModel { public int CategoryID { get; set; } public string CategoryName { get; set; } = ""; }
@@ -303,15 +304,20 @@ namespace PosSystem.Main
                     {
                         var order = t.Orders.FirstOrDefault(o => o.OrderStatus == "Pending");
                         // Only show time if FirstSentTime has value (order has been sent to kitchen)
-                        if (order != null && order.FirstSentTime.HasValue)
-                        {
-                            var elapsed = DateTime.Now - order.FirstSentTime.Value;
-                            if (elapsed.TotalMinutes < 1)
-                                vm.TimeDisplay = $"{(int)elapsed.TotalSeconds}s";
-                            else if (elapsed.TotalHours < 1)
-                                vm.TimeDisplay = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
-                            else
-                                vm.TimeDisplay = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
+                        if (order != null)
+                        { 
+                            if (order.FirstSentTime.HasValue) 
+                            { 
+                                var elapsed = DateTime.Now - order.FirstSentTime.Value;
+                                if (elapsed.TotalMinutes < 1)
+                                    vm.TimeDisplay = $"{(int)elapsed.TotalSeconds}s";
+                                else if (elapsed.TotalHours < 1)
+                                    vm.TimeDisplay = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
+                                else
+                                    vm.TimeDisplay = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
+                            }
+                            // [NEW] Check provisional bill
+                            if (order.IsPreCalculated) vm.HasProvisionalBill = true;
                         }
                     }
                     if (_tablesRequestingPayment.Contains(t.TableID))

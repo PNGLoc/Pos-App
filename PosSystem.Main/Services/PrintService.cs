@@ -81,7 +81,7 @@ namespace PosSystem.Main.Services
 
         // 1. HÀM IN BILL (HÓA ĐƠN)
         // 1. HÀM IN BILL (HÓA ĐƠN) - ĐÃ SỬA GỘP MÓN
-        public static void PrintBill(long orderId)
+        public static void PrintBill(long orderId, bool isProvisional = false)
         {
             using (var db = new AppDbContext())
             {
@@ -141,7 +141,7 @@ namespace PosSystem.Main.Services
                     try
                     {
                         var template = new Templates.BillTemplate();
-                        template.SetData(order, elements, order.PaymentMethod);
+                        template.SetData(order, elements, order.PaymentMethod, isProvisional);
 
                         int width = printer.PaperSize == 58 ? 380 : 550;
                         using (var bmp = EscPosImageHelper.RenderVisualToBitmap(template, width))

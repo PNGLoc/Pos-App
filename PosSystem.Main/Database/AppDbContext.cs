@@ -61,7 +61,8 @@ namespace PosSystem.Main.Database
        AccRole = "Admin",
        CanMoveTable = true,
        CanPayment = true,
-       CanCancelItem = true // Admin full quyền
+       CanCancelItem = true, // Admin full quyền
+       CanPrintProvisional = true
    },
    new Account
    {

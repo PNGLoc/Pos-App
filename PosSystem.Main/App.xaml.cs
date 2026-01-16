@@ -4,6 +4,7 @@ using PosSystem.Main.Server;
 using System;
 using PosSystem.Main.Database; // Dùng để khởi tạo DB nếu cần
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 namespace PosSystem.Main
 {
     public partial class App : Application
@@ -46,6 +47,18 @@ namespace PosSystem.Main
             using (var db = new AppDbContext())
             {
                 db.Database.EnsureCreated();
+                
+                // [MIGRATION] Thêm cột CanPrintProvisional nếu chưa có (cho DB cũ)
+                try
+                {
+                    db.Database.ExecuteSqlRaw("ALTER TABLE Accounts ADD COLUMN CanPrintProvisional INTEGER NOT NULL DEFAULT 0;");
+                    // Update admin to have this permission
+                    db.Database.ExecuteSqlRaw("UPDATE Accounts SET CanPrintProvisional = 1 WHERE AccRole = 'Admin';");
+                }
+                catch 
+                { 
+                    // Bỏ qua lỗi nếu cột đã tồn tại
+                }
             }
 
             // Mở màn hình đăng nhập

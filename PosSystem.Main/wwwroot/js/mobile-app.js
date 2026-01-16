@@ -218,8 +218,22 @@ function renderTables(filterId) {
     }
 
     filtered.forEach(t => {
-        const div = document.createElement('div'); div.className = `table-card ${t.tableStatus === 'Occupied' ? 'occupied' : ''}`; div.onclick = () => openTableDetail(t);
-        div.innerHTML = `<div class="fs-4 mb-1"><i class="fas fa-chair"></i></div><div class="fw-bold">${t.tableName}</div><small class="${t.tableStatus === 'Occupied' ? 'text-danger' : 'text-success'}">${t.tableStatus === 'Occupied' ? 'Có khách' : 'Trống'}</small>`; grid.appendChild(div);
+        const div = document.createElement('div');
+        div.className = `table-card ${t.tableStatus === 'Occupied' ? 'occupied' : ''}`;
+
+        // [NEW] Marker for Provisional Bill
+        const provMarker = (t.hasProvisionalBill || t.HasProvisionalBill)
+            ? `<div class="position-absolute top-0 end-0 m-1 text-primary"><i class="fas fa-print bg-white rounded-circle p-1 border"></i></div>`
+            : '';
+
+        div.onclick = () => openTableDetail(t);
+        div.innerHTML = `
+            ${provMarker}
+            <div class="fs-4 mb-1"><i class="fas fa-chair"></i></div>
+            <div class="fw-bold">${t.tableName}</div>
+            <small class="${t.tableStatus === 'Occupied' ? 'text-danger' : 'text-success'}">${t.tableStatus === 'Occupied' ? 'Có khách' : 'Trống'}</small>
+        `;
+        grid.appendChild(div);
     });
 }
 
@@ -706,6 +720,10 @@ function updateMenuPermissions() {
     // 3. Thanh toán (Cần quyền + Có đơn)
     const canPay = currentUser && currentUser.canPayment && hasOrder;
     document.getElementById('btnMenuPay').style.display = canPay ? 'flex' : 'none';
+
+    // 4. In Tạm Tính (Cần quyền + Có đơn)
+    const btnProv = document.getElementById('btnMenuProvisional');
+    if (btnProv) btnProv.style.display = canPay ? 'flex' : 'none';
 }
 
 // --- 2. XỬ LÝ POPUP XÁC NHẬN (IN & THANH TOÁN) ---
@@ -733,14 +751,18 @@ function openConfirmModal(type) {
     }
     else if (type === 'move') {
         title.innerText = "Xác nhận Chuyển bàn";
-
-        // Thông báo đơn giản, gộp chung ý nghĩa
         const statusText = moveTarget.tableStatus !== 'Empty' ? "(Đang có khách)" : "";
         msg.innerHTML = `Chuyển đơn sang bàn <b>${moveTarget.tableName}</b> ${statusText}?`;
-
         btn.className = "btn btn-primary";
         icon.className = "fas fa-exchange-alt fa-3x text-primary";
-        btn.onclick = executeMoveTableAction; // Gọi hàm thực thi mới
+        btn.onclick = executeMoveTableAction;
+    }
+    else if (type === 'provisional') { // [NEW]
+        title.innerText = "In Tạm Tính";
+        msg.innerText = "In phiếu tạm tính cho bàn này? (Bàn sẽ được đánh dấu đã in)";
+        btn.className = "btn btn-info text-dark";
+        icon.className = "fas fa-file-invoice-dollar fa-3x text-info";
+        btn.onclick = executePrintProvisional;
     }
 
     document.getElementById('confirmModal').style.display = 'flex';
@@ -770,6 +792,23 @@ async function executePayment() {
         if (res.ok) {
             showToast("Thanh toán thành công!");
             showView('view-tables');
+        } else {
+            showToast(await res.text(), "danger");
+        }
+    } catch (e) { showToast("Lỗi kết nối", "danger"); }
+}
+
+async function executePrintProvisional() {
+    closeModal('confirmModal');
+    try {
+        const res = await fetch(`${API_URL}/Order/${appState.currentTableId}/print-provisional`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accID: currentUser.accID })
+        });
+        if (res.ok) {
+            showToast("Đã in tạm tính!");
+            // loadTables(false) sẽ tự chạy do SignalR
         } else {
             showToast(await res.text(), "danger");
         }

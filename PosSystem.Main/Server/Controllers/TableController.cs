@@ -25,7 +25,20 @@ namespace PosSystem.Main.Server.Controllers
         [HttpGet]
         public async Task<IActionResult> GetTables()
         {
-            var tables = await _context.Tables.OrderBy(t => t.TableID).ToListAsync();
+            var tables = await _context.Tables
+                .OrderBy(t => t.TableID)
+                .Select(t => new 
+                {
+                    t.TableID,
+                    t.TableName,
+                    t.TableStatus,
+                    t.CategoryID,
+                    t.TableType,
+                    // [NEW] Kiểm tra có đơn tạm tính không
+                    HasProvisionalBill = _context.Orders.Any(o => o.TableID == t.TableID && o.OrderStatus == "Pending" && o.IsPreCalculated)
+                })
+                .ToListAsync();
+
             return Ok(tables);
         }
 

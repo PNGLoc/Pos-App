@@ -20,5 +20,6 @@ namespace PosSystem.Main.Models
         public bool CanMoveTable { get; set; } = false;    // Quyền chuyển bàn
         public bool CanPayment { get; set; } = false;      // Quyền thanh toán
         public bool CanCancelItem { get; set; } = false;   // Quyền huỷ món
+        public bool CanPrintProvisional { get; set; } = false; // [NEW] Quyền in tạm tính
     }
 }

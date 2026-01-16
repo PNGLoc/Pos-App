@@ -432,19 +432,35 @@
                                                     </Border>
                                                 </StackPanel>
 
-                                                <TextBlock Text="🔔"
-                                                           FontSize="28"
-                                                           HorizontalAlignment="Right"
-                                                           VerticalAlignment="Top"
-                                                           Margin="0,5,5,0"
-                                                           Visibility="{Binding IsRequestingPayment, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <TextBlock.Effect>
-                                                        <DropShadowEffect Color="Black"
-                                                                          BlurRadius="2"
-                                                                          ShadowDepth="1"
-                                                                          Opacity="0.5"/>
-                                                    </TextBlock.Effect>
-                                                </TextBlock>
+                                                <StackPanel Orientation="Horizontal"
+                                                            HorizontalAlignment="Right"
+                                                            VerticalAlignment="Top"
+                                                            Margin="0,5,5,0">
+                                                    <!-- Icon Provisional Bill -->
+                                                    <TextBlock Text="🧾"
+                                                               FontSize="28"
+                                                               Margin="0,0,5,0"
+                                                               Visibility="{Binding HasProvisionalBill, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                        <TextBlock.Effect>
+                                                            <DropShadowEffect Color="Black"
+                                                                              BlurRadius="2"
+                                                                              ShadowDepth="1"
+                                                                              Opacity="0.5"/>
+                                                        </TextBlock.Effect>
+                                                    </TextBlock>
+
+                                                    <!-- Icon Request Payment -->
+                                                    <TextBlock Text="🔔"
+                                                               FontSize="28"
+                                                               Visibility="{Binding IsRequestingPayment, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                        <TextBlock.Effect>
+                                                            <DropShadowEffect Color="Black"
+                                                                              BlurRadius="2"
+                                                                              ShadowDepth="1"
+                                                                              Opacity="0.5"/>
+                                                        </TextBlock.Effect>
+                                                    </TextBlock>
+                                                </StackPanel>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>

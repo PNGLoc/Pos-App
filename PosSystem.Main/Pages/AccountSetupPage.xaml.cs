@@ -39,7 +39,9 @@ namespace PosSystem.Main.Pages
 
             chkMoveTable.IsChecked = false;
             chkPayment.IsChecked = false;
+            chkPayment.IsChecked = false;
             chkCancelItem.IsChecked = false;
+            chkPrintProvisional.IsChecked = false;
 
             modalOverlay.Visibility = Visibility.Visible;
             txtName.Focus();
@@ -62,7 +64,9 @@ namespace PosSystem.Main.Pages
 
                 chkMoveTable.IsChecked = acc.CanMoveTable;
                 chkPayment.IsChecked = acc.CanPayment;
+                chkPayment.IsChecked = acc.CanPayment;
                 chkCancelItem.IsChecked = acc.CanCancelItem;
+                chkPrintProvisional.IsChecked = acc.CanPrintProvisional;
 
                 modalOverlay.Visibility = Visibility.Visible;
                 txtName.Focus();
@@ -122,7 +126,8 @@ namespace PosSystem.Main.Pages
                         AccRole = (cboRole.SelectedIndex == 0) ? "Admin" : "Staff",
                         CanMoveTable = chkMoveTable.IsChecked == true,
                         CanPayment = chkPayment.IsChecked == true,
-                        CanCancelItem = chkCancelItem.IsChecked == true
+                        CanCancelItem = chkCancelItem.IsChecked == true,
+                        CanPrintProvisional = chkPrintProvisional.IsChecked == true
                     };
                     db.Accounts.Add(newAcc);
                 }
@@ -141,6 +146,7 @@ namespace PosSystem.Main.Pages
                         acc.CanMoveTable = chkMoveTable.IsChecked == true;
                         acc.CanPayment = chkPayment.IsChecked == true;
                         acc.CanCancelItem = chkCancelItem.IsChecked == true;
+                        acc.CanPrintProvisional = chkPrintProvisional.IsChecked == true;
                     }
                 }
 

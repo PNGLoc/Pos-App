@@ -50,7 +50,7 @@ namespace PosSystem.Main
         }
 
         // 1. IN TẠM TÍNH (Chưa chốt đơn)
-        private void BtnPrintCheck_Click(object sender, RoutedEventArgs e)
+        private async void BtnPrintCheck_Click(object sender, RoutedEventArgs e)
         {
             // Cập nhật PaymentMethod theo lựa chọn hiện tại
             using (var db = new AppDbContext())
@@ -59,13 +59,27 @@ namespace PosSystem.Main
                 if (order != null)
                 {
                     order.PaymentMethod = radCash.IsChecked == true ? "Cash" : "Transfer";
+                    
+                    // [FIX] Cập nhật trạng thái đã in tạm tính
+                    order.IsPreCalculated = true;
+                    
                     db.SaveChanges();
                 }
             }
 
-            // In bill với phương thức thanh toán vừa lưu
-            PrintService.PrintBill(_orderId);
+            // In bill với phương thức thanh toán vừa lưu, chế độ Tạm Tính
+            PrintService.PrintBill(_orderId, isProvisional: true);
             ShowToast("✅ Đã gửi lệnh in tạm tính!");
+
+            // [FIX] Bắn SignalR cập nhật UI
+            if (App.WebHost != null)
+            {
+                var hubContext = App.WebHost.Services.GetService<IHubContext<PosHub>>();
+                if (hubContext != null)
+                {
+                    await hubContext.Clients.All.SendAsync("TableUpdated", _tableId);
+                }
+            }
         }
 
         private async void ShowToast(string message)

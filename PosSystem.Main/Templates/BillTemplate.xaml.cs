@@ -18,7 +18,7 @@ namespace PosSystem.Main.Templates
             InitializeComponent();
         }
 
-        public void SetData(Order order, List<PrintElement> layoutElements, string paymentMethod = "Cash")
+        public void SetData(Order order, List<PrintElement> layoutElements, string paymentMethod = "Cash", bool isProvisional = false)
         {
             RootPanel.Children.Clear();
 
@@ -36,6 +36,15 @@ namespace PosSystem.Main.Templates
                     case "TableNumberBig":
                         // Dùng Helper để thay thế biến số {Table}, {Staff}...
                         string finalContent = PrintContentHelper.ReplacePlaceholders(el.Content, order);
+                        
+                        // [NEW] Logic Tạm tính
+                        if (isProvisional && finalContent.ToUpper().Contains("HÓA ĐƠN"))
+                        {
+                            finalContent = finalContent.Replace("HÓA ĐƠN", "HÓA ĐƠN TẠM TÍNH")
+                                                       .Replace("Hóa Đơn", "Hóa Đơn Tạm Tính") // Case sensitive basic handling
+                                                       .Replace("Bill", "Provisional Bill");
+                        }
+
                         AddTextBlock(finalContent, el);
                         break;
 
