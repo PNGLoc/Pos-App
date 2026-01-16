@@ -95,9 +95,8 @@
                         </Style.Triggers>
                     </Style>
                 </StackPanel.Resources>
-
-                <RadioButton Content="Hôm nay" Click="BtnToday_Click" IsChecked="True" GroupName="FilterDate"/>
                 <RadioButton Content="Hôm qua" Click="BtnYesterday_Click" GroupName="FilterDate"/>
+                <RadioButton Content="Hôm nay" Click="BtnToday_Click" IsChecked="True" GroupName="FilterDate"/>
                 <RadioButton Content="Tuần này" Click="BtnWeek_Click" GroupName="FilterDate"/>
                 <RadioButton Content="Tháng này" Click="BtnMonth_Click" GroupName="FilterDate"/>
                 <RadioButton Content="Năm này" Click="BtnYear_Click" GroupName="FilterDate"/>
