@@ -192,6 +192,21 @@ async function loadTables(renderFilter = true) {
         const res = await fetch(`${API_URL}/Table?t=${new Date().getTime()}`);
         appState.tables = await res.json();
 
+        // [NEW] Update Detail Badge if we are currently viewing a table
+        if (appState.currentTableId) {
+            const currentTable = appState.tables.find(t => t.tableID === appState.currentTableId);
+            if (currentTable) {
+                const badge = document.getElementById('detailTableStatus');
+                if (badge) {
+                    // Translate status
+                    const statusText = currentTable.tableStatus === 'Occupied' ? 'Đã gọi món' : 'Bàn trống';
+                    const statusClass = currentTable.tableStatus === 'Occupied' ? 'bg-danger' : 'bg-success';
+                    badge.innerText = statusText;
+                    badge.className = `badge ${statusClass}`;
+                }
+            }
+        }
+
         if (renderFilter) renderFilterButtons();
         renderTables(appState.currentFilter);
     } catch (e) { console.error(e); }
@@ -217,6 +232,7 @@ function renderTables(filterId) {
         return;
     }
 
+    // [FIXED] Translate Labels
     filtered.forEach(t => {
         const div = document.createElement('div');
         div.className = `table-card ${t.tableStatus === 'Occupied' ? 'occupied' : ''}`;
@@ -237,7 +253,9 @@ function renderTables(filterId) {
             ${payMarker}
             <div class="fs-4 mb-1"><i class="fas fa-chair"></i></div>
             <div class="fw-bold">${t.tableName}</div>
-            <small class="${t.tableStatus === 'Occupied' ? 'text-danger' : 'text-success'}">${t.tableStatus === 'Occupied' ? 'Có khách' : 'Trống'}</small>
+            <small class="${t.tableStatus === 'Occupied' ? 'text-danger' : 'text-success'}">
+                ${t.tableStatus === 'Occupied' ? 'Đã gọi món' : 'Bàn trống'}
+            </small>
         `;
         grid.appendChild(div);
     });
@@ -276,7 +294,14 @@ function filterTables(type) { appState.currentFilter = type; renderTables(type);
 function openTableDetail(table) {
     appState.currentTableId = table.tableID;
     document.getElementById('detailTableName').innerText = table.tableName;
-    document.getElementById('detailTableStatus').innerText = table.tableStatus;
+    // [FIXED] Translate badge
+    const statusText = table.tableStatus === 'Occupied' ? 'Đã gọi món' : 'Bàn trống';
+    const statusClass = table.tableStatus === 'Occupied' ? 'bg-danger' : 'bg-success';
+
+    const badge = document.getElementById('detailTableStatus');
+    badge.innerText = statusText;
+    badge.className = `badge ${statusClass}`;
+
     loadOrderData(table.tableID);
     showView('view-detail');
 }
@@ -382,11 +407,23 @@ function renderConfirmedTab() {
     const items = appState.orderDetails.filter(d => d.itemStatus !== 'New');
     if (items.length === 0) { container.innerHTML = `<div class="text-center text-muted mt-5">Chưa có món nào được gọi</div>`; return; }
 
+    // [FIXED] Restore Grouping Logic (Smart Cancel)
     const grouped = [];
     items.forEach(item => {
         const key = `${item.dishID}_${(item.note || "").trim()}_${item.itemStatus}`;
         const exist = grouped.find(g => `${g.dishID}_${(g.note || "").trim()}_${g.itemStatus}` === key);
-        if (exist) { exist.quantity += item.quantity; exist.totalAmount += item.totalAmount; } else grouped.push({ ...item });
+        if (exist) {
+            exist.quantity += item.quantity;
+            exist.totalAmount += item.totalAmount;
+            // Gom các ID con vào mảng để xử lý hủy sau này
+            if (!exist.subIds) exist.subIds = [item.orderDetailID];
+            else exist.subIds.push(item.orderDetailID);
+        } else {
+            // Clone object để không ảnh hưởng dữ liệu gốc
+            let clone = { ...item };
+            clone.subIds = [item.orderDetailID];
+            grouped.push(clone);
+        }
     });
 
     grouped.forEach(d => {
@@ -397,9 +434,11 @@ function renderConfirmedTab() {
         if (d.itemStatus === 'Sent') {
             badge = 'bg-info text-dark';
             txt = 'Đã gửi';
-            // Thêm nút Hủy (X)
+            // Thêm nút Hủy (X) - Truyền key định danh nhóm
             if (currentUser && currentUser.canCancelItem) {
-                cancelBtn = `<button class="btn btn-sm btn-outline-danger ms-1" style="padding: 0px 8px;"onclick="openCancelModal(${d.orderDetailID}, ${d.quantity}, '${d.dishName}')"><i class="fas fa-times"></i></button>`;
+                // Encode key để truyền vào hàm safely
+                const groupKey = `${d.dishID}|${(d.note || "").trim()}|${d.itemStatus}`;
+                cancelBtn = `<button class="btn btn-sm btn-outline-danger ms-1" style="padding: 0px 8px;" onclick="openCancelModalGroup('${groupKey}', ${d.quantity}, '${d.dishName}')"><i class="fas fa-times"></i></button>`;
             }
         }
         else if (d.itemStatus === 'Done') { badge = 'bg-success'; txt = 'Đã ra'; }
@@ -528,7 +567,26 @@ async function confirmMenuSelection() {
     let url = appState.orderDetails.length === 0 ? `${API_URL}/Order/create` : `${API_URL}/Order/${appState.currentTableId}/add`;
     let payload = appState.orderDetails.length === 0 ? { tableID: appState.currentTableId, accID: currentUser.accID || 1, items: itemsToAdd } : { accID: currentUser.accID || 1, details: itemsToAdd };
 
-    try { const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (res.ok) { showToast("Đã thêm vào giỏ"); appState.tempMenuSelection = {}; showView('view-detail'); document.querySelector('a[href="#tab-cart"]').click(); loadOrderData(appState.currentTableId); } else { showToast("Lỗi: " + await res.text(), 'danger'); } } catch (e) { showToast("Lỗi kết nối", 'danger'); }
+    try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (res.ok) {
+            showToast("Đã thêm vào giỏ");
+            appState.tempMenuSelection = {};
+            showView('view-detail');
+            document.querySelector('a[href="#tab-cart"]').click();
+            loadOrderData(appState.currentTableId);
+
+            // [MODIFIED] Không set Occupied tại đây nữa (User yêu cầu chỉ set khi gửi bếp)
+            // await loadTables(false);
+            // const currentTable = appState.tables.find(t => t.tableID === appState.currentTableId);
+            // if (currentTable && currentTable.tableStatus === 'Occupied') {
+            //     const badge = document.getElementById('detailTableStatus');
+            //     badge.innerText = 'Đã gọi món';
+            //     badge.className = 'badge bg-danger';
+            // }
+
+        } else { showToast("Lỗi: " + await res.text(), 'danger'); }
+    } catch (e) { showToast("Lỗi kết nối", 'danger'); }
 }
 
 async function sendOrderToKitchen() {
@@ -890,12 +948,32 @@ async function executeMoveTableAction() {
     }
 }
 
-// --- 4. XỬ LÝ HỦY MÓN (+/-) ---
-// Hàm này được gọi từ nút (X) trong danh sách món
-function openCancelModal(detailId, maxQty, dishName) {
+// --- 4. XỬ LÝ HỦY MÓN (SMART CANCEL) ---
+// Thay thế hàm openCancelModal cũ
+function openCancelModalGroup(groupKey, maxQty, dishName) {
     if (!currentUser.canCancelItem) { showToast("Không có quyền hủy!", "warning"); return; }
 
-    cancelState = { detailId: detailId, currentQty: 1, maxQty: maxQty };
+    // Parse ngược lại key để tìm items
+    // Key format: dishID|note|status
+    const parts = groupKey.split('|');
+    const dishID = parseInt(parts[0]);
+    const note = parts[1];
+    const status = parts[2];
+
+    // Tìm tất cả items match với group này
+    const matchingItems = appState.orderDetails.filter(d =>
+        d.dishID === dishID &&
+        (d.note || "").trim() === note &&
+        d.itemStatus === status
+    );
+
+    // Lưu danh sách items cần hủy vào state
+    cancelState = {
+        isGroup: true,
+        items: matchingItems, // List of objects
+        currentQty: 1,
+        maxQty: maxQty
+    };
 
     document.getElementById('cancelItemName').innerText = dishName;
     document.getElementById('cancelMaxQty').innerText = maxQty;
@@ -915,24 +993,59 @@ function adjustCancelQty(delta) {
 
 async function submitCancelItem() {
     closeModal('cancelModal');
-    try {
-        const res = await fetch(`${API_URL}/Order/cancel-item`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                accID: currentUser.accID,
-                orderDetailID: cancelState.detailId,
-                quantity: cancelState.currentQty,
-                //reason: "Mobile Cancel"
-            })
-        });
+    let qtyToCancel = cancelState.currentQty;
+    let requests = [];
 
-        if (res.ok) {
-            showToast(`Đã hủy ${cancelState.currentQty} món`);
-            loadOrderData(appState.currentTableId);
-        } else { showToast(await res.text(), "danger"); }
-    } catch (e) { showToast("Lỗi kết nối", "danger"); }
+    // [LOGIC MỚI] Xây dựng danh sách hủy để gửi bulk
+    const sortedItems = cancelState.items.sort((a, b) => b.orderDetailID - a.orderDetailID);
+
+    for (const item of sortedItems) {
+        if (qtyToCancel <= 0) break;
+
+        const canCancel = Math.min(item.quantity, qtyToCancel);
+
+        if (canCancel > 0) {
+            requests.push({
+                accID: currentUser.accID,
+                orderDetailID: item.orderDetailID,
+                quantity: canCancel,
+                // reason: "Mobile Cancel"
+            });
+            qtyToCancel -= canCancel;
+        }
+    }
+
+    if (requests.length > 0) {
+        try {
+            // Gọi API Bulk Cancel
+            const res = await fetch(`${API_URL}/Order/cancel-multiple`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requests)
+            });
+
+            if (res.ok) {
+                showToast(`Đã hủy ${requests.length} yêu cầu thành công`);
+                // Refresh
+                await loadOrderData(appState.currentTableId);
+                await loadTables(false);
+
+                // Update badge UI
+                const currentTable = appState.tables.find(t => t.tableID === appState.currentTableId);
+                if (currentTable) {
+                    const statusText = currentTable.tableStatus === 'Occupied' ? 'Đã gọi món' : 'Bàn trống';
+                    const statusClass = currentTable.tableStatus === 'Occupied' ? 'bg-danger' : 'bg-success';
+                    const badge = document.getElementById('detailTableStatus');
+                    badge.innerText = statusText;
+                    badge.className = `badge ${statusClass}`;
+                }
+            } else {
+                showToast(await res.text(), "warning");
+            }
+        } catch (e) { showToast("Lỗi kết nối server", "danger"); }
+    }
 }
+
 
 // --- UTILS ---
 function closeModal(id) {
