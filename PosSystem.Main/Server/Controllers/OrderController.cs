@@ -380,9 +380,19 @@ namespace PosSystem.Main.Server.Controllers
         [HttpPost("{tableId}/request-payment")]
         public async Task<IActionResult> RequestPayment(int tableId)
         {
+            // [FIX] Cập nhật vào DB
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
+            if (order != null)
+            {
+                order.IsRequestingPayment = true;
+                await _context.SaveChangesAsync();
+            }
+
             // Gửi tín hiệu SignalR tên là "TableRequestPayment"
             // Desktop sẽ lắng nghe sự kiện này để đổi màu bàn
             await _hubContext.Clients.All.SendAsync("TableRequestPayment", tableId);
+            // [FIX] Gửi thêm TableUpdated để Mobile reload lại list và hiện icon Chuông
+            await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
             return Ok(new { Message = "Đã gửi yêu cầu thanh toán!" });
         }
         // DTO nhận dữ liệu chuyển bàn

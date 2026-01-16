@@ -52,13 +52,15 @@ namespace PosSystem.Main
                 try
                 {
                     db.Database.ExecuteSqlRaw("ALTER TABLE Accounts ADD COLUMN CanPrintProvisional INTEGER NOT NULL DEFAULT 0;");
-                    // Update admin to have this permission
                     db.Database.ExecuteSqlRaw("UPDATE Accounts SET CanPrintProvisional = 1 WHERE AccRole = 'Admin';");
                 }
-                catch 
-                { 
-                    // Bỏ qua lỗi nếu cột đã tồn tại
+                catch { }
+
+                try
+                {
+                    db.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN IsRequestingPayment INTEGER NOT NULL DEFAULT 0;");
                 }
+                catch { }
             }
 
             // Mở màn hình đăng nhập

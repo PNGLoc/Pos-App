@@ -13,5 +13,11 @@ namespace PosSystem.Main.Server.Hubs
         {
             await Clients.All.SendAsync("ReceiveMessage", message);
         }
+
+        // [NEW] Relay method for WPF -> Mobile sync
+        public async Task NotifyTableUpdated(int tableId)
+        {
+            await Clients.All.SendAsync("TableUpdated", tableId);
+        }
     }
 }

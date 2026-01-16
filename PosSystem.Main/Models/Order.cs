@@ -16,6 +16,7 @@ namespace PosSystem.Main.Models
 
         public string OrderStatus { get; set; } = "Pending"; // Pending (Đang phục vụ), Paid (Đã thanh toán), Cancelled
         public bool IsPreCalculated { get; set; } = false; // [NEW] Đã in tạm tính chưa
+        public bool IsRequestingPayment { get; set; } = false; // [NEW] Đang yêu cầu thanh toán
 
         // --- TÍNH TIỀN ---
         public decimal SubTotal { get; set; } = 0; // Tổng tiền hàng (chưa giảm giá)

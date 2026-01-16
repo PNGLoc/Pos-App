@@ -124,9 +124,25 @@ namespace PosSystem.Main
                     ExecuteSplitTransfer(targetTableId);
                     return;
                 }
-                if (_tablesRequestingPayment.Contains(selected.TableID))
+                // [FIX] Clear "Request Payment" flag in DB when selecting table
+                if (selected.IsRequestingPayment)
                 {
-                    _tablesRequestingPayment.Remove(selected.TableID);
+                    using (var db = new AppDbContext())
+                    {
+                        var order = db.Orders.FirstOrDefault(o => o.TableID == selected.TableID && o.OrderStatus == "Pending");
+                        if (order != null && order.IsRequestingPayment)
+                        {
+                            order.IsRequestingPayment = false;
+                            db.SaveChanges();
+                            
+                            // Send SignalR to update other clients
+                            if (_connection.State == HubConnectionState.Connected)
+                            {
+                                _connection.SendAsync("NotifyTableUpdated", selected.TableID);
+                            }
+                        }
+                    }
+                    // Refresh UI immediately
                     LoadTables();
                 }
 
@@ -318,11 +334,9 @@ namespace PosSystem.Main
                             }
                             // [NEW] Check provisional bill
                             if (order.IsPreCalculated) vm.HasProvisionalBill = true;
+                            // [NEW] Check request payment (Persisted)
+                            if (order.IsRequestingPayment) vm.IsRequestingPayment = true;
                         }
-                    }
-                    if (_tablesRequestingPayment.Contains(t.TableID))
-                    {
-                        vm.IsRequestingPayment = true;
                     }
 
                     return vm;

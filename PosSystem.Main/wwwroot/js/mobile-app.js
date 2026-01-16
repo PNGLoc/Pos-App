@@ -188,8 +188,8 @@ async function loadTables(renderFilter = true) {
         const catRes = await fetch(`${API_URL}/TableCategory`);
         if (catRes.ok) appState.tableCategories = await catRes.json();
 
-        // Load Tables
-        const res = await fetch(`${API_URL}/Table`);
+        // Load Tables (Cache-busting)
+        const res = await fetch(`${API_URL}/Table?t=${new Date().getTime()}`);
         appState.tables = await res.json();
 
         if (renderFilter) renderFilterButtons();
@@ -226,9 +226,15 @@ function renderTables(filterId) {
             ? `<div class="position-absolute top-0 end-0 m-1 text-primary"><i class="fas fa-print bg-white rounded-circle p-1 border"></i></div>`
             : '';
 
+        // [NEW] Marker for Request Payment
+        const payMarker = (t.isRequestingPayment || t.IsRequestingPayment)
+            ? `<div class="position-absolute top-0 start-0 m-1 text-danger"><i class="fas fa-bell bg-white rounded-circle p-1 border"></i></div>`
+            : '';
+
         div.onclick = () => openTableDetail(t);
         div.innerHTML = `
             ${provMarker}
+            ${payMarker}
             <div class="fs-4 mb-1"><i class="fas fa-chair"></i></div>
             <div class="fw-bold">${t.tableName}</div>
             <small class="${t.tableStatus === 'Occupied' ? 'text-danger' : 'text-success'}">${t.tableStatus === 'Occupied' ? 'Có khách' : 'Trống'}</small>
@@ -281,7 +287,7 @@ async function loadOrderData(tableId) {
     appState.currentTableId = tableId;
 
     try {
-        const res = await fetch(`${API_URL}/Order/${tableId}`);
+        const res = await fetch(`${API_URL}/Order/${tableId}?t=${new Date().getTime()}`);
         if (res.ok) {
             const data = await res.json();
 
