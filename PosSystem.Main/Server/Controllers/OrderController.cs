@@ -506,7 +506,17 @@ namespace PosSystem.Main.Server.Controllers
 
             // Cập nhật tổng tiền đơn hàng
             var order = detail.Order;
-            var remainingItems = await _context.OrderDetails.Where(d => d.OrderID == order.OrderID).ToListAsync();
+            
+            // [FIX] Vì chưa SaveChanges nên DB vẫn còn item vừa xóa. 
+            // Cần lấy list về và filter bằng logic
+            var remainingItems = await _context.OrderDetails
+                .Where(d => d.OrderID == order.OrderID)
+                .ToListAsync();
+
+            if (isRemoved)
+            {
+                remainingItems = remainingItems.Where(d => d.OrderDetailID != detail.OrderDetailID).ToList();
+            }
 
             if (remainingItems.Count == 0)
             {
