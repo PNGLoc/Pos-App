@@ -923,7 +923,7 @@ async function submitCancelItem() {
                 accID: currentUser.accID,
                 orderDetailID: cancelState.detailId,
                 quantity: cancelState.currentQty,
-                reason: "Mobile Cancel"
+                //reason: "Mobile Cancel"
             })
         });
 

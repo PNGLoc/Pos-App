@@ -472,7 +472,7 @@ namespace PosSystem.Main.Server.Controllers
             public int AccID { get; set; }
             public long OrderDetailID { get; set; }
             public int Quantity { get; set; } // Số lượng muốn hủy
-            public string Reason { get; set; }
+           //blic string Reason { get; set; }
         }
 
         [HttpPost("cancel-item")]
@@ -543,7 +543,7 @@ namespace PosSystem.Main.Server.Controllers
                 Dish = detail.Dish,
                 DishID = detail.DishID,
                 Quantity = -req.Quantity, // Số âm để template bếp hiểu là trả món
-                Note = $"HỦY MÓN: {req.Reason}",
+                Note =  detail.Note,
                 KitchenBatch = 0
             };
 
