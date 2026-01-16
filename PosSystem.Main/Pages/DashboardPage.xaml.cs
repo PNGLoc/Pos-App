@@ -22,36 +22,78 @@ namespace PosSystem.Main.Pages
 
         private void DashboardPage_Loaded(object sender, RoutedEventArgs e)
         {
-            LoadDashboardData();
+            // Default: Today
+            BtnToday_Click(null, null);
         }
 
-        private void LoadDashboardData()
+        // --- BUTTON EVENTS ---
+        private void BtnToday_Click(object sender, RoutedEventArgs e)
+        {
+            var start = DateTime.Today;
+            var end = DateTime.Today.AddDays(1).AddTicks(-1);
+            LoadDashboardData(start, end, "KẾT QUẢ KINH DOANH HÔM NAY");
+        }
+
+        private void BtnYesterday_Click(object sender, RoutedEventArgs e)
+        {
+            var start = DateTime.Today.AddDays(-1);
+            var end = DateTime.Today.AddTicks(-1);
+            LoadDashboardData(start, end, "KẾT QUẢ KINH DOANH HÔM QUA");
+        }
+
+        private void BtnWeek_Click(object sender, RoutedEventArgs e)
+        {
+            // Monday of current week
+            var today = DateTime.Today;
+            int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+            var start = today.AddDays(-1 * diff).Date;
+            var end = DateTime.Now; // Until now
+            LoadDashboardData(start, end, "KẾT QUẢ KINH DOANH TUẦN NÀY");
+        }
+
+        private void BtnMonth_Click(object sender, RoutedEventArgs e)
+        {
+            var today = DateTime.Today;
+            var start = new DateTime(today.Year, today.Month, 1);
+            var end = DateTime.Now;
+            LoadDashboardData(start, end, "KẾT QUẢ KINH DOANH THÁNG NÀY");
+        }
+
+        private void BtnYear_Click(object sender, RoutedEventArgs e)
+        {
+            var today = DateTime.Today;
+            var start = new DateTime(today.Year, 1, 1);
+            var end = DateTime.Now;
+            LoadDashboardData(start, end, "KẾT QUẢ KINH DOANH NĂM NAY");
+        }
+
+        private void LoadDashboardData(DateTime start, DateTime end, string title)
         {
             try
             {
-                var today = DateTime.Today;
-                txtDate.Text = $"Cập nhật lúc: {DateTime.Now:HH:mm} - {DateTime.Now:dd/MM/yyyy}";
+                lblDashboardTitle.Text = title;
+                txtDate.Text = $"Từ: {start:dd/MM/yyyy HH:mm} - Đến: {end:dd/MM/yyyy HH:mm}";
 
-                // 1. Lấy dữ liệu Order hôm nay
-                var ordersToday = _context.Orders
-                                         .Where(o => o.OrderTime >= today)
+                // 1. Lấy dữ liệu Order trong khoảng thời gian
+                var ordersInRange = _context.Orders
+                                         .Where(o => o.OrderTime >= start && o.OrderTime <= end)
                                          .Include(o => o.OrderDetails) // Kèm chi tiết để tính tổng món
                                          .ToList();
 
                 // Tính toán thống kê
-                var paidOrders = ordersToday.Where(o => o.OrderStatus == "Paid").ToList();
+                var paidOrders = ordersInRange.Where(o => o.OrderStatus == "Paid").ToList();
 
                 decimal revenue = paidOrders.Sum(o => o.FinalAmount);
-                int orderCount = ordersToday.Count;
+                int orderCount = ordersInRange.Count;
 
                 // Món đã bán (Loại bỏ món bị hủy status Cancel hoặc đơn Cancelled)
-                int soldItems = ordersToday
+                int soldItems = ordersInRange
                     .Where(o => o.OrderStatus != "Cancelled")
                     .SelectMany(o => o.OrderDetails)
                     .Where(d => d.ItemStatus != "Cancel")
                     .Sum(d => d.Quantity);
 
-                // Số bàn đang có khách
+                // Số bàn đang có khách (Realtime status, not history)
                 int activeTables = _context.Tables.Count(t => t.TableStatus == "Occupied");
 
                 // Hiển thị lên UI
@@ -61,10 +103,10 @@ namespace PosSystem.Main.Pages
                 txtSoldItems.Text = soldItems.ToString();
 
                 // 2. Load Top món bán chạy & Thống kê nhóm
-                LoadAnalytics(today);
+                LoadAnalytics(start, end);
 
                 // 3. Load đơn hàng mới
-                LoadRecentOrders(today);
+                LoadRecentOrders(start, end);
             }
             catch (Exception ex)
             {
@@ -72,14 +114,14 @@ namespace PosSystem.Main.Pages
             }
         }
 
-        private void LoadAnalytics(DateTime date)
+        private void LoadAnalytics(DateTime start, DateTime end)
         {
             // Lấy chi tiết đơn hàng (Kèm Dish và Category để lấy tên)
             var details = _context.OrderDetails
                 .Include(d => d.Order)
                 .Include(d => d.Dish)
                 .ThenInclude(dish => dish.Category) // Lấy thêm Category từ Dish
-                .Where(d => d.Order.OrderTime >= date &&
+                .Where(d => d.Order.OrderTime >= start && d.Order.OrderTime <= end &&
                             d.Order.OrderStatus != "Cancelled" &&
                             d.ItemStatus != "Cancel")
                 .ToList(); // Tải về RAM để xử lý GroupBy cho dễ
@@ -103,8 +145,12 @@ namespace PosSystem.Main.Pages
                 {
                     Name = x.Name,
                     QuantityStr = x.Quantity + " ly",
-                    BarWidth = (x.Quantity / maxQty) * 150 // Scale theo UI
+                    BarWidth = (x.Quantity / (maxQty == 0 ? 1 : maxQty)) * 150 // Scale theo UI
                 });
+            }
+            else
+            {
+                lvTopProducts.ItemsSource = null;
             }
 
             // --- B. DOANH THU THEO DANH MỤC (New) ---
@@ -132,19 +178,23 @@ namespace PosSystem.Main.Pages
                     BarWidth = ((double)x.Total / (double)maxTotal) * 150
                 });
             }
+            else
+            {
+                lvCategories.ItemsSource = null;
+            }
         }
 
-        private void LoadRecentOrders(DateTime date)
+        private void LoadRecentOrders(DateTime start, DateTime end)
         {
             var recentOrders = _context.Orders
                 .Include(o => o.Table) // Kèm Table để lấy TableName
-                .Where(o => o.OrderTime >= date)
+                .Where(o => o.OrderTime >= start && o.OrderTime <= end)
                 .OrderByDescending(o => o.OrderTime)
-                .Take(8)
+                .Take(20) // Tăng lên 20 vì khoảng thời gian dài hơn
                 .Select(o => new
                 {
                     TableName = o.Table != null ? o.Table.TableName : "Mang về",
-                    Time = o.OrderTime.ToString("HH:mm"),
+                    Time = o.OrderTime.ToString("dd/MM HH:mm"), // Thêm ngày vào hiển thị
                     Total = string.Format("{0:N0}", o.FinalAmount),
                     Status = o.OrderStatus == "Paid" ? "Đã trả" : (o.OrderStatus == "Cancelled" ? "Đã hủy" : "Chờ"),
                     StatusColor = o.OrderStatus == "Paid" ? "#27AE60" : (o.OrderStatus == "Cancelled" ? "#E74C3C" : "#F39C12")

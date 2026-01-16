@@ -38,18 +38,71 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0"
-                Margin="10,0,0,20">
-            <TextBlock Text="KẾT QUẢ KINH DOANH TRONG NGÀY"
-                    FontSize="22"
-                    FontWeight="Bold"
-                    Foreground="#2C3E50"/>
-            <TextBlock x:Name="txtDate"
-                    Text="Loading..."
-                    FontSize="14"
-                    Foreground="#7F8C8D"
-                    Margin="0,5,0,0"/>
-        </StackPanel>
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock x:Name="lblDashboardTitle" 
+                           Text="KẾT QUẢ KINH DOANH TRONG NGÀY"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           Foreground="#2C3E50"/>
+                <TextBlock x:Name="txtDate"
+                           Text="Loading..."
+                           FontSize="14"
+                           Foreground="#7F8C8D"
+                           Margin="0,5,0,0"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                <StackPanel.Resources>
+                    <Style TargetType="{x:Type RadioButton}">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="#7F8C8D"/>
+                        <Setter Property="BorderBrush" Value="#BDC3C7"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="Padding" Value="15,8"/>
+                        <Setter Property="Margin" Value="5,0"/>
+                        <Setter Property="FontSize" Value="13"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type RadioButton}">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="20"
+                                            SnapsToDevicePixels="True">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#ECF0F1"/>
+                                <Setter Property="BorderBrush" Value="#95A5A6"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Background" Value="#3498DB"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderBrush" Value="#3498DB"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Resources>
+
+                <RadioButton Content="Hôm nay" Click="BtnToday_Click" IsChecked="True" GroupName="FilterDate"/>
+                <RadioButton Content="Hôm qua" Click="BtnYesterday_Click" GroupName="FilterDate"/>
+                <RadioButton Content="Tuần này" Click="BtnWeek_Click" GroupName="FilterDate"/>
+                <RadioButton Content="Tháng này" Click="BtnMonth_Click" GroupName="FilterDate"/>
+                <RadioButton Content="Năm này" Click="BtnYear_Click" GroupName="FilterDate"/>
+            </StackPanel>
+        </Grid>
 
         <UniformGrid Grid.Row="1"
                 Columns="4">
