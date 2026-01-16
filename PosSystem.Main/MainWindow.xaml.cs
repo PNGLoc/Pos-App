@@ -366,8 +366,8 @@ namespace PosSystem.Main
                         TableName = t.TableName,
                         TableStatus = t.TableStatus,
                         TimeDisplay = "",
-                        // [NEW] Gray out if this is the source table and we are waiting for target
-                        IsGrayedOut = (_isWaitingForTargetTable && t.TableID == _selectedTableId)
+                        // [NEW] Gray out if this is the source table and we are waiting for target (Split or Move)
+                        IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId)
                     };
 
                     // Calculate time for occupied tables with pending orders that have been sent to kitchen
@@ -1366,7 +1366,20 @@ namespace PosSystem.Main
             // Switch back to table list view
             pnlMenu.Visibility = Visibility.Collapsed;
             pnlTableList.Visibility = Visibility.Visible;
+            btnCancelMove.Visibility = Visibility.Visible; // [NEW] Show Cancel button
+
+            LoadTables(); // [NEW] Refresh to gray out source table
             _tableTimeTimer.Stop();
+        }
+
+        private void BtnCancelMove_Click(object sender, RoutedEventArgs e)
+        {
+            _isWaitingForMoveTargetTable = false;
+            btnCancelMove.Visibility = Visibility.Collapsed;
+            HideToast();
+            
+            // Return to Menu / Order Screen for the current table
+            SelectAndLoadTable(_selectedTableId);
         }
 
         private void ExecuteMoveTable(int targetTableId)
@@ -1446,6 +1459,7 @@ namespace PosSystem.Main
                     {
                         _isWaitingForMoveTargetTable = false;
                         HideToast();
+                        btnCancelMove.Visibility = Visibility.Collapsed; // [NEW] Hide Cancel button
 
                         LoadTables();
                         SelectAndLoadTable(targetTableId);
