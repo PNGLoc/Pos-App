@@ -417,37 +417,40 @@ namespace PosSystem.Main
                         .GroupBy(d => new
                         {
                             d.DishID,
-                            d.ItemStatus,
+                            // [FIX] Group Sent and Modified together. New items stay separate.
+                            GroupStatus = (d.ItemStatus == "New") ? "New" : "SentGroup", 
                             Note = (d.Note ?? "").Trim()
                         })
                         .Select(g => new OrderDetailViewModel
                         {
-                            OrderDetailID = g.First().OrderDetailID,
+                            // [FIX] Use First ID as representative. Handlers will look up siblings.
+                            OrderDetailID = g.First().OrderDetailID, 
                             DishName = g.First().Dish != null ? g.First().Dish.DishName : "Unknown",
                             UnitPrice = g.First().UnitPrice,
                             DiscountRate = g.First().DiscountRate,
-                            ItemStatus = g.Key.ItemStatus,
+                            // Status for logic: If any is New, it's New. Else check if modified.
+                            ItemStatus = g.Key.GroupStatus == "New" ? "New" : (g.Sum(x => x.Quantity) < g.Sum(x => x.PrintedQuantity) ? "Modified" : "Sent"),
                             Note = g.Key.Note,
                             Quantity = g.Sum(x => x.Quantity),
                             TotalAmount = g.Sum(x => x.TotalAmount),
 
-                            // Lấy số Đợt in lớn nhất trong nhóm để hiển thị và sắp xếp
                             KitchenBatch = g.Max(x => x.KitchenBatch),
 
                             BatchDisplay = g.Sum(x => x.PrintedQuantity) == 0 ? "⏳" : (g.Max(x => x.KitchenBatch) > 0 ? $"Đợt {g.Max(x => x.KitchenBatch)}" : "---"),
 
+                            // [FIX] Status Display Logic
                             StatusDisplay = g.Sum(x => x.Quantity) == 0 ? "❌ CHỜ HỦY" :
-                                            (g.Key.ItemStatus == "Sent" ? "✓ Đã gửi" : "Mới"),
+                                            (g.Key.GroupStatus == "New" ? "Mới" : 
+                                            (g.Sum(x => x.Quantity) < g.Sum(x => x.PrintedQuantity) ? "⚠️ Sửa đổi" : "✓ Đã gửi")),
 
-                            RowColor = g.Sum(x => x.Quantity) == 0 ? "#FFCCCC" :
-                                       (g.Key.ItemStatus == "Sent" ? "#D4EDDA" : "#FFF3CD")
+                            // [FIX] Row Color Logic
+                            RowColor = g.Sum(x => x.Quantity) == 0 ? "#FFCCCC" : // Red for Cancel All
+                                       (g.Key.GroupStatus == "New" ? "#FFF3CD" : // Yellow for New
+                                       (g.Sum(x => x.Quantity) < g.Sum(x => x.PrintedQuantity) ? "#FFF3CD" : "#D4EDDA")) // Yellow for Modified, Green for Sent
                         })
                         // --- [SỬA ĐỔI QUAN TRỌNG: LOGIC SẮP XẾP] ---
-                        // Ưu tiên 1: Món Mới (New) luôn nằm trên cùng
                         .OrderByDescending(vm => vm.ItemStatus == "New")
-                        // Ưu tiên 2: Món đã gửi -> Đợt lớn nằm trên, Đợt nhỏ nằm dưới
                         .ThenByDescending(vm => vm.KitchenBatch)
-                        // Ưu tiên 3: Cùng đợt thì xếp theo tên
                         .ThenBy(vm => vm.DishName)
                         .ToList();
 
@@ -684,28 +687,51 @@ namespace PosSystem.Main
                     var detail = db.OrderDetails.Find(detailId);
                     if (detail == null) return;
 
-                    // KIỂM TRA TRẠNG THÁI
-                    if (detail.ItemStatus == "Sent" || detail.ItemStatus == "Done")
+                    // [FIX] Group Logic: Nếu click vào nhóm Sent/Modified
+                    if (detail.ItemStatus == "Sent" || detail.ItemStatus == "Modified")
                     {
-                        // Món đã gửi -> KHÔNG sửa dòng này.
-                        // Gọi hàm thêm món mới (nó sẽ tự tạo dòng New màu vàng bên dưới)
-                        AddDishToOrder(_selectedTableId, detail.DishID);
+                        // Tìm xem trong nhóm (Cùng Dish + Note + Đã gửi) có món nào đang bị giảm (Qty < Printed) không?
+                        // Nếu có -> Tăng nó lên (Undo Cancel)
+                        // Nếu không -> Gọi AddDishToOrder để thêm mới
+                        
+                        var note = (detail.Note ?? "").Trim();
+                        var candidate = db.OrderDetails
+                            .Where(d => d.OrderID == detail.OrderID 
+                                     && d.DishID == detail.DishID 
+                                     && (d.Note ?? "").Trim() == note
+                                     && (d.ItemStatus == "Sent" || d.ItemStatus == "Modified")
+                                     && d.Quantity < d.PrintedQuantity) // ĐK: Đang bị giảm
+                            .OrderByDescending(d => d.KitchenBatch) // Ưu tiên đợt mới nhất
+                            .FirstOrDefault();
+
+                        if (candidate != null)
+                        {
+                            // Restore Quantity
+                            candidate.Quantity++;
+                            candidate.TotalAmount = candidate.Quantity * candidate.UnitPrice * (1 - candidate.DiscountRate / 100);
+                            
+                            // Restore Status if full
+                            if (candidate.ItemStatus == "Modified" && candidate.Quantity == candidate.PrintedQuantity)
+                            {
+                                candidate.ItemStatus = "Sent";
+                            }
+                             db.SaveChanges();
+                             RecalculateOrder(db, candidate.OrderID);
+                             LoadOrderDetails(_selectedTableId);
+                             NotifyTableUpdated(_selectedTableId);
+                        }
+                        else
+                        {
+                            // Full hết rồi -> Thêm món mới
+                             AddDishToOrder(_selectedTableId, detail.DishID);
+                        }
                     }
                     else
                     {
                         // Món đang chờ (New) -> Tăng số lượng bình thường
                         detail.Quantity++;
                         detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100);
-
-                        // [FIX] Nếu khôi phục lại số lượng bằng số đã in -> Trả về trạng thái Sent
-                        if (detail.ItemStatus == "Modified" && detail.Quantity == detail.PrintedQuantity)
-                        {
-                            detail.ItemStatus = "Sent";
-                        }
-
                         db.SaveChanges();
-
-                        // Cập nhật UI
                         RecalculateOrder(db, detail.OrderID);
                         LoadOrderDetails(_selectedTableId);
                         NotifyTableUpdated(_selectedTableId);
@@ -721,44 +747,65 @@ namespace PosSystem.Main
             {
                 using (var db = new AppDbContext())
                 {
-                    // [FIX] Load Dish to get Name for Log
-                    var detail = db.OrderDetails.Include(d => d.Dish).FirstOrDefault(d => d.OrderDetailID == detailId);
-                    if (detail == null) return;
+                    // Lấy detail gốc để biết Context (Order, Dish, Note)
+                    var originalDetail = db.OrderDetails.Include(d => d.Dish).FirstOrDefault(d => d.OrderDetailID == detailId);
+                    if (originalDetail == null) return;
 
-                    long currentOrderId = detail.OrderID; 
+                    OrderDetail targetDetail = originalDetail;
+
+                    // [FIX] Group Logic: Nếu Click vào nhóm Sent/Modified
+                    // Cần tìm món nào trong nhóm CÒN SỐ LƯỢNG để trừ
+                    if (originalDetail.ItemStatus == "Sent" || originalDetail.ItemStatus == "Modified")
+                    {
+                        var note = (originalDetail.Note ?? "").Trim();
+                        // Ưu tiên trừ món Batch cao nhất trước (Mới gọi nhất)
+                        var candidate = db.OrderDetails
+                            .Where(d => d.OrderID == originalDetail.OrderID
+                                     && d.DishID == originalDetail.DishID
+                                     && (d.Note ?? "").Trim() == note
+                                     && (d.ItemStatus == "Sent" || d.ItemStatus == "Modified")
+                                     && d.Quantity > 0)
+                            .OrderByDescending(d => d.KitchenBatch)
+                            .FirstOrDefault();
+                        
+                        // Nếu tìm thấy ứng viên tốt hơn, đổi target
+                        if (candidate != null) targetDetail = candidate;
+                    }
+
+                    long currentOrderId = targetDetail.OrderID; 
 
                     // 1. GIẢM SỐ LƯỢNG (Nếu đang > 0)
-                    if (detail.Quantity > 0)
+                    if (targetDetail.Quantity > 0)
                     {
                         // [NEW] Log if Item was Sent
-                        if (detail.ItemStatus == "Sent")
+                        if (targetDetail.ItemStatus == "Sent")
                         {
                             var log = new CancelledLog
                             {
                                 TableID = db.Orders.Where(o => o.OrderID == currentOrderId).Select(o => o.TableID).FirstOrDefault(),
-                                OrderID = detail.OrderID,
-                                DishName = detail.Dish?.DishName ?? "Unknown",
+                                OrderID = targetDetail.OrderID,
+                                DishName = targetDetail.Dish?.DishName ?? "Unknown",
                                 Quantity = 1, // Decrease 1
-                                Amount = detail.UnitPrice,
+                                Amount = targetDetail.UnitPrice,
                                 DeletedBy = UserSession.AccName ?? "Admin",
                                 CancelTime = DateTime.Now
                             };
                             db.CancelledLogs.Add(log);
                             
-                            detail.ItemStatus = "Modified";
+                            targetDetail.ItemStatus = "Modified";
                         }
 
-                        detail.Quantity--;
-                        detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100);
+                        targetDetail.Quantity--;
+                        targetDetail.TotalAmount = targetDetail.Quantity * targetDetail.UnitPrice * (1 - targetDetail.DiscountRate / 100);
                     }
 
                     // 2. LOGIC XÓA
                     bool isRemoved = false;
 
                     // Nếu món Mới (chưa in) về 0 -> XÓA
-                    if (detail.Quantity == 0 && detail.PrintedQuantity == 0)
+                    if (targetDetail.Quantity == 0 && targetDetail.PrintedQuantity == 0)
                     {
-                        db.OrderDetails.Remove(detail);
+                        db.OrderDetails.Remove(targetDetail);
                         isRemoved = true;
                     }
                     // Nếu món Cũ (đã in) -> Giữ lại số 0 để báo hủy (Không xóa dòng này ngay)
@@ -766,39 +813,27 @@ namespace PosSystem.Main
                     db.SaveChanges();
 
                     // 3. QUAN TRỌNG: KIỂM TRA XEM ĐƠN HÀNG CÒN MÓN NÀO KHÔNG?
-                    // Chỉ kiểm tra nếu vừa có hành động xóa dòng
                     if (isRemoved)
                     {
-                        // Kiểm tra xem trong Order này còn dòng nào không?
                         bool hasAnyItem = db.OrderDetails.Any(d => d.OrderID == currentOrderId);
-
                         if (!hasAnyItem)
                         {
-                            // === ĐƠN TRỐNG RỖNG -> HỦY ĐƠN & TRẢ BÀN ===
                             var order = db.Orders.Find(currentOrderId);
                             if (order != null)
                             {
-                                // 1. Trả trạng thái bàn về "Empty"
                                 var table = db.Tables.Find(order.TableID);
                                 if (table != null) table.TableStatus = "Empty";
-
-                                // 2. Xóa Order rỗng
                                 db.Orders.Remove(order);
                                 db.SaveChanges();
-
-                                // 3. Cập nhật giao diện
-                                LoadTables(); // Load lại màu bàn (xanh)
-                                LoadOrderDetails(_selectedTableId); // Reset cột phải
-                                return; // Kết thúc luôn
+                                LoadTables(); 
+                                LoadOrderDetails(_selectedTableId); 
+                                return; 
                             }
                         }
                     }
 
-                    // Nếu đơn vẫn còn món -> Tính lại tiền bình thường
-                    RecalculateOrder(db, detail.OrderID);
+                    RecalculateOrder(db, targetDetail.OrderID);
                     LoadOrderDetails(_selectedTableId);
-
-                    // ⭐ Notify mobile via SignalR
                     NotifyTableUpdated(_selectedTableId);
                 }
             }
