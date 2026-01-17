@@ -1028,13 +1028,13 @@
                             <!-- Remove selection highlight (row/cell blue) to keep RowColor readable when clicking rows or focusing note textbox -->
                             <DataGrid.Resources>
                                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"
-                                        Color="Transparent"/>
+                                                 Color="Transparent"/>
                                 <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"
-                                        Color="Transparent"/>
+                                                 Color="Transparent"/>
                                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}"
-                                        Color="Black"/>
+                                                 Color="Black"/>
                                 <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}"
-                                        Color="Black"/>
+                                                 Color="Black"/>
                             </DataGrid.Resources>
 
                             <DataGrid.RowStyle>
@@ -1071,14 +1071,14 @@
                                             Value="Transparent"/>
                                     <Style.Triggers>
                                         <Trigger Property="IsSelected"
-                                                Value="True">
+                                                 Value="True">
                                             <Setter Property="Background"
                                                     Value="Transparent"/>
                                             <Setter Property="BorderThickness"
                                                     Value="0"/>
                                         </Trigger>
                                         <Trigger Property="IsKeyboardFocusWithin"
-                                                Value="True">
+                                                 Value="True">
                                             <Setter Property="BorderThickness"
                                                     Value="0"/>
                                         </Trigger>
@@ -1097,7 +1097,7 @@
                                                            TextWrapping="Wrap"
                                                            Margin="0,0,0,3"/>
 
-                                                   <!-- NOTE RULES (BUGFIX):
+                                                <!-- NOTE RULES (BUGFIX):
                                                        - Chỉ món CHƯA gửi bếp (ItemStatus=New) mới được nhập/sửa ghi chú.
                                                        - Món ĐÃ gửi bếp hoặc ĐANG cập nhật (Sent/Modified): chỉ hiển thị ghi chú nếu có; không cho sửa.
                                                         (Tránh lỗi: giảm số lượng sau gửi bếp rồi nhập ghi chú sẽ dính vào món còn lại.) -->
@@ -1176,28 +1176,28 @@
                                                             Value="Visible"/>
                                                 </DataTrigger>
 
-                                                    <!-- Modified: treat like Sent (read-only) to avoid note leaking to remaining sent items -->
-                                                    <DataTrigger Binding="{Binding ItemStatus}"
+                                                <!-- Modified: treat like Sent (read-only) to avoid note leaking to remaining sent items -->
+                                                <DataTrigger Binding="{Binding ItemStatus}"
                                                              Value="Modified">
-                                                        <Setter TargetName="noteBorder"
+                                                    <Setter TargetName="noteBorder"
                                                             Property="Background"
                                                             Value="Transparent"/>
-                                                        <Setter TargetName="noteBorder"
+                                                    <Setter TargetName="noteBorder"
                                                             Property="BorderThickness"
                                                             Value="0"/>
-                                                        <Setter TargetName="noteBorder"
+                                                    <Setter TargetName="noteBorder"
                                                             Property="Padding"
                                                             Value="0"/>
-                                                        <Setter TargetName="txtNoteEdit"
+                                                    <Setter TargetName="txtNoteEdit"
                                                             Property="Visibility"
                                                             Value="Collapsed"/>
-                                                        <Setter TargetName="txtNotePlaceholder"
+                                                    <Setter TargetName="txtNotePlaceholder"
                                                             Property="Visibility"
                                                             Value="Collapsed"/>
-                                                        <Setter TargetName="txtNoteDisplay"
+                                                    <Setter TargetName="txtNoteDisplay"
                                                             Property="Visibility"
                                                             Value="Visible"/>
-                                                    </DataTrigger>
+                                                </DataTrigger>
 
                                                 <!-- Sent + empty note => hide note area entirely -->
                                                 <MultiDataTrigger>
