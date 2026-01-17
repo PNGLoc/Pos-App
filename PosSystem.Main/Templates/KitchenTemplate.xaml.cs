@@ -86,14 +86,15 @@ namespace PosSystem.Main.Templates
                 }
             }
 
-            // 2. Định nghĩa cấu trúc cột (5 cột: Tên | Kẻ | SL | Kẻ | Padding)
+            // 2. Định nghĩa cấu trúc cột: Tên | Kẻ | SL
+            // Tăng Spacing để tránh đè chữ
+            int sepWidth = 25; // [MODIFIED] Wider to allow moving line left
+            
             Action<Grid> setupColumns = (g) =>
             {
                 g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 0. Tên
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(columnSpacing) });        // 1. Kẻ
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = 35 });       // 2. SL
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(columnSpacing) });        // 3. Kẻ
-                g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                      // 4. Padding (không dùng nhưng giữ cấu trúc)
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(sepWidth) });             // 1. Kẻ dọc
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = 40 });       // 2. SL
             };
 
             // 3. Vẽ Header (tùy chọn)
@@ -102,14 +103,29 @@ namespace PosSystem.Main.Templates
 
             var lblName = new TextBlock { Text = "Món", FontWeight = FontWeights.Bold, FontSize = headerSize };
             var lblQty = new TextBlock { Text = "SL", FontWeight = FontWeights.Bold, FontSize = headerSize, HorizontalAlignment = HorizontalAlignment.Center };
+            
+            // Kẻ dọc Header
+            // [MODIFIED] Align Left + Margin to move left and keep distance from Qty
+            var vLineHeader = new System.Windows.Shapes.Rectangle 
+            { 
+                Width = 2, 
+                Fill = Brushes.Black, 
+                HorizontalAlignment = HorizontalAlignment.Left, 
+                Margin = new Thickness(5, 0, 0, 0) 
+            };
+
             Grid.SetColumn(lblName, 0);
+            Grid.SetColumn(vLineHeader, 1);
             Grid.SetColumn(lblQty, 2);
+            
             headerGrid.Children.Add(lblName);
+            headerGrid.Children.Add(vLineHeader);
             headerGrid.Children.Add(lblQty);
+            
             RootPanel.Children.Add(headerGrid);
 
             // Đường kẻ ngang đậm phân cách Header
-            RootPanel.Children.Add(new System.Windows.Shapes.Rectangle { Height = 2, Fill = Brushes.Black, Margin = new Thickness(0, 0, 0, 5) });
+            RootPanel.Children.Add(new System.Windows.Shapes.Line { X2 = 1, Stroke = Brushes.Black, StrokeThickness = 2, Stretch = Stretch.Fill, Margin = new Thickness(0, 0, 0, 5) });
 
             // 4. Vẽ danh sách món
             var items = order.OrderDetails.ToList();
@@ -138,7 +154,7 @@ namespace PosSystem.Main.Templates
                     Foreground = brush
                 };
 
-                // Số lượng (hiển thị ở cột phải)
+                // Số lượng
                 var txtQty = new TextBlock
                 {
                     Text = absQuantity.ToString(),
@@ -148,23 +164,28 @@ namespace PosSystem.Main.Templates
                     Foreground = brush
                 };
 
-                // Đường kẻ dọc mờ
-                var vLine1 = new System.Windows.Shapes.Rectangle { Width = 1, Fill = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center };
-                var vLine2 = new System.Windows.Shapes.Rectangle { Width = 1, Fill = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center };
+                // Đường kẻ dọc ĐẬM (Black instead of Gray)
+                // [MODIFIED] Align Left + Margin
+                var vLine = new System.Windows.Shapes.Rectangle 
+                { 
+                    Width = 1, 
+                    Fill = Brushes.Black, 
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                    Margin = new Thickness(5, 0, 0, 0)
+                };
 
                 // Gán cột
                 Grid.SetColumn(txtName, 0);
-                Grid.SetColumn(vLine1, 1);
+                Grid.SetColumn(vLine, 1);
                 Grid.SetColumn(txtQty, 2);
-                Grid.SetColumn(vLine2, 3);
 
                 row.Children.Add(txtName);
-                row.Children.Add(vLine1);
+                row.Children.Add(vLine);
                 row.Children.Add(txtQty);
-                row.Children.Add(vLine2);
                 RootPanel.Children.Add(row);
 
-                // Ghi chú (Nghiêng, Nhỏ hơn chút)
+                // Ghi chú
                 if (showNote && !string.IsNullOrEmpty(d.Note))
                 {
                     var note = new TextBlock
@@ -177,12 +198,14 @@ namespace PosSystem.Main.Templates
                     RootPanel.Children.Add(note);
                 }
 
-                // [NEW] Kẻ ngăn cách từng món (Nếu được bật)
+                // [NEW] Kẻ ngăn cách từng món (Dùng Line shape cho chuẩn Dash)
                 if (showItemSep)
                 {
-                    var line = new System.Windows.Shapes.Rectangle
+                    var line = new System.Windows.Shapes.Line
                     {
-                        Height = 1,
+                        X1 = 0, Y1 = 0,
+                        X2 = 1, Y2 = 0,
+                        Stretch = Stretch.Fill,
                         Stroke = Brushes.Black,
                         StrokeThickness = 1,
                         Margin = new Thickness(0, 2, 0, 2),
@@ -194,7 +217,6 @@ namespace PosSystem.Main.Templates
                     {
                         line.StrokeDashArray = new DoubleCollection { 4, 1 };
                     }
-                    // Nếu là Solid thì mặc định Stroke đã là liền
                     
                     RootPanel.Children.Add(line);
                 }
