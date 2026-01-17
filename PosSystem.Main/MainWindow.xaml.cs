@@ -916,12 +916,45 @@ namespace PosSystem.Main
                 var detail = db.OrderDetails.Include(d => d.Dish).FirstOrDefault(d => d.OrderDetailID == detailId);
                 if (detail == null) return;
 
+                // [FIX] DETECT GROUP SIBLINGS & MERGE
+                // Find other items in the same group (Same Order, Dish, Note, and Status Group)
+                bool isTargetNew = detail.ItemStatus == "New";
+                string targetNote = (detail.Note ?? "").Trim();
+
+                var siblings = db.OrderDetails
+                    .Where(d => d.OrderID == detail.OrderID 
+                             && d.DishID == detail.DishID 
+                             && d.OrderDetailID != detail.OrderDetailID)
+                    .ToList(); // Client-side filtering for Note & Status to be safe
+
+                var siblingsToMerge = siblings.Where(d => 
+                    ((d.Note ?? "").Trim() == targetNote) &&
+                    (isTargetNew ? (d.ItemStatus == "New") : (d.ItemStatus != "New"))
+                ).ToList();
+
+                // Merge logic
+                if (siblingsToMerge.Any())
+                {
+                    foreach (var s in siblingsToMerge)
+                    {
+                        detail.Quantity += s.Quantity;
+                        detail.PrintedQuantity += s.PrintedQuantity;
+                        // If Sent/Modified, maybe keep max Batch?
+                        if (s.KitchenBatch > detail.KitchenBatch) detail.KitchenBatch = s.KitchenBatch;
+                        
+                        db.OrderDetails.Remove(s);
+                    }
+                    // Save merge first? No, we will modify detail further.
+                }
+
                 long currentOrderId = detail.OrderID;
-                int oldQuantity = detail.Quantity;
+                int oldQuantity = detail.Quantity; // This is now the "Group Total" before edit
+                
+                // NOW apply the new target quantity
                 detail.Quantity = newQuantity;
                 detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100);
 
-                if (newQuantity != oldQuantity && detail.ItemStatus == "Sent")
+                if (newQuantity != oldQuantity && detail.ItemStatus != "New")
                 {
                     detail.ItemStatus = "Modified";
 
@@ -947,6 +980,7 @@ namespace PosSystem.Main
                 bool isRemoved = false;
 
                 // Nếu về 0: Xóa hoặc giữ lại để báo hủy
+                // Note: If PrintedQuantity > 0, we keep it to print cancellation ticket
                 if (detail.Quantity == 0 && detail.PrintedQuantity == 0)
                 {
                     db.OrderDetails.Remove(detail);
