@@ -61,6 +61,8 @@ namespace PosSystem.Main.Pages
         public new string QRTextBottom { get => base.QRTextBottom; set { if(base.QRTextBottom != value) { base.QRTextBottom = value; OnPropertyChanged(); } } }
         public new int QRTextTopFontSize { get => base.QRTextTopFontSize; set { if(base.QRTextTopFontSize != value) { base.QRTextTopFontSize = value; OnPropertyChanged(); } } }
         public new int QRTextBottomFontSize { get => base.QRTextBottomFontSize; set { if(base.QRTextBottomFontSize != value) { base.QRTextBottomFontSize = value; OnPropertyChanged(); } } }
+        public new bool QRTextTopBold { get => base.QRTextTopBold; set { if(base.QRTextTopBold != value) { base.QRTextTopBold = value; OnPropertyChanged(); } } }
+        public new bool QRTextBottomBold { get => base.QRTextBottomBold; set { if(base.QRTextBottomBold != value) { base.QRTextBottomBold = value; OnPropertyChanged(); } } }
 
         public new bool IsBold
         {
@@ -189,9 +191,11 @@ namespace PosSystem.Main.Pages
             this.IsVisible = origin.IsVisible;
             this.ImageHeight = origin.ImageHeight;
             this.QRTextTop = origin.QRTextTop; // [FIX]
-            this.QRTextBottom = origin.QRTextBottom; // [FIX]
+            this.QRTextBottom = origin.QRTextBottom; 
             this.QRTextTopFontSize = origin.QRTextTopFontSize;
             this.QRTextBottomFontSize = origin.QRTextBottomFontSize;
+            this.QRTextTopBold = origin.QRTextTopBold;
+            this.QRTextBottomBold = origin.QRTextBottomBold;
         }
 
         public PrintElement ToModel()
@@ -208,7 +212,9 @@ namespace PosSystem.Main.Pages
                 QRTextTop = this.QRTextTop,     
                 QRTextBottom = this.QRTextBottom,
                 QRTextTopFontSize = this.QRTextTopFontSize,
-                QRTextBottomFontSize = this.QRTextBottomFontSize
+                QRTextBottomFontSize = this.QRTextBottomFontSize,
+                QRTextTopBold = this.QRTextTopBold,
+                QRTextBottomBold = this.QRTextBottomBold
             };
         }
     }
@@ -410,8 +416,10 @@ namespace PosSystem.Main.Pages
                         if (pnlQrText != null) pnlQrText.Visibility = Visibility.Visible;
                         if (txtQrTop != null) txtQrTop.Text = el.QRTextTop;
                         if (txtQrBottom != null) txtQrBottom.Text = el.QRTextBottom;
-                        if (txtQrTopSize != null) txtQrTopSize.Text = el.QRTextTopFontSize.ToString(); // [NEW]
-                        if (txtQrBottomSize != null) txtQrBottomSize.Text = el.QRTextBottomFontSize.ToString(); // [NEW]
+                        if (txtQrTopSize != null) txtQrTopSize.Text = el.QRTextTopFontSize.ToString();
+                        if (txtQrBottomSize != null) txtQrBottomSize.Text = el.QRTextBottomFontSize.ToString();
+                        if (chkQrTopBold != null) chkQrTopBold.IsChecked = el.QRTextTopBold; // [NEW]
+                        if (chkQrBottomBold != null) chkQrBottomBold.IsChecked = el.QRTextBottomBold; // [NEW]
                     }
                     else
                     {
@@ -493,6 +501,8 @@ namespace PosSystem.Main.Pages
                      if (txtQrBottom != null) _selectedElement.QRTextBottom = txtQrBottom.Text;
                      if (txtQrTopSize != null && int.TryParse(txtQrTopSize.Text, out int tSize)) _selectedElement.QRTextTopFontSize = tSize;
                      if (txtQrBottomSize != null && int.TryParse(txtQrBottomSize.Text, out int bSize)) _selectedElement.QRTextBottomFontSize = bSize;
+                     if (chkQrTopBold != null) _selectedElement.QRTextTopBold = chkQrTopBold.IsChecked == true;
+                     if (chkQrBottomBold != null) _selectedElement.QRTextBottomBold = chkQrBottomBold.IsChecked == true;
                 }
             }
             else if (_selectedElement.ElementType == "OrderDetails" || _selectedElement.ElementType == "KitchenOrderDetails")

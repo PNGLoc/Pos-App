@@ -348,26 +348,33 @@
                             <TextBlock Text="Chiều cao ảnh (px):" FontWeight="SemiBold" Margin="0,0,0,5"/>
                             <TextBox x:Name="txtImageHeight" Text="300" Height="30" Padding="5" PreviewTextInput="NumberValidationTextBox" TextChanged="Prop_Changed"/>
 
-                            <!-- [NEW] QR Custom Text -->
                             <StackPanel x:Name="pnlQrText" Visibility="Visible" Margin="0,15,0,0">
+                                <!-- TOP TEXT -->
                                 <TextBlock Text="Chữ trên QR:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                                <Grid>
+                                <TextBox x:Name="txtQrTop" Height="30" Padding="5" TextChanged="TxtContent_TextChanged"/>
+                                <Grid Margin="0,5,0,0">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="60"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox x:Name="txtQrTop" Height="30" Padding="5" TextChanged="TxtContent_TextChanged"/>
-                                    <TextBox x:Name="txtQrTopSize" Grid.Column="1" Height="30" Padding="5" Margin="5,0,0,0" ToolTip="Cỡ chữ" Text="12" PreviewTextInput="NumberValidationTextBox" TextChanged="Prop_Changed"/>
+                                    <TextBlock Text="Cỡ chữ:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                    <TextBox x:Name="txtQrTopSize" Grid.Column="1" Height="30" Padding="5" ToolTip="Cỡ chữ" Text="12" PreviewTextInput="NumberValidationTextBox" TextChanged="Prop_Changed"/>
+                                    <CheckBox x:Name="chkQrTopBold" Grid.Column="2" Content="In đậm" FontWeight="Bold" Margin="15,0,0,0" VerticalAlignment="Center" Checked="Prop_Changed" Unchecked="Prop_Changed"/>
                                 </Grid>
                                 
-                                <TextBlock Text="Chữ dưới QR:" FontWeight="SemiBold" Margin="0,10,0,5"/>
-                                <Grid>
+                                <!-- BOTTOM TEXT -->
+                                <TextBlock Text="Chữ dưới QR:" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                                <TextBox x:Name="txtQrBottom" Height="30" Padding="5" TextChanged="TxtContent_TextChanged"/>
+                                <Grid Margin="0,5,0,0">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="60"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox x:Name="txtQrBottom" Height="30" Padding="5" TextChanged="TxtContent_TextChanged"/>
-                                    <TextBox x:Name="txtQrBottomSize" Grid.Column="1" Height="30" Padding="5" Margin="5,0,0,0" ToolTip="Cỡ chữ" Text="12" PreviewTextInput="NumberValidationTextBox" TextChanged="Prop_Changed"/>
+                                    <TextBlock Text="Cỡ chữ:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                    <TextBox x:Name="txtQrBottomSize" Grid.Column="1" Height="30" Padding="5" ToolTip="Cỡ chữ" Text="12" PreviewTextInput="NumberValidationTextBox" TextChanged="Prop_Changed"/>
+                                    <CheckBox x:Name="chkQrBottomBold" Grid.Column="2" Content="In đậm" FontWeight="Bold" Margin="15,0,0,0" VerticalAlignment="Center" Checked="Prop_Changed" Unchecked="Prop_Changed"/>
                                 </Grid>
                             </StackPanel>
                         </StackPanel>

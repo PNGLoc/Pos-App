@@ -67,13 +67,13 @@ namespace PosSystem.Main.Templates
                         {
                             // [NEW] Render Text Above QR
                             if (!string.IsNullOrEmpty(el.QRTextTop))
-                                AddTextBlock(el.QRTextTop, new PrintElement { Align = el.Align, FontSize = el.QRTextTopFontSize > 0 ? el.QRTextTopFontSize : 12, IsBold = true }); // [MODIFIED] Use custom size
+                                AddTextBlock(el.QRTextTop, new PrintElement { Align = el.Align, FontSize = el.QRTextTopFontSize > 0 ? el.QRTextTopFontSize : 12, IsBold = el.QRTextTopBold }); // [MODIFIED] Use custom bold
 
                             AddImage(el.Content, el.Align, el.ImageHeight);
 
                             // [NEW] Render Text Below QR
                             if (!string.IsNullOrEmpty(el.QRTextBottom))
-                                AddTextBlock(el.QRTextBottom, new PrintElement { Align = el.Align, FontSize = el.QRTextBottomFontSize > 0 ? el.QRTextBottomFontSize : 12, IsBold = true }); // [MODIFIED] Use custom size
+                                AddTextBlock(el.QRTextBottom, new PrintElement { Align = el.Align, FontSize = el.QRTextBottomFontSize > 0 ? el.QRTextBottomFontSize : 12, IsBold = el.QRTextBottomBold }); // [MODIFIED] Use custom bold
                         }
                         break;
 
