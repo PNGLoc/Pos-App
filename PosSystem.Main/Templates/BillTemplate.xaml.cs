@@ -63,9 +63,17 @@ namespace PosSystem.Main.Templates
 
                     case "QRCode":
                         // Chỉ hiển thị QR code khi phương thức thanh toán là Transfer (QR)
-                        if (paymentMethod == "Transfer")
+                        if (string.Equals(paymentMethod, "Transfer", StringComparison.OrdinalIgnoreCase))
                         {
+                            // [NEW] Render Text Above QR
+                            if (!string.IsNullOrEmpty(el.QRTextTop))
+                                AddTextBlock(el.QRTextTop, new PrintElement { Align = el.Align, FontSize = el.QRTextTopFontSize > 0 ? el.QRTextTopFontSize : 12, IsBold = true }); // [MODIFIED] Use custom size
+
                             AddImage(el.Content, el.Align, el.ImageHeight);
+
+                            // [NEW] Render Text Below QR
+                            if (!string.IsNullOrEmpty(el.QRTextBottom))
+                                AddTextBlock(el.QRTextBottom, new PrintElement { Align = el.Align, FontSize = el.QRTextBottomFontSize > 0 ? el.QRTextBottomFontSize : 12, IsBold = true }); // [MODIFIED] Use custom size
                         }
                         break;
 
