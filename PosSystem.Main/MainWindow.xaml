@@ -707,8 +707,7 @@
                     <Border Grid.Row="0"
                             Background="#FFF8F0"
                             BorderBrush="#F3D2A6"
-                            BorderThickness="0,0,0,1"
-                            Padding="8">
+                            BorderThickness="0,0,0,1">
                         <Grid>
                             <ToggleButton x:Name="tglActivityPopup"
                                           Background="Transparent"
@@ -724,7 +723,7 @@
                                                    Margin="0,0,0,4"/>
                                         <!-- Preview list (non-interactive; click opens popup) -->
                                         <ListBox ItemsSource="{Binding NotificationList}"
-                                                 Height="50"
+                                                 Height="45"
                                                  BorderThickness="0"
                                                  Background="Transparent"
                                                  ScrollViewer.VerticalScrollBarVisibility="Disabled">
