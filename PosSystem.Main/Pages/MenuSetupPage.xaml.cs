@@ -9,6 +9,7 @@ using Microsoft.Win32;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 using PosSystem.Main.Services;
+using PosSystem.Main.Helpers;
 
 namespace PosSystem.Main.Pages
 {
@@ -53,7 +54,7 @@ namespace PosSystem.Main.Pages
             // Open Modal for Category
             _selectedCat = null;
             txtCatName.Text = "";
-            
+
             // [MODIFIED] Auto-increment Order Index
             try
             {
@@ -63,7 +64,7 @@ namespace PosSystem.Main.Pages
                     txtCatIndex.Text = (maxIdx + 1).ToString();
                 }
             }
-            catch 
+            catch
             {
                 txtCatIndex.Text = "1";
             }
@@ -193,8 +194,8 @@ namespace PosSystem.Main.Pages
             else
             {
                 string kwNoSign = RemoveDiacritics(keyword).ToLower();
-                dgDishes.ItemsSource = _allDishes.Where(d => 
-                    IsMatch(d.DishName, kwNoSign) || 
+                dgDishes.ItemsSource = _allDishes.Where(d =>
+                    IsMatch(d.DishName, kwNoSign) ||
                     (d.Category != null && IsMatch(d.Category.CategoryName, kwNoSign))
                 ).ToList();
             }
@@ -204,7 +205,7 @@ namespace PosSystem.Main.Pages
         {
             if (string.IsNullOrEmpty(source)) return false;
             string sourceNoSign = RemoveDiacritics(source).ToLower();
-            
+
             // 1. Match contains (e.g. "ca phe" in "Cà phê sữa")
             if (sourceNoSign.Contains(keywordNoSign)) return true;
 
@@ -304,8 +305,8 @@ namespace PosSystem.Main.Pages
                     // Validate Duplicate Name (Case Insensitive)
                     if (db.Dishes.ToList().Any(d => d.DishName.ToLower() == txtDishName.Text.ToLower()))
                     {
-                         MessageBox.Show("Tên món ăn đã tồn tại!");
-                         return;
+                        MessageBox.Show("Tên món ăn đã tồn tại!");
+                        return;
                     }
 
                     var dish = new Dish
@@ -388,8 +389,8 @@ namespace PosSystem.Main.Pages
             {
                 try
                 {
-                    string destFolder = Path.Combine(AppContext.BaseDirectory, "Images");
-                    if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder);
+                    AppPaths.EnsureInitialized();
+                    string destFolder = AppPaths.ImagesDir;
 
                     string ext = Path.GetExtension(dlg.FileName);
                     string newName = $"dish_{DateTime.Now.Ticks}{ext}";
@@ -412,7 +413,20 @@ namespace PosSystem.Main.Pages
             if (string.IsNullOrEmpty(fileName)) return;
             try
             {
-                string path = Path.Combine(AppContext.BaseDirectory, "Images", fileName);
+                AppPaths.EnsureInitialized();
+                string path = Path.Combine(AppPaths.ImagesDir, fileName);
+                if (!File.Exists(path))
+                {
+                    // legacy plural folder fallback
+                    path = Path.Combine(AppPaths.ImagesDirLegacyPlural, fileName);
+                }
+
+                if (!File.Exists(path))
+                {
+                    // legacy fallback
+                    path = Path.Combine(AppContext.BaseDirectory, "Images", fileName);
+                }
+
                 if (File.Exists(path))
                 {
                     BitmapImage bmp = new BitmapImage();

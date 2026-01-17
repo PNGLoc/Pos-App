@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Data;
+using PosSystem.Main.Helpers;
 
 namespace PosSystem.Main.Helpers
 {
@@ -27,6 +28,23 @@ namespace PosSystem.Main.Helpers
                     return Visibility.Visible;
 
                 path = path.TrimStart('\\', '/');
+
+                // If it's just a filename, try DataRoot/images first
+                if (!path.Contains("/", StringComparison.Ordinal) && !path.Contains("\\", StringComparison.Ordinal))
+                {
+                    try
+                    {
+                        AppPaths.EnsureInitialized();
+                        var dataImagesPath = Path.Combine(AppPaths.ImagesDir, path);
+                        if (File.Exists(dataImagesPath))
+                            return Visibility.Visible;
+
+                        var dataImagesLegacyPluralPath = Path.Combine(AppPaths.ImagesDirLegacyPlural, path);
+                        if (File.Exists(dataImagesLegacyPluralPath))
+                            return Visibility.Visible;
+                    }
+                    catch { }
+                }
 
                 // If it's just a filename, first try runtime upload folder: ./Images/<file>
                 if (!path.Contains("/", StringComparison.Ordinal) && !path.Contains("\\", StringComparison.Ordinal))

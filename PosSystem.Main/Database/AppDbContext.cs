@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Models;
 using System;
 using System.IO;
+using PosSystem.Main.Helpers;
 
 namespace PosSystem.Main.Database
 {
@@ -25,8 +26,8 @@ namespace PosSystem.Main.Database
         public DbSet<ActivityLogEntry> ActivityLogs { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            string dbPath = Path.Combine(AppContext.BaseDirectory, "pos_data.db");
-            optionsBuilder.UseSqlite($"Data Source={dbPath}");
+            AppPaths.EnsureInitialized();
+            optionsBuilder.UseSqlite($"Data Source={AppPaths.DbPath}");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

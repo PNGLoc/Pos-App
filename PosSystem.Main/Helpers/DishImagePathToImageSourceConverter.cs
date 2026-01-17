@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using PosSystem.Main.Helpers;
 
 namespace PosSystem.Main.Helpers
 {
@@ -30,6 +31,23 @@ namespace PosSystem.Main.Helpers
 
                 // Normalize relative path
                 path = path.TrimStart('\\', '/');
+
+                // If it's just a filename, try DataRoot/images first
+                if (!path.Contains("/", StringComparison.Ordinal) && !path.Contains("\\", StringComparison.Ordinal))
+                {
+                    try
+                    {
+                        AppPaths.EnsureInitialized();
+                        var dataImagesPath = Path.Combine(AppPaths.ImagesDir, path);
+                        if (File.Exists(dataImagesPath))
+                            return LoadBitmap(new Uri(dataImagesPath, UriKind.Absolute));
+
+                        var dataImagesLegacyPluralPath = Path.Combine(AppPaths.ImagesDirLegacyPlural, path);
+                        if (File.Exists(dataImagesLegacyPluralPath))
+                            return LoadBitmap(new Uri(dataImagesLegacyPluralPath, UriKind.Absolute));
+                    }
+                    catch { }
+                }
 
                 // If it's just a filename, first try the runtime upload folder: ./Images/<file>
                 if (!path.Contains("/", StringComparison.Ordinal) && !path.Contains("\\", StringComparison.Ordinal))
