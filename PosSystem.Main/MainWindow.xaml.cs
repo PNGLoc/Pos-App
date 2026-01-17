@@ -130,7 +130,10 @@ namespace PosSystem.Main
             // Load Categories for Filter
             using (var db = new AppDbContext())
             {
-                FilterCategories = db.TableCategories.ToList();
+                FilterCategories = db.TableCategories
+                    .OrderBy(c => c.DisplayOrder)
+                    .ThenBy(c => c.CategoryID)
+                    .ToList();
             }
             this.DataContext = this; // Bind to self
 
@@ -434,17 +437,33 @@ namespace PosSystem.Main
         {
             using (var db = new AppDbContext())
             {
-                var tables = db.Tables.Include(t => t.Orders).ThenInclude(o => o.OrderDetails).ToList();
+                var query = db.Tables
+                    .Include(t => t.Category)
+                    .Include(t => t.Orders)
+                        .ThenInclude(o => o.OrderDetails)
+                    .AsQueryable();
 
                 // Apply filter
                 if (_selectedCategoryId.HasValue)
                 {
-                    tables = tables.Where(t => t.CategoryID == _selectedCategoryId.Value).ToList();
+                    query = query.Where(t => t.CategoryID == _selectedCategoryId.Value)
+                                 .OrderBy(t => t.TableName);
                 }
                 else if (_tableTypeFilter != "All") // Backwards compatibility for old buttons if any exist
                 {
-                    tables = tables.Where(t => t.TableType == _tableTypeFilter).ToList();
+                    query = query.Where(t => t.TableType == _tableTypeFilter)
+                                 .OrderBy(t => t.TableName);
                 }
+                else
+                {
+                    // "Tất cả": sắp xếp theo thứ tự Category (DisplayOrder) thay vì theo TableID
+                    query = query
+                        .OrderBy(t => t.Category != null ? t.Category.DisplayOrder : int.MaxValue)
+                        .ThenBy(t => t.CategoryID ?? int.MaxValue)
+                        .ThenBy(t => t.TableName);
+                }
+
+                var tables = query.ToList();
 
                 lstTables.ItemsSource = tables.Select(t =>
                 {

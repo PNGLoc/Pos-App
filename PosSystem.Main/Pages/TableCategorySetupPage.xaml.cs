@@ -11,12 +11,15 @@ namespace PosSystem.Main.Pages
         private TableCategory? _selected = null;
         public TableCategorySetupPage() { InitializeComponent(); LoadData(); }
 
-        void LoadData() 
-        { 
+        void LoadData()
+        {
             try
             {
-                using (var db = new AppDbContext()) 
-                    dgCategories.ItemsSource = db.TableCategories.OrderBy(c => c.CategoryID).ToList();
+                using (var db = new AppDbContext())
+                    dgCategories.ItemsSource = db.TableCategories
+                        .OrderBy(c => c.DisplayOrder)
+                        .ThenBy(c => c.CategoryID)
+                        .ToList();
             }
             catch { }
         }
@@ -25,8 +28,23 @@ namespace PosSystem.Main.Pages
         {
             _selected = null;
             txtName.Text = "";
+            txtDisplayOrder.Text = "";
             txtDesc.Text = "";
-            
+
+            // Default display order = max + 1
+            try
+            {
+                using (var db = new AppDbContext())
+                {
+                    var next = (db.TableCategories.Select(c => (int?)c.DisplayOrder).Max() ?? 0) + 1;
+                    txtDisplayOrder.Text = next.ToString();
+                }
+            }
+            catch
+            {
+                txtDisplayOrder.Text = "1";
+            }
+
             lblModalTitle.Text = "THÊM LOẠI BÀN";
             modalOverlay.Visibility = Visibility.Visible;
             txtName.Focus();
@@ -38,6 +56,7 @@ namespace PosSystem.Main.Pages
             {
                 _selected = cat;
                 txtName.Text = cat.CategoryName;
+                txtDisplayOrder.Text = cat.DisplayOrder.ToString();
                 txtDesc.Text = cat.Description;
 
                 lblModalTitle.Text = "SỬA LOẠI BÀN";
@@ -80,6 +99,12 @@ namespace PosSystem.Main.Pages
                 return;
             }
 
+            if (!int.TryParse(txtDisplayOrder.Text?.Trim(), out var displayOrder))
+            {
+                MessageBox.Show("Thứ tự hiển thị phải là số nguyên!", "Sai định dạng");
+                return;
+            }
+
             using (var db = new AppDbContext())
             {
                 if (_selected == null)
@@ -92,7 +117,12 @@ namespace PosSystem.Main.Pages
                         return;
                     }
 
-                    var newCat = new TableCategory { CategoryName = txtName.Text, Description = txtDesc.Text };
+                    var newCat = new TableCategory
+                    {
+                        CategoryName = txtName.Text,
+                        Description = txtDesc.Text,
+                        DisplayOrder = displayOrder
+                    };
                     db.TableCategories.Add(newCat);
                 }
                 else
@@ -113,6 +143,7 @@ namespace PosSystem.Main.Pages
 
                         item.CategoryName = txtName.Text;
                         item.Description = txtDesc.Text;
+                        item.DisplayOrder = displayOrder;
                     }
                 }
                 db.SaveChanges();

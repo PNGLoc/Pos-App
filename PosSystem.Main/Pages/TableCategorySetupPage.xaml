@@ -1,10 +1,11 @@
 <UserControl x:Class="PosSystem.Main.Pages.TableCategorySetupPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="800"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="600"
+             d:DesignWidth="800"
              Background="#F4F6F9">
 
     <Grid>
@@ -15,20 +16,38 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Background="White" Padding="20,15" Margin="0,0,0,15" CornerRadius="8">
+        <Border Grid.Row="0"
+                Background="White"
+                Padding="20,15"
+                Margin="0,0,0,15"
+                CornerRadius="8">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="QUẢN LÝ LOẠI BÀN (KHU VỰC)" FontSize="20" FontWeight="Bold" Foreground="#333"/>
-                    <TextBlock Text="Thiết lập các khu vực hoặc loại bàn (Ví dụ: Tầng 1, VIP, Mang Về...)" FontSize="13" Foreground="#666" Margin="0,5,0,0"/>
+                    <TextBlock Text="QUẢN LÝ LOẠI BÀN (KHU VỰC)"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               Foreground="#333"/>
+                    <TextBlock Text="Thiết lập các khu vực hoặc loại bàn (Ví dụ: Tầng 1, VIP, Mang Về...)"
+                               FontSize="13"
+                               Foreground="#666"
+                               Margin="0,5,0,0"/>
                 </StackPanel>
-                <Button Grid.Column="1" Content="➕ THÊM LOẠI BÀN" Width="150" Height="35" Background="#28A745" Foreground="White" FontWeight="Bold" Click="BtnAdd_Click">
+                <Button Grid.Column="1"
+                        Content="➕ THÊM LOẠI BÀN"
+                        Width="150"
+                        Height="35"
+                        Background="#28A745"
+                        Foreground="White"
+                        FontWeight="Bold"
+                        Click="BtnAdd_Click">
                     <Button.Resources>
                         <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="5"/>
+                            <Setter Property="CornerRadius"
+                                    Value="5"/>
                         </Style>
                     </Button.Resources>
                 </Button>
@@ -36,49 +55,94 @@
         </Border>
 
         <!-- List -->
-        <DataGrid Grid.Row="2" x:Name="dgCategories" AutoGenerateColumns="False" CanUserAddRows="False" 
-                  Background="White" RowHeight="50" IsReadOnly="True" HeadersVisibility="Column"
-                  GridLinesVisibility="Horizontal" BorderThickness="0">
+        <DataGrid Grid.Row="2"
+                  x:Name="dgCategories"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  Background="White"
+                  RowHeight="50"
+                  IsReadOnly="True"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  BorderThickness="0">
             <DataGrid.Resources>
                 <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Background" Value="#F8F9FA"/>
-                    <Setter Property="Padding" Value="10,12"/>
-                    <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                    <Setter Property="BorderBrush" Value="#E0E0E0"/>
+                    <Setter Property="Background"
+                            Value="#F8F9FA"/>
+                    <Setter Property="Padding"
+                            Value="10,12"/>
+                    <Setter Property="FontWeight"
+                            Value="SemiBold"/>
+                    <Setter Property="BorderThickness"
+                            Value="0,0,0,1"/>
+                    <Setter Property="BorderBrush"
+                            Value="#E0E0E0"/>
                 </Style>
                 <Style TargetType="DataGridCell">
-                    <Setter Property="Padding" Value="10,0"/>
+                    <Setter Property="Padding"
+                            Value="10,0"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="DataGridCell">
-                                <Border Padding="{TemplateBinding Padding}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                                <Border Padding="{TemplateBinding Padding}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        Background="{TemplateBinding Background}"
+                                        SnapsToDevicePixels="True">
                                     <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
                                 </Border>
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
                     <Style.Triggers>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="#E3F2FD"/>
-                            <Setter Property="Foreground" Value="Black"/>
-                            <Setter Property="BorderThickness" Value="0"/>
+                        <Trigger Property="IsSelected"
+                                 Value="True">
+                            <Setter Property="Background"
+                                    Value="#E3F2FD"/>
+                            <Setter Property="Foreground"
+                                    Value="Black"/>
+                            <Setter Property="BorderThickness"
+                                    Value="0"/>
                         </Trigger>
                     </Style.Triggers>
                 </Style>
             </DataGrid.Resources>
 
             <DataGrid.Columns>
-                <DataGridTextColumn Header="ID" Binding="{Binding CategoryID}" Width="60"/>
-                <DataGridTextColumn Header="Tên Loại Bàn / Khu Vực" Binding="{Binding CategoryName}" Width="*"/>
-                <DataGridTextColumn Header="Mô tả" Binding="{Binding Description}" Width="2*"/>
-                
-                <DataGridTemplateColumn Header="Thao tác" Width="140">
+                <DataGridTextColumn Header="ID"
+                                    Binding="{Binding CategoryID}"
+                                    Width="60"/>
+                <DataGridTextColumn Header="Thứ tự hiển thị"
+                                    Binding="{Binding DisplayOrder}"
+                                    Width="*"/>
+                <DataGridTextColumn Header="Tên Loại Bàn / Khu Vực"
+                                    Binding="{Binding CategoryName}"
+                                    Width="*"/>
+                <DataGridTextColumn Header="Mô tả"
+                                    Binding="{Binding Description}"
+                                    Width="2*"/>
+
+                <DataGridTemplateColumn Header="Thao tác"
+                                        Width="140">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Content="✏ Sửa" Width="60" Height="30" Margin="0,0,5,0" Background="#FFC107" Foreground="Black" Click="BtnEditRow_Click" Tag="{Binding}"/>
-                                <Button Content="🗑 Xóa" Width="60" Height="30" Background="#DC3545" Foreground="White" Click="BtnDeleteRow_Click" Tag="{Binding}"/>
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right">
+                                <Button Content="✏ Sửa"
+                                        Width="60"
+                                        Height="30"
+                                        Margin="0,0,5,0"
+                                        Background="#FFC107"
+                                        Foreground="Black"
+                                        Click="BtnEditRow_Click"
+                                        Tag="{Binding}"/>
+                                <Button Content="🗑 Xóa"
+                                        Width="60"
+                                        Height="30"
+                                        Background="#DC3545"
+                                        Foreground="White"
+                                        Click="BtnDeleteRow_Click"
+                                        Tag="{Binding}"/>
                             </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
@@ -87,29 +151,73 @@
         </DataGrid>
 
         <!-- Modal Overlay -->
-        <Grid Grid.RowSpan="3" x:Name="modalOverlay" Background="#99000000" Visibility="Collapsed">
-            <Border Width="400" Height="Auto" Background="White" CornerRadius="8" Padding="20" VerticalAlignment="Center" HorizontalAlignment="Center">
+        <Grid Grid.RowSpan="3"
+              x:Name="modalOverlay"
+              Background="#99000000"
+              Visibility="Collapsed">
+            <Border Width="400"
+                    Height="Auto"
+                    Background="White"
+                    CornerRadius="8"
+                    Padding="20"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center">
                 <StackPanel>
-                    <TextBlock x:Name="lblModalTitle" Text="THÊM LOẠI BÀN" FontSize="18" FontWeight="Bold" Margin="0,0,0,15" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="lblModalTitle"
+                               Text="THÊM LOẠI BÀN"
+                               FontSize="18"
+                               FontWeight="Bold"
+                               Margin="0,0,0,15"
+                               HorizontalAlignment="Center"/>
 
-                    <TextBlock Text="Tên loại bàn / Khu vực (*)" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                    <TextBox x:Name="txtName" Height="35" Padding="5,8"/>
+                    <TextBlock Text="Tên loại bàn / Khu vực (*)"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,5"/>
+                    <TextBox x:Name="txtName"
+                             Height="35"
+                             Padding="5,8"/>
 
-                    <TextBlock Text="Mô tả" FontWeight="SemiBold" Margin="0,15,0,5"/>
-                    <TextBox x:Name="txtDesc" Height="35" Padding="5,8"/>
+                    <TextBlock Text="Thứ tự hiển thị"
+                               FontWeight="SemiBold"
+                               Margin="0,15,0,5"/>
+                    <TextBox x:Name="txtDisplayOrder"
+                             Height="35"
+                             Padding="5,8"/>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-                        <Button Content="Hủy bỏ" Width="100" Height="35" Background="#6C757D" Foreground="White" Margin="0,0,10,0" Click="BtnCloseModal_Click">
-                             <Button.Resources>
+                    <TextBlock Text="Mô tả"
+                               FontWeight="SemiBold"
+                               Margin="0,15,0,5"/>
+                    <TextBox x:Name="txtDesc"
+                             Height="35"
+                             Padding="5,8"/>
+
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="0,20,0,0">
+                        <Button Content="Hủy bỏ"
+                                Width="100"
+                                Height="35"
+                                Background="#6C757D"
+                                Foreground="White"
+                                Margin="0,0,10,0"
+                                Click="BtnCloseModal_Click">
+                            <Button.Resources>
                                 <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="5"/>
+                                    <Setter Property="CornerRadius"
+                                            Value="5"/>
                                 </Style>
                             </Button.Resources>
                         </Button>
-                        <Button Content="Lưu lại" Width="100" Height="35" Background="#007BFF" Foreground="White" Click="BtnSaveModal_Click">
-                             <Button.Resources>
+                        <Button Content="Lưu lại"
+                                Width="100"
+                                Height="35"
+                                Background="#007BFF"
+                                Foreground="White"
+                                Click="BtnSaveModal_Click">
+                            <Button.Resources>
                                 <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="5"/>
+                                    <Setter Property="CornerRadius"
+                                            Value="5"/>
                                 </Style>
                             </Button.Resources>
                         </Button>

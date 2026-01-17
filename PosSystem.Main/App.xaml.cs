@@ -83,6 +83,15 @@ namespace PosSystem.Main
                 }
                 catch { }
 
+                // [NEW] Table category display order (for ordering tables by category)
+                try
+                {
+                    db.Database.ExecuteSqlRaw("ALTER TABLE TableCategories ADD COLUMN DisplayOrder INTEGER NOT NULL DEFAULT 0;");
+                    // Backfill: if missing/0, use CategoryID as a sensible default order
+                    db.Database.ExecuteSqlRaw("UPDATE TableCategories SET DisplayOrder = CategoryID WHERE DisplayOrder = 0;");
+                }
+                catch { }
+
                 // [NEW] Activity logs (persist "Hoạt động mới" in DB, keep last 200)
                 try
                 {

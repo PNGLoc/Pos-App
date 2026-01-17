@@ -13,21 +13,24 @@ namespace PosSystem.Main.Pages
         private Table? _selected = null;
         public List<TableCategory> Categories { get; set; } = new List<TableCategory>();
 
-        public TableSetupPage() 
-        { 
-            InitializeComponent(); 
+        public TableSetupPage()
+        {
+            InitializeComponent();
             this.DataContext = this; // Set DataContext for Binding
-            LoadData(); 
+            LoadData();
         }
 
-        void LoadData() 
-        { 
+        void LoadData()
+        {
             try
             {
-                using (var db = new AppDbContext()) 
+                using (var db = new AppDbContext())
                 {
                     // Load Categories for ComboBox
-                    Categories = db.TableCategories.ToList();
+                    Categories = db.TableCategories
+                        .OrderBy(c => c.DisplayOrder)
+                        .ThenBy(c => c.CategoryID)
+                        .ToList();
                     cboType.ItemsSource = Categories; // Refresh ItemsSource
 
                     // Load Tables with Category info
@@ -45,7 +48,7 @@ namespace PosSystem.Main.Pages
             _selected = null;
             txtName.Text = "";
             if (Categories.Count > 0) cboType.SelectedIndex = 0;
-            
+
             lblModalTitle.Text = "THÊM BÀN MỚI";
             modalOverlay.Visibility = Visibility.Visible;
             txtName.Focus();
@@ -58,7 +61,7 @@ namespace PosSystem.Main.Pages
             {
                 _selected = t;
                 txtName.Text = t.TableName;
-                
+
                 // Select Category in ComboBox
                 if (t.CategoryID.HasValue)
                 {
@@ -110,7 +113,7 @@ namespace PosSystem.Main.Pages
 
             int? selectedCatId = (int?)cboType.SelectedValue;
             string catName = "DineIn"; // Default fallback
-            
+
             // Get Category Name for backward compatibility
             if (cboType.SelectedItem is TableCategory cat)
             {
@@ -120,11 +123,11 @@ namespace PosSystem.Main.Pages
                 // Actually, let's just save the CategoryName as TableType for now to see it in debugging, 
                 // but rely on CategoryID for logic.
                 // Better approach: If Category Name matches "Mang Về" -> "TakeAway", etc.
-                
+
                 if (cat.CategoryName.Contains("Mang")) catName = "TakeAway";
                 else if (cat.CategoryName.Contains("Ship")) catName = "Delivery";
                 else if (cat.CategoryName.Contains("Khách")) catName = "Pickup";
-                else catName = "DineIn"; 
+                else catName = "DineIn";
             }
 
             using (var db = new AppDbContext())
@@ -139,12 +142,12 @@ namespace PosSystem.Main.Pages
                         return;
                     }
 
-                    db.Tables.Add(new Table 
-                    { 
-                        TableName = txtName.Text, 
+                    db.Tables.Add(new Table
+                    {
+                        TableName = txtName.Text,
                         CategoryID = selectedCatId,
                         TableType = catName, // Legacy support
-                        TableStatus = "Empty" 
+                        TableStatus = "Empty"
                     });
                 }
                 else

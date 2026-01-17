@@ -23,7 +23,10 @@ namespace PosSystem.Main.Server.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TableCategory>>> GetTableCategories()
         {
-            return await _context.TableCategories.ToListAsync();
+            return await _context.TableCategories
+                .OrderBy(c => c.DisplayOrder)
+                .ThenBy(c => c.CategoryID)
+                .ToListAsync();
         }
 
         // POST: api/TableCategory
