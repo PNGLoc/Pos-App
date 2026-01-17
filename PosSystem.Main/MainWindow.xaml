@@ -724,23 +724,32 @@
                                                    Margin="0,0,0,4"/>
                                         <!-- Preview list (non-interactive; click opens popup) -->
                                         <ListBox ItemsSource="{Binding NotificationList}"
-                                                 Height="55"
+                                                 Height="50"
                                                  BorderThickness="0"
                                                  Background="Transparent"
                                                  ScrollViewer.VerticalScrollBarVisibility="Disabled">
                                             <ListBox.ItemContainerStyle>
                                                 <Style TargetType="ListBoxItem">
-                                                    <Setter Property="IsHitTestVisible" Value="False"/>
-                                                    <Setter Property="Focusable" Value="False"/>
-                                                    <Setter Property="Background" Value="Transparent"/>
-                                                    <Setter Property="BorderThickness" Value="0"/>
-                                                    <Setter Property="Padding" Value="0"/>
+                                                    <Setter Property="IsHitTestVisible"
+                                                            Value="False"/>
+                                                    <Setter Property="Focusable"
+                                                            Value="False"/>
+                                                    <Setter Property="Background"
+                                                            Value="Transparent"/>
+                                                    <Setter Property="BorderThickness"
+                                                            Value="0"/>
+                                                    <Setter Property="Padding"
+                                                            Value="0"/>
                                                     <Style.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="Transparent"/>
+                                                        <Trigger Property="IsMouseOver"
+                                                                 Value="True">
+                                                            <Setter Property="Background"
+                                                                    Value="Transparent"/>
                                                         </Trigger>
-                                                        <Trigger Property="IsSelected" Value="True">
-                                                            <Setter Property="Background" Value="Transparent"/>
+                                                        <Trigger Property="IsSelected"
+                                                                 Value="True">
+                                                            <Setter Property="Background"
+                                                                    Value="Transparent"/>
                                                         </Trigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -784,7 +793,8 @@
                                             <RowDefinition Height="*"/>
                                         </Grid.RowDefinitions>
 
-                                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                                        <Grid Grid.Row="0"
+                                              Margin="0,0,0,8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
@@ -794,15 +804,15 @@
                                                        FontWeight="Bold"
                                                        Foreground="#FD7E14"
                                                        VerticalAlignment="Center"/>
-                                                <ToggleButton Grid.Column="1"
-                                                      IsChecked="{Binding IsChecked, ElementName=tglActivityPopup, Mode=TwoWay}"
-                                                      Content="✕"
-                                                      Width="28"
-                                                      Height="28"
-                                                      Background="Transparent"
-                                                      BorderThickness="0"
-                                                      Foreground="#999"
-                                                      FontSize="14"/>
+                                            <ToggleButton Grid.Column="1"
+                                                          IsChecked="{Binding IsChecked, ElementName=tglActivityPopup, Mode=TwoWay}"
+                                                          Content="✕"
+                                                          Width="28"
+                                                          Height="28"
+                                                          Background="Transparent"
+                                                          BorderThickness="0"
+                                                          Foreground="#999"
+                                                          FontSize="14"/>
                                         </Grid>
 
                                         <ListBox Grid.Row="1"
@@ -813,17 +823,26 @@
                                                  Height="320">
                                             <ListBox.ItemContainerStyle>
                                                 <Style TargetType="ListBoxItem">
-                                                    <Setter Property="IsHitTestVisible" Value="False"/>
-                                                    <Setter Property="Focusable" Value="False"/>
-                                                    <Setter Property="Background" Value="Transparent"/>
-                                                    <Setter Property="BorderThickness" Value="0"/>
-                                                    <Setter Property="Padding" Value="0"/>
+                                                    <Setter Property="IsHitTestVisible"
+                                                            Value="False"/>
+                                                    <Setter Property="Focusable"
+                                                            Value="False"/>
+                                                    <Setter Property="Background"
+                                                            Value="Transparent"/>
+                                                    <Setter Property="BorderThickness"
+                                                            Value="0"/>
+                                                    <Setter Property="Padding"
+                                                            Value="0"/>
                                                     <Style.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="Transparent"/>
+                                                        <Trigger Property="IsMouseOver"
+                                                                 Value="True">
+                                                            <Setter Property="Background"
+                                                                    Value="Transparent"/>
                                                         </Trigger>
-                                                        <Trigger Property="IsSelected" Value="True">
-                                                            <Setter Property="Background" Value="Transparent"/>
+                                                        <Trigger Property="IsSelected"
+                                                                 Value="True">
+                                                            <Setter Property="Background"
+                                                                    Value="Transparent"/>
                                                         </Trigger>
                                                     </Style.Triggers>
                                                 </Style>
