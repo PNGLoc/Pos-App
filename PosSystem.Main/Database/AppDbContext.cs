@@ -37,21 +37,6 @@ namespace PosSystem.Main.Database
                 new Printer { PrinterID = 3, PrinterName = "Máy Bếp Mì", ConnectionType = "LAN", ConnectionString = "192.168.1.202", IsBillPrinter = false },
                 new Printer { PrinterID = 4, PrinterName = "Máy Bếp Bánh", ConnectionType = "LAN", ConnectionString = "192.168.1.203", IsBillPrinter = false }
             );
-            // Seed Category
-            modelBuilder.Entity<Category>().HasData(
-                new Category { CategoryID = 1, CategoryName = "Cà phê", OrderIndex = 1 },
-                new Category { CategoryID = 2, CategoryName = "Sinh tố & Nước ép", OrderIndex = 2 },
-                new Category { CategoryID = 3, CategoryName = "Đồ ăn vặt", OrderIndex = 3 }
-            );
-
-            // Seed Dish (Có thêm CategoryID và ImagePath)
-            modelBuilder.Entity<Dish>().HasData(
-                new Dish { DishID = 1, DishName = "Cà phê đen", Price = 20000, Unit = "Ly", CategoryID = 1, ImagePath = "cfden.png" },
-                new Dish { DishID = 2, DishName = "Cà phê sữa", Price = 25000, Unit = "Ly", CategoryID = 1, ImagePath = "cfsua.png" },
-                new Dish { DishID = 3, DishName = "Sinh tố bơ", Price = 40000, Unit = "Ly", CategoryID = 2, ImagePath = "stbo.png" },
-                new Dish { DishID = 4, DishName = "Khoai tây chiên", Price = 30000, Unit = "Dĩa", CategoryID = 3, ImagePath = "khoaitay.png" }
-            );
-
             // Seed Table & Account giữ nguyên như cũ...
             modelBuilder.Entity<Account>().HasData(
    new Account
@@ -65,17 +50,6 @@ namespace PosSystem.Main.Database
        CanPayment = true,
        CanCancelItem = true, // Admin full quyền
        CanPrintProvisional = true
-   },
-   new Account
-   {
-       AccID = 2,
-       AccName = "Nhân viên 1",
-       Username = "nv1",
-       AccPass = "123",
-       AccRole = "Staff",
-       CanMoveTable = false,
-       CanPayment = false,
-       CanCancelItem = false // NV hạn chế
    }
 );
             modelBuilder.Entity<Table>().HasData(
@@ -86,13 +60,13 @@ namespace PosSystem.Main.Database
             // Seed Table Categories
             modelBuilder.Entity<TableCategory>().HasData(
                 new TableCategory { CategoryID = 1, CategoryName = "Bàn Thường", Description = "Bàn tiêu chuẩn" },
-                new TableCategory { CategoryID = 2, CategoryName = "Bàn VIP", Description = "Phòng lạnh, ghế sofa" },
-                new TableCategory { CategoryID = 3, CategoryName = "Mang Về", Description = "Khách mang đi" },
+                new TableCategory { CategoryID = 2, CategoryName = "Mang Về", Description = "Khách mang về" },
+                new TableCategory { CategoryID = 3, CategoryName = "Khách Lấy", Description = "Khách đến mang đi" },
                 new TableCategory { CategoryID = 4, CategoryName = "Ship", Description = "Giao hàng tận nơi" }
             );
             // Seed Template Mặc định
             string defaultJson = "[{\"ElementType\":\"Text\",\"Content\":\"ITADA LONG M\\u1EF8\",\"Align\":\"Center\",\"FontSize\":50,\"IsBold\":true,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"\\u0110C: CMT8, TT.Long M\\u1EF9, Long M\\u1EF9, H\\u1EADu Giang\",\"Align\":\"Left\",\"FontSize\":24,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"B\\u00E0n: {Table}\",\"Align\":\"Left\",\"FontSize\":28,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"Gi\\u1EDD \\u0111\\u1EBFn: {CheckInTime} | Gi\\u1EDD in: {PrintTime}\",\"Align\":\"Left\",\"FontSize\":26,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Separator\",\"Content\":\"\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"OrderDetails\",\"Content\":\"HeaderSize=28;ItemSize=28;ShowNote=False;NoteSize=26;ColumnSpacing=10;ItemSep=True;SepStyle=Dashed\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Total\",\"Content\":\"ShowSub=True;ShowDisc=True;TotalHeaderSize=30;SubSize=28\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":true,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Logo\",\"Content\":\"Logo\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":200}]";
-
+            string defaultKitchenJson = "[{\"ElementType\":\"Text\",\"Content\":\"{Table}\",\"Align\":\"Center\",\"FontSize\":55,\"IsBold\":true,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"\\u0110\\u1EE2T {Batch}\",\"Align\":\"Left\",\"FontSize\":26,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"Ng\\u01B0\\u1EDDi g\\u1EEDi: {Sender}\",\"Align\":\"Left\",\"FontSize\":26,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Separator\",\"Content\":\"\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"KitchenOrderDetails\",\"Content\":\"HeaderSize=30;ItemSize=30;NoteSize=28;ColumnSpacing=10;ItemSep=True;SepStyle=Dashed\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"Gi\\u1EDD in: {PrintTime}\",\"Align\":\"Center\",\"FontSize\":26,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300}]";    
             modelBuilder.Entity<PrintTemplate>().HasData(
                 new PrintTemplate
                 {
@@ -107,7 +81,7 @@ namespace PosSystem.Main.Database
                     TemplateID = 2,
                     TemplateName = "Mẫu bếp chuẩn",
                     TemplateType = "Kitchen",
-                    TemplateContentJson = "[{\"ElementType\":\"Text\",\"Content\":\"{Table}\",\"Align\":\"Center\",\"FontSize\":55,\"IsBold\":true,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\" \\u0110\\u1EE2T {Batch}\",\"Align\":\"Left\",\"FontSize\":26,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"Ng\\u01B0\\u1EDDi g\\u1EEDi: {Sender}\",\"Align\":\"Left\",\"FontSize\":26,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Separator\",\"Content\":\"\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"KitchenOrderDetails\",\"Content\":\"HeaderSize=30;ItemSize=30;NoteSize=28;ColumnSpacing=10;ItemSep=True;SepStyle=Dashed\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"Gi\\u1EDD in: {PrintTime}\",\"Align\":\"Center\",\"FontSize\":26,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300}]",
+                    TemplateContentJson = defaultKitchenJson,
                     IsActive = true
                 }
             );
