@@ -1835,14 +1835,20 @@ namespace PosSystem.Main
                     var detail = db.OrderDetails.Find(detailId);
                     if (detail != null)
                     {
+                        // BUGFIX: Chỉ cho phép sửa ghi chú cho món CHƯA gửi bếp.
+                        // Nếu sửa ghi chú cho món đã gửi bếp/đang cập nhật (Sent/Modified) sẽ bị "dính" ghi chú vào món còn lại sau khi giảm số lượng.
+                        if (!string.Equals(detail.ItemStatus, "New", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Revert UI text (TwoWay binding safety)
+                            txt.Text = (detail.Note ?? "").Trim();
+                            return;
+                        }
+
                         // Chỉ lưu nếu nội dung thay đổi
                         string oldNote = detail.Note ?? "";
                         if (oldNote != newNote)
                         {
                             detail.Note = newNote;
-
-                            // Nếu món đã gửi bếp mà sửa ghi chú -> Cần đánh dấu để in lại
-                            if (detail.ItemStatus == "Sent") detail.ItemStatus = "Modified";
 
                             db.SaveChanges();
 

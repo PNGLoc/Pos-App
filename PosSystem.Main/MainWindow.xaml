@@ -1097,9 +1097,10 @@
                                                            TextWrapping="Wrap"
                                                            Margin="0,0,0,3"/>
 
-                                                <!-- NOTE RULES:
-                                                     - Món đã gửi bếp (ItemStatus=Sent): chỉ hiển thị ghi chú nếu có ghi chú; không cho sửa.
-                                                     - Món chưa gửi bếp (New/Modified): làm nổi bật khu vực nhập ghi chú (nền vàng). -->
+                                                   <!-- NOTE RULES (BUGFIX):
+                                                       - Chỉ món CHƯA gửi bếp (ItemStatus=New) mới được nhập/sửa ghi chú.
+                                                       - Món ĐÃ gửi bếp hoặc ĐANG cập nhật (Sent/Modified): chỉ hiển thị ghi chú nếu có; không cho sửa.
+                                                        (Tránh lỗi: giảm số lượng sau gửi bếp rồi nhập ghi chú sẽ dính vào món còn lại.) -->
                                                 <Border x:Name="noteBorder"
                                                         CornerRadius="4"
                                                         Padding="4"
@@ -1175,6 +1176,29 @@
                                                             Value="Visible"/>
                                                 </DataTrigger>
 
+                                                    <!-- Modified: treat like Sent (read-only) to avoid note leaking to remaining sent items -->
+                                                    <DataTrigger Binding="{Binding ItemStatus}"
+                                                             Value="Modified">
+                                                        <Setter TargetName="noteBorder"
+                                                            Property="Background"
+                                                            Value="Transparent"/>
+                                                        <Setter TargetName="noteBorder"
+                                                            Property="BorderThickness"
+                                                            Value="0"/>
+                                                        <Setter TargetName="noteBorder"
+                                                            Property="Padding"
+                                                            Value="0"/>
+                                                        <Setter TargetName="txtNoteEdit"
+                                                            Property="Visibility"
+                                                            Value="Collapsed"/>
+                                                        <Setter TargetName="txtNotePlaceholder"
+                                                            Property="Visibility"
+                                                            Value="Collapsed"/>
+                                                        <Setter TargetName="txtNoteDisplay"
+                                                            Property="Visibility"
+                                                            Value="Visible"/>
+                                                    </DataTrigger>
+
                                                 <!-- Sent + empty note => hide note area entirely -->
                                                 <MultiDataTrigger>
                                                     <MultiDataTrigger.Conditions>
@@ -1191,6 +1215,30 @@
                                                     <MultiDataTrigger.Conditions>
                                                         <Condition Binding="{Binding ItemStatus}"
                                                                    Value="Sent"/>
+                                                        <Condition Binding="{Binding Note}"
+                                                                   Value="{x:Null}"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter TargetName="noteBorder"
+                                                            Property="Visibility"
+                                                            Value="Collapsed"/>
+                                                </MultiDataTrigger>
+
+                                                <!-- Modified + empty note => hide note area entirely -->
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding ItemStatus}"
+                                                                   Value="Modified"/>
+                                                        <Condition Binding="{Binding Note}"
+                                                                   Value=""/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter TargetName="noteBorder"
+                                                            Property="Visibility"
+                                                            Value="Collapsed"/>
+                                                </MultiDataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding ItemStatus}"
+                                                                   Value="Modified"/>
                                                         <Condition Binding="{Binding Note}"
                                                                    Value="{x:Null}"/>
                                                     </MultiDataTrigger.Conditions>
