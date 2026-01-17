@@ -1108,38 +1108,48 @@
                                                         BorderBrush="#FFEEBA"
                                                         BorderThickness="1">
                                                     <Grid>
-                                                        <!-- Editable note (for New/Modified) -->
-                                                        <TextBox x:Name="txtNoteEdit"
-                                                                 Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                 Tag="{Binding OrderDetailID}"
-                                                                 LostFocus="TxtNote_LostFocus"
-                                                                 Padding="0,2"
-                                                                 TextWrapping="Wrap"
-                                                                 AcceptsReturn="True"
-                                                                 Background="Transparent">
-                                                            <TextBox.Style>
-                                                                <Style TargetType="TextBox"
-                                                                       BasedOn="{StaticResource NoteTextBoxStyle}">
-                                                                    <Setter Property="IsReadOnly"
-                                                                            Value="False"/>
-                                                                    <Setter Property="ToolTip"
-                                                                            Value="Nhập ghi chú (Ví dụ: Ít đường...)"/>
-                                                                </Style>
-                                                            </TextBox.Style>
-                                                        </TextBox>
+                                                        <!-- Editable note input (white background + thin green border) -->
+                                                        <Border x:Name="noteInputBorder"
+                                                                Background="White"
+                                                                BorderBrush="#28A745"
+                                                                BorderThickness="1"
+                                                                CornerRadius="3"
+                                                                Padding="4">
+                                                            <Grid>
+                                                                <TextBox x:Name="txtNoteEdit"
+                                                                         Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                         Tag="{Binding OrderDetailID}"
+                                                                         LostFocus="TxtNote_LostFocus"
+                                                                         Padding="0,2"
+                                                                         TextWrapping="Wrap"
+                                                                         AcceptsReturn="True"
+                                                                         Background="Transparent"
+                                                                         BorderThickness="0">
+                                                                    <TextBox.Style>
+                                                                        <Style TargetType="TextBox"
+                                                                               BasedOn="{StaticResource NoteTextBoxStyle}">
+                                                                            <Setter Property="IsReadOnly"
+                                                                                    Value="False"/>
+                                                                            <Setter Property="ToolTip"
+                                                                                    Value="Nhập ghi chú (Ví dụ: Ít đường...)"/>
+                                                                        </Style>
+                                                                    </TextBox.Style>
+                                                                </TextBox>
 
-                                                        <!-- Placeholder only for editable mode -->
-                                                        <TextBlock x:Name="txtNotePlaceholder"
-                                                                   Text="Ghi chú"
-                                                                   FontSize="12"
-                                                                   Foreground="#8A6D3B"
-                                                                   FontStyle="Italic"
-                                                                   Margin="5,2"
-                                                                   IsHitTestVisible="False"
-                                                                   VerticalAlignment="Center"
-                                                                   Visibility="{Binding Note, Converter={StaticResource EmptyStringToVisibilityConverter}}"/>
+                                                                <!-- Placeholder only for editable mode -->
+                                                                <TextBlock x:Name="txtNotePlaceholder"
+                                                                           Text="Ghi chú"
+                                                                           FontSize="12"
+                                                                           Foreground="#8A6D3B"
+                                                                           FontStyle="Italic"
+                                                                           Margin="5,2"
+                                                                           IsHitTestVisible="False"
+                                                                           VerticalAlignment="Center"
+                                                                           Visibility="{Binding Note, Converter={StaticResource EmptyStringToVisibilityConverter}}"/>
+                                                            </Grid>
+                                                        </Border>
 
-                                                        <!-- Read-only note display for Sent items (only shown when note exists) -->
+                                                        <!-- Read-only note display for Sent/Modified items (only shown when note exists) -->
                                                         <TextBlock x:Name="txtNoteDisplay"
                                                                    Visibility="Collapsed"
                                                                    TextWrapping="Wrap"
@@ -1168,6 +1178,9 @@
                                                     <Setter TargetName="txtNoteEdit"
                                                             Property="Visibility"
                                                             Value="Collapsed"/>
+                                                    <Setter TargetName="noteInputBorder"
+                                                            Property="Visibility"
+                                                            Value="Collapsed"/>
                                                     <Setter TargetName="txtNotePlaceholder"
                                                             Property="Visibility"
                                                             Value="Collapsed"/>
@@ -1189,6 +1202,9 @@
                                                             Property="Padding"
                                                             Value="0"/>
                                                     <Setter TargetName="txtNoteEdit"
+                                                            Property="Visibility"
+                                                            Value="Collapsed"/>
+                                                    <Setter TargetName="noteInputBorder"
                                                             Property="Visibility"
                                                             Value="Collapsed"/>
                                                     <Setter TargetName="txtNotePlaceholder"
