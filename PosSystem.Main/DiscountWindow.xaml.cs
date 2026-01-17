@@ -13,11 +13,13 @@ namespace PosSystem.Main
 
         // Mode: 0 = Discount (như cũ), 1 = Edit Quantity
         private bool _isQuantityMode = false;
+        private decimal _maxLimit = -1; // [NEW] Max limit for validation
 
         // Constructor cũ (giữ nguyên để không lỗi code cũ)
-        public DiscountWindow(decimal currentVal, bool isPercentMode, bool isEditItem = false)
+        public DiscountWindow(decimal currentVal, bool isPercentMode, bool isEditItem = false, decimal maxLimit = -1)
         {
             InitializeComponent();
+            _maxLimit = maxLimit; // [NEW]
             // Code cũ xử lý giảm giá/giá món...
             if (isEditItem) // Đây là sửa giá món
             {
@@ -79,6 +81,13 @@ namespace PosSystem.Main
                 IsPercentage = false;
                 string rawText = txtAmount.Text.Replace(".", ""); // Remove separators
                 decimal.TryParse(rawText, out decimal val);
+
+                // [NEW] Validate Max Limit (Auto Cap)
+                if (_maxLimit >= 0 && val > _maxLimit)
+                {
+                    val = _maxLimit;
+                }
+
                 ResultValue = val;
             }
 
@@ -107,6 +116,12 @@ namespace PosSystem.Main
                 
                 if (long.TryParse(rawText, out long value))
                 {
+                    // [NEW] Immediate Clamp: If value > Limit -> Set to Limit
+                    if (_maxLimit >= 0 && value > _maxLimit)
+                    {
+                        value = (long)_maxLimit;
+                    }
+
                     txt.TextChanged -= TxtAmount_TextChanged;
                     // Format with dots (Vietnamese style)
                     txt.Text = value.ToString("#,##0", new System.Globalization.CultureInfo("vi-VN"));
