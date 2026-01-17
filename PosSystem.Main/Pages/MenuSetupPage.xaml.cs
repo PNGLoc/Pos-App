@@ -53,7 +53,21 @@ namespace PosSystem.Main.Pages
             // Open Modal for Category
             _selectedCat = null;
             txtCatName.Text = "";
-            txtCatIndex.Text = "0";
+            
+            // [MODIFIED] Auto-increment Order Index
+            try
+            {
+                using (var db = new AppDbContext())
+                {
+                    var maxIdx = db.Categories.Any() ? db.Categories.Max(c => c.OrderIndex) : 0;
+                    txtCatIndex.Text = (maxIdx + 1).ToString();
+                }
+            }
+            catch 
+            {
+                txtCatIndex.Text = "1";
+            }
+
             cboPrinters.SelectedIndex = -1;
 
             ShowModal(isCategory: true);
