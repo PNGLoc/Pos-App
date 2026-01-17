@@ -336,7 +336,20 @@ namespace PosSystem.Main.Server.Controllers
                 .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
                 .FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
 
-            if (order == null) return NotFound("Bàn này đang trống");
+            // Mobile polls this endpoint frequently.
+            // Returning 404 for empty tables causes noisy "GET ... 404" messages in browser consoles.
+            // Treat "no pending order" as a valid state and return an empty payload instead.
+            if (order == null)
+            {
+                return Ok(new
+                {
+                    OrderID = 0L,
+                    OrderTime = (DateTime?)null,
+                    SubTotal = 0m,
+                    FinalAmount = 0m,
+                    Details = Array.Empty<object>()
+                });
+            }
 
             return Ok(new
             {
