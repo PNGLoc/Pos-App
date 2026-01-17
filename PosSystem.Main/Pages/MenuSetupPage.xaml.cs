@@ -122,6 +122,13 @@ namespace PosSystem.Main.Pages
                 if (_selectedCat == null)
                 {
                     // Add
+                    // Validate Duplicate (Case Insensitive)
+                    if (db.Categories.ToList().Any(c => c.CategoryName.ToLower() == txtCatName.Text.ToLower()))
+                    {
+                        MessageBox.Show("Tên danh mục đã tồn tại!");
+                        return;
+                    }
+
                     var cat = new Category
                     {
                         CategoryName = txtCatName.Text,
@@ -136,6 +143,16 @@ namespace PosSystem.Main.Pages
                     var item = db.Categories.Find(_selectedCat.CategoryID);
                     if (item != null)
                     {
+                        // Validate Duplicate (Case Insensitive)
+                        if (item.CategoryName.ToLower() != txtCatName.Text.ToLower())
+                        {
+                            if (db.Categories.ToList().Any(c => c.CategoryName.ToLower() == txtCatName.Text.ToLower()))
+                            {
+                                MessageBox.Show("Tên danh mục đã tồn tại!");
+                                return;
+                            }
+                        }
+
                         item.CategoryName = txtCatName.Text;
                         item.OrderIndex = int.TryParse(txtCatIndex.Text, out int idx) ? idx : 0;
                         item.PrinterID = (int?)cboPrinters.SelectedValue;
@@ -284,6 +301,13 @@ namespace PosSystem.Main.Pages
                 if (_selectedDish == null)
                 {
                     // Add
+                    // Validate Duplicate Name (Case Insensitive)
+                    if (db.Dishes.ToList().Any(d => d.DishName.ToLower() == txtDishName.Text.ToLower()))
+                    {
+                         MessageBox.Show("Tên món ăn đã tồn tại!");
+                         return;
+                    }
+
                     var dish = new Dish
                     {
                         DishName = txtDishName.Text,
@@ -301,6 +325,16 @@ namespace PosSystem.Main.Pages
                     var item = db.Dishes.Find(_selectedDish.DishID);
                     if (item != null)
                     {
+                        // Validate Duplicate Name (Case Insensitive)
+                        if (item.DishName.ToLower() != txtDishName.Text.ToLower())
+                        {
+                            if (db.Dishes.ToList().Any(d => d.DishName.ToLower() == txtDishName.Text.ToLower()))
+                            {
+                                MessageBox.Show("Tên món ăn đã tồn tại!");
+                                return;
+                            }
+                        }
+
                         item.DishName = txtDishName.Text;
                         item.Price = decimal.TryParse(txtPrice.Text, out decimal p) ? p : 0;
                         item.Unit = txtUnit.Text;

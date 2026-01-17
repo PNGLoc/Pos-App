@@ -132,6 +132,13 @@ namespace PosSystem.Main.Pages
                 if (_selected == null)
                 {
                     // Thêm mới
+                    // Validate
+                    if (db.Tables.ToList().Any(tbl => tbl.TableName.ToLower() == txtName.Text.ToLower()))
+                    {
+                        MessageBox.Show("Tên bàn đã tồn tại!");
+                        return;
+                    }
+
                     db.Tables.Add(new Table 
                     { 
                         TableName = txtName.Text, 
@@ -146,6 +153,16 @@ namespace PosSystem.Main.Pages
                     var t = db.Tables.Find(_selected.TableID);
                     if (t != null)
                     {
+                        // Validate
+                        if (t.TableName.ToLower() != txtName.Text.ToLower())
+                        {
+                            if (db.Tables.ToList().Any(tbl => tbl.TableName.ToLower() == txtName.Text.ToLower()))
+                            {
+                                MessageBox.Show("Tên bàn đã tồn tại!");
+                                return;
+                            }
+                        }
+
                         t.TableName = txtName.Text;
                         t.CategoryID = selectedCatId;
                         t.TableType = catName; // Legacy support

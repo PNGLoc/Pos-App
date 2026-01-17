@@ -85,6 +85,13 @@ namespace PosSystem.Main.Pages
                 if (_selected == null)
                 {
                     // Add new
+                    // Validate Duplicate
+                    if (db.TableCategories.ToList().Any(c => c.CategoryName.ToLower() == txtName.Text.ToLower()))
+                    {
+                        MessageBox.Show("Tên loại bàn đã tồn tại!");
+                        return;
+                    }
+
                     var newCat = new TableCategory { CategoryName = txtName.Text, Description = txtDesc.Text };
                     db.TableCategories.Add(newCat);
                 }
@@ -94,6 +101,16 @@ namespace PosSystem.Main.Pages
                     var item = db.TableCategories.Find(_selected.CategoryID);
                     if (item != null)
                     {
+                        // Validate Duplicate
+                        if (item.CategoryName.ToLower() != txtName.Text.ToLower())
+                        {
+                            if (db.TableCategories.ToList().Any(c => c.CategoryName.ToLower() == txtName.Text.ToLower()))
+                            {
+                                MessageBox.Show("Tên loại bàn đã tồn tại!");
+                                return;
+                            }
+                        }
+
                         item.CategoryName = txtName.Text;
                         item.Description = txtDesc.Text;
                     }
