@@ -709,27 +709,139 @@
                             BorderBrush="#F3D2A6"
                             BorderThickness="0,0,0,1"
                             Padding="8">
-                        <StackPanel>
-                            <TextBlock Text="🔔 HOẠT ĐỘNG MỚI"
-                                       FontWeight="Bold"
-                                       Foreground="#FD7E14"
-                                       Margin="0,0,0,4"/>
-                            <ListBox ItemsSource="{Binding NotificationList}"
-                                     Height="50"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     ScrollViewer.VerticalScrollBarVisibility="Auto">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding}"
-                                                   FontSize="12"
-                                                   TextWrapping="Wrap"
-                                                   Margin="0,2"
-                                                   Foreground="#333"/>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </StackPanel>
+                        <Grid>
+                            <ToggleButton x:Name="tglActivityPopup"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          Padding="0"
+                                          HorizontalContentAlignment="Stretch"
+                                          VerticalContentAlignment="Stretch">
+                                <ToggleButton.Content>
+                                    <StackPanel>
+                                        <TextBlock Text="🔔 HOẠT ĐỘNG MỚI"
+                                                   FontWeight="Bold"
+                                                   Foreground="#FD7E14"
+                                                   Margin="0,0,0,4"/>
+                                        <!-- Preview list (non-interactive; click opens popup) -->
+                                        <ListBox ItemsSource="{Binding NotificationList}"
+                                                 Height="55"
+                                                 BorderThickness="0"
+                                                 Background="Transparent"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem">
+                                                    <Setter Property="IsHitTestVisible" Value="False"/>
+                                                    <Setter Property="Focusable" Value="False"/>
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                    <Setter Property="Padding" Value="0"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}"
+                                                               FontSize="12"
+                                                               TextWrapping="Wrap"
+                                                               Margin="0,2"
+                                                               Foreground="#333"/>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </StackPanel>
+                                </ToggleButton.Content>
+                            </ToggleButton>
+
+                            <!-- Popup full activity list -->
+                            <Popup Placement="Bottom"
+                                   PlacementTarget="{Binding ElementName=tglActivityPopup}"
+                                   IsOpen="{Binding IsChecked, ElementName=tglActivityPopup, Mode=TwoWay}"
+                                   StaysOpen="False"
+                                   AllowsTransparency="True">
+                                <Border Background="White"
+                                        CornerRadius="10"
+                                        BorderBrush="#E0E0E0"
+                                        BorderThickness="1"
+                                        Padding="12"
+                                        Width="440">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black"
+                                                          BlurRadius="16"
+                                                          ShadowDepth="2"
+                                                          Opacity="0.25"/>
+                                    </Border.Effect>
+
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="🔔 HOẠT ĐỘNG MỚI"
+                                                       FontWeight="Bold"
+                                                       Foreground="#FD7E14"
+                                                       VerticalAlignment="Center"/>
+                                                <ToggleButton Grid.Column="1"
+                                                      IsChecked="{Binding IsChecked, ElementName=tglActivityPopup, Mode=TwoWay}"
+                                                      Content="✕"
+                                                      Width="28"
+                                                      Height="28"
+                                                      Background="Transparent"
+                                                      BorderThickness="0"
+                                                      Foreground="#999"
+                                                      FontSize="14"/>
+                                        </Grid>
+
+                                        <ListBox Grid.Row="1"
+                                                 ItemsSource="{Binding NotificationList}"
+                                                 BorderThickness="0"
+                                                 Background="Transparent"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                                 Height="320">
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem">
+                                                    <Setter Property="IsHitTestVisible" Value="False"/>
+                                                    <Setter Property="Focusable" Value="False"/>
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                    <Setter Property="Padding" Value="0"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}"
+                                                               FontSize="13"
+                                                               TextWrapping="Wrap"
+                                                               Margin="0,4"
+                                                               Foreground="#333"/>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Grid>
+                                </Border>
+                            </Popup>
+                        </Grid>
                     </Border>
 
                     <Grid Grid.Row="1"
