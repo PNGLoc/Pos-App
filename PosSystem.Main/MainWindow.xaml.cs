@@ -1305,7 +1305,8 @@ namespace PosSystem.Main
 
                     if (finalAmount <= 0)
                     {
-                        if (MessageBox.Show("Thanh toán 0đ để đóng bàn?", "Xác nhận", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+                        // [MODIFIED] Removed confirmation dialog for 0đ bill
+                        // if (MessageBox.Show("Thanh toán 0đ để đóng bàn?", "Xác nhận", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
                     }
                 }
             }
