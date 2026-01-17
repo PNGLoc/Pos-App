@@ -237,9 +237,11 @@ namespace PosSystem.Main.Templates
                 // [NEW] Kẻ ngăn cách từng món (Nếu được bật)
                 if (showItemSep)
                 {
-                    var line = new System.Windows.Shapes.Rectangle
+                    var line = new System.Windows.Shapes.Line
                     {
-                        Height = 1,
+                        X1 = 0, Y1 = 0,
+                        X2 = 1, Y2 = 0,
+                        Stretch = Stretch.Fill,
                         Stroke = Brushes.Black,
                         StrokeThickness = 1,
                         Margin = new Thickness(0, 2, 0, 2),
@@ -251,7 +253,6 @@ namespace PosSystem.Main.Templates
                     {
                         line.StrokeDashArray = new DoubleCollection { 4, 2 };
                     }
-                    // Nếu là Solid thì mặc định Stroke đã là liền
                     
                     RootPanel.Children.Add(line);
                 }
@@ -353,9 +354,11 @@ namespace PosSystem.Main.Templates
 
         private void AddSeparator(bool isDashed = true)
         {
-            var line = new System.Windows.Shapes.Rectangle
+            var line = new System.Windows.Shapes.Line
             {
-                Height = 1,
+                X1 = 0, Y1 = 0,
+                X2 = 1, Y2 = 0,
+                Stretch = Stretch.Fill,
                 Stroke = Brushes.Black,
                 StrokeThickness = 1,
                 StrokeDashArray = isDashed ? new DoubleCollection { 4, 2 } : null,
