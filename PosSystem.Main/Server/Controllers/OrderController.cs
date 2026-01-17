@@ -89,55 +89,69 @@ namespace PosSystem.Main.Server.Controllers
         {
             if (request?.Details == null || request.Details.Count == 0) return BadRequest("Chưa chọn món!");
 
-            var currentOrder = await _context.Orders
-                .Include(o => o.OrderDetails)
-                .FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
-
-            if (currentOrder == null) return BadRequest("Bàn chưa mở, vui lòng mở bàn trước!");
-
-            // [NEW] Cập nhật nhân viên phục vụ nếu có gửi AccID lên
-            if (request.AccID > 0)
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                currentOrder.AccID = request.AccID;
-            }
-
-            foreach (var itemDto in request.Details)
-            {
-                var dish = await _context.Dishes.FindAsync(itemDto.DishID);
-                if (dish != null)
+                try
                 {
-                    // Gộp vào dòng "New" nếu trùng món và note (để gọn bill)
-                    var existingItem = currentOrder.OrderDetails
-                        .FirstOrDefault(d => d.DishID == dish.DishID && d.ItemStatus == "New" && (d.Note ?? "") == (itemDto.Note ?? ""));
+                    var currentOrder = await _context.Orders
+                        .Include(o => o.OrderDetails)
+                        .FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
 
-                    if (existingItem != null)
+                    if (currentOrder == null) return BadRequest("Bàn chưa mở, vui lòng mở bàn trước!");
+
+                    // [NEW] Cập nhật nhân viên phục vụ nếu có gửi AccID lên
+                    if (request.AccID > 0)
                     {
-                        existingItem.Quantity += itemDto.Quantity;
-                        existingItem.TotalAmount = existingItem.Quantity * existingItem.UnitPrice;
+                        currentOrder.AccID = request.AccID;
                     }
-                    else
+
+                    foreach (var itemDto in request.Details)
                     {
-                        currentOrder.OrderDetails.Add(new OrderDetail
+                        var dish = await _context.Dishes.FindAsync(itemDto.DishID);
+                        if (dish != null)
                         {
-                            DishID = dish.DishID,
-                            Quantity = itemDto.Quantity,
-                            UnitPrice = dish.Price,
-                            Note = itemDto.Note ?? "",
-                            ItemStatus = "New",      // ⭐ Status New -> Hiện ở tab Cart Mobile và dòng Vàng WPF
-                            PrintedQuantity = 0,
-                            TotalAmount = itemDto.Quantity * dish.Price
-                        });
+                            // Gộp vào dòng "New" nếu trùng món và note
+                            var existingItem = currentOrder.OrderDetails
+                                .FirstOrDefault(d => d.DishID == dish.DishID && d.ItemStatus == "New" && (d.Note ?? "") == (itemDto.Note ?? ""));
+
+                            if (existingItem != null)
+                            {
+                                existingItem.Quantity += itemDto.Quantity;
+                                existingItem.TotalAmount = existingItem.Quantity * existingItem.UnitPrice;
+                            }
+                            else
+                            {
+                                currentOrder.OrderDetails.Add(new OrderDetail
+                                {
+                                    DishID = dish.DishID,
+                                    Quantity = itemDto.Quantity,
+                                    UnitPrice = dish.Price,
+                                    Note = itemDto.Note ?? "",
+                                    ItemStatus = "New",
+                                    PrintedQuantity = 0,
+                                    TotalAmount = itemDto.Quantity * dish.Price
+                                });
+                            }
+                        }
                     }
+
+                    currentOrder.SubTotal = currentOrder.OrderDetails.Sum(d => d.TotalAmount);
+                    currentOrder.FinalAmount = currentOrder.SubTotal;
+
+                    await _context.SaveChangesAsync();
+                    transaction.Commit();
+                    
+                    // SignalR after commit
+                    await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+
+                    return Ok(new { Message = "Đã thêm vào giỏ hàng chung" });
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    return StatusCode(500, "Lỗi khi thêm món: " + ex.Message);
                 }
             }
-
-            currentOrder.SubTotal = currentOrder.OrderDetails.Sum(d => d.TotalAmount);
-            currentOrder.FinalAmount = currentOrder.SubTotal;
-
-            await _context.SaveChangesAsync();
-            await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
-
-            return Ok(new { Message = "Đã thêm vào giỏ hàng chung" });
         }
 
         // 3. API GỬI BẾP (Tìm món New -> In -> Chuyển thành Sent)
@@ -147,85 +161,97 @@ namespace PosSystem.Main.Server.Controllers
         [HttpPost("{tableId}/send")]
         public async Task<IActionResult> SendToKitchen(int tableId, [FromQuery] int accID = 0)
         {
-            var order = await _context.Orders
-                .Include(o => o.OrderDetails).ThenInclude(d => d.Dish).ThenInclude(c => c.Category)
-                .Include(o => o.Table)
-                .Include(o => o.Account) // <--- [NEW] Thêm dòng này để lấy tên người bấm
-                .FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
-
-            if (order == null) return BadRequest("Bàn này không có đơn hàng!");
-
-            // [NEW] Lấy tên người gửi (Sender)
-            string senderName = "Admin";
-            if (accID > 0)
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                var senderAcc = await _context.Accounts.FindAsync(accID);
-                if (senderAcc != null) senderName = senderAcc.AccName;
-            }
-            else
-            {
-                // Fallback: Nếu không gửi accID, lấy tên từ Account của Order (người tạo đơn)
-                 senderName = order.Account?.AccName ?? "Admin";
-            }
-
-            // Lấy các món chưa in (New) hoặc số lượng tăng thêm
-            var itemsToPrint = order.OrderDetails
-                .Where(d => d.Quantity > d.PrintedQuantity)
-                .ToList();
-
-            if (!itemsToPrint.Any()) return Ok(new { Message = "Không có món mới cần gửi bếp" });
-
-            // Tăng Batch Number
-            var batchNumber = order.OrderDetails.Max(d => (int?)d.KitchenBatch) ?? 0;
-            batchNumber++;
-
-            if (!order.FirstSentTime.HasValue) order.FirstSentTime = DateTime.Now;
-
-            // Danh sách tạm để gửi lệnh in
-            var printQueue = new List<OrderDetail>();
-
-            foreach (var item in itemsToPrint)
-            {
-                int quantityToSend = item.Quantity - item.PrintedQuantity;
-
-                // Tạo bản copy để in đúng số lượng mới
-                var printItem = new OrderDetail
+                try
                 {
-                    Dish = item.Dish,
-                    DishID = item.DishID,
-                    Quantity = quantityToSend,
-                    Note = item.Note,
-                    KitchenBatch = batchNumber
-                };
-                printQueue.Add(printItem);
+                    var order = await _context.Orders
+                        .Include(o => o.OrderDetails).ThenInclude(d => d.Dish).ThenInclude(c => c.Category)
+                        .Include(o => o.Table)
+                        .Include(o => o.Account)
+                        .FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
 
-                // Cập nhật DB
-                item.PrintedQuantity = item.Quantity;
-                item.ItemStatus = "Sent"; // ⭐ Chuyển sang Sent -> Mobile hiện tab Đã Xác Nhận, WPF hiện dòng Trắng/Xanh
-                item.KitchenBatch = batchNumber;
+                    if (order == null) return BadRequest("Bàn này không có đơn hàng!");
+
+                    // [NEW] Lấy tên người gửi (Sender)
+                    string senderName = "Admin";
+                    if (accID > 0)
+                    {
+                        var senderAcc = await _context.Accounts.FindAsync(accID);
+                        if (senderAcc != null) senderName = senderAcc.AccName;
+                    }
+                    else
+                    {
+                        // Fallback
+                        senderName = order.Account?.AccName ?? "Admin";
+                    }
+
+                    // Lấy các món chưa in (New) hoặc số lượng tăng thêm
+                    var itemsToPrint = order.OrderDetails
+                        .Where(d => d.Quantity > d.PrintedQuantity)
+                        .ToList();
+
+                    if (!itemsToPrint.Any()) return Ok(new { Message = "Không có món mới cần gửi bếp" });
+
+                    // Tăng Batch Number
+                    var batchNumber = order.OrderDetails.Max(d => (int?)d.KitchenBatch) ?? 0;
+                    batchNumber++;
+
+                    if (!order.FirstSentTime.HasValue) order.FirstSentTime = DateTime.Now;
+
+                    // Danh sách tạm để gửi lệnh in
+                    var printQueue = new List<OrderDetail>();
+
+                    foreach (var item in itemsToPrint)
+                    {
+                        int quantityToSend = item.Quantity - item.PrintedQuantity;
+
+                        var printItem = new OrderDetail
+                        {
+                            Dish = item.Dish,
+                            DishID = item.DishID,
+                            Quantity = quantityToSend,
+                            Note = item.Note,
+                            KitchenBatch = batchNumber
+                        };
+                        printQueue.Add(printItem);
+
+                        // Cập nhật DB
+                        item.PrintedQuantity = item.Quantity;
+                        item.ItemStatus = "Sent";
+                        item.KitchenBatch = batchNumber;
+                    }
+
+                    // [NEW] Cập nhật trạng thái bàn thành Occupied nếu chưa
+                    if (order.Table != null && order.Table.TableStatus == "Empty")
+                    {
+                        order.Table.TableStatus = "Occupied";
+                    }
+
+                    await _context.SaveChangesAsync();
+                    transaction.Commit();
+                    
+                    // --- NON DUPLICATE ACTIONS (Post Commit) ---
+
+                    // Gọi Service In Bếp 
+                    Services.PrintService.PrintKitchen(order, printQueue, batchNumber, senderName);
+
+                    // Bắn SignalR
+                    await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+
+                    // [NEW] Bắn thông báo cho Desktop
+                    string tableName = order.Table?.TableName ?? $"Bàn {tableId}";
+                    string notiMsg = $"{senderName} đã thêm {printQueue.Count} món cho {tableName}";
+                    await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", notiMsg);
+
+                    return Ok(new { Message = $"Đã gửi {printQueue.Count} món xuống bếp!" });
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    return StatusCode(500, "Lỗi gửi bếp: " + ex.Message);
+                }
             }
-
-            // [NEW] Cập nhật trạng thái bàn thành Occupied nếu chưa
-            if (order.Table != null && order.Table.TableStatus == "Empty")
-            {
-                 order.Table.TableStatus = "Occupied";
-            }
-
-            await _context.SaveChangesAsync();
-
-            // Gọi Service In Bếp (Code có sẵn của bạn)
-            // [FIX] Truyền senderName vào
-            Services.PrintService.PrintKitchen(order, printQueue, batchNumber, senderName);
-
-            // Bắn SignalR
-            await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
-
-            // [NEW] Bắn thông báo cho Desktop
-            string tableName = order.Table?.TableName ?? $"Bàn {tableId}";
-            string notiMsg = $"{senderName} đã thêm {printQueue.Count} món cho {tableName}";
-            await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", notiMsg);
-
-            return Ok(new { Message = $"Đã gửi {printQueue.Count} món xuống bếp!" });
         }
         // POST: api/Order/{tableId}/update-item
         [HttpPost("{tableId}/update-item")]
@@ -318,42 +344,55 @@ namespace PosSystem.Main.Server.Controllers
         [HttpPost("checkout-mobile")]
         public async Task<IActionResult> CheckoutMobile([FromBody] MobileCheckoutRequest request)
         {
-            // 1. Check quyền
-            var acc = await _context.Accounts.FindAsync(request.AccID);
-            if (acc == null || !acc.CanPayment) return StatusCode(403, "Bạn không có quyền thanh toán!");
-
-            // 2. Logic thanh toán (Copy từ hàm Checkout cũ)
-            var order = await _context.Orders.Include(o => o.Table).Include(o => o.OrderDetails).ThenInclude(d => d.Dish)
-                .FirstOrDefaultAsync(o => o.OrderID == request.OrderID);
-
-            if (order == null || order.OrderStatus == "Paid") return BadRequest("Đơn lỗi");
-
-            order.PaymentMethod = request.PaymentMethod;
-            order.DiscountPercent = request.DiscountPercent;
-            order.DiscountAmount = request.DiscountAmount;
-            order.CheckoutTime = DateTime.Now;
-
-            // Tính tiền lại cho chắc
-            order.SubTotal = order.OrderDetails.Sum(d => d.TotalAmount);
-            decimal discountVal = (order.DiscountPercent > 0) ? order.SubTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
-            order.FinalAmount = order.SubTotal - discountVal;
-            order.OrderStatus = "Paid";
-
-            if (order.Table != null) order.Table.TableStatus = "Empty";
-
-            await _context.SaveChangesAsync();
-
-            // 3. GỌI IN HÓA ĐƠN TRÊN SERVER (DESKTOP)
-            // Đây là điểm mấu chốt: Mobile kích hoạt, Desktop in.
-            try
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                Services.PrintService.PrintBill(order.OrderID);
+                try
+                {
+                    // 1. Check quyền
+                    var acc = await _context.Accounts.FindAsync(request.AccID);
+                    if (acc == null || !acc.CanPayment) return StatusCode(403, "Bạn không có quyền thanh toán!");
+
+                    // 2. Logic thanh toán
+                    var order = await _context.Orders.Include(o => o.Table).Include(o => o.OrderDetails).ThenInclude(d => d.Dish)
+                        .FirstOrDefaultAsync(o => o.OrderID == request.OrderID);
+
+                    if (order == null || order.OrderStatus == "Paid") return BadRequest("Đơn lỗi");
+
+                    order.PaymentMethod = request.PaymentMethod;
+                    order.DiscountPercent = request.DiscountPercent;
+                    order.DiscountAmount = request.DiscountAmount;
+                    order.CheckoutTime = DateTime.Now;
+
+                    // Tính tiền lại cho chắc
+                    order.SubTotal = order.OrderDetails.Sum(d => d.TotalAmount);
+                    decimal discountVal = (order.DiscountPercent > 0) ? order.SubTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
+                    order.FinalAmount = order.SubTotal - discountVal;
+                    order.OrderStatus = "Paid";
+
+                    if (order.Table != null) order.Table.TableStatus = "Empty";
+
+                    await _context.SaveChangesAsync();
+                    transaction.Commit();
+                    
+                    // --- POST COMMIT ---
+
+                    // 3. GỌI IN HÓA ĐƠN TRÊN SERVER
+                    try
+                    {
+                        Services.PrintService.PrintBill(order.OrderID);
+                    }
+                    catch { }
+
+                    await _hubContext.Clients.All.SendAsync("TableUpdated", order.TableID);
+
+                    return Ok(new { Message = "Đã thanh toán & In hóa đơn!" });
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    return StatusCode(500, "Lỗi thanh toán: " + ex.Message);
+                }
             }
-            catch { }
-
-            await _hubContext.Clients.All.SendAsync("TableUpdated", order.TableID);
-
-            return Ok(new { Message = "Đã thanh toán & In hóa đơn!" });
         }
         
         public class PrintProvisionalRequest
@@ -415,69 +454,81 @@ namespace PosSystem.Main.Server.Controllers
         }
 
         [HttpPost("{sourceTableId}/move")]
+
         public async Task<IActionResult> MoveTable(int sourceTableId, [FromBody] MoveTableRequest req)
         {
-            // 1. Check quyền
-            var acc = await _context.Accounts.FindAsync(req.AccID);
-            if (acc == null || !acc.CanMoveTable) return StatusCode(403, "Bạn không có quyền chuyển bàn!");
-
-            // 2. Lấy đơn gốc
-            var sourceOrder = await _context.Orders
-                .Include(o => o.OrderDetails).ThenInclude(d => d.Dish).ThenInclude(c => c.Category)
-                .Include(o => o.Table)
-                .FirstOrDefaultAsync(o => o.TableID == sourceTableId && o.OrderStatus == "Pending");
-
-            if (sourceOrder == null) return BadRequest("Bàn gốc không có đơn!");
-            if (sourceTableId == req.TargetTableID) return BadRequest("Trùng bàn đích!");
-
-            string oldTableName = sourceOrder.Table?.TableName ?? sourceTableId.ToString();
-            string newTableName = "";
-
-            // 3. Kiểm tra bàn đích
-            var targetOrder = await _context.Orders
-                .Include(o => o.OrderDetails)
-                .Include(o => o.Table)
-                .FirstOrDefaultAsync(o => o.TableID == req.TargetTableID && o.OrderStatus == "Pending");
-
-            var targetTable = await _context.Tables.FindAsync(req.TargetTableID);
-            if (targetTable != null) newTableName = targetTable.TableName;
-
-            if (targetOrder != null)
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                // TRƯỜNG HỢP GỘP BÀN: Chuyển hết món sang đơn đích
-                foreach (var detail in sourceOrder.OrderDetails)
+                try
                 {
-                    detail.OrderID = targetOrder.OrderID;
+                    // 1. Check quyền
+                    var acc = await _context.Accounts.FindAsync(req.AccID);
+                    if (acc == null || !acc.CanMoveTable) return StatusCode(403, "Bạn không có quyền chuyển bàn!");
+
+                    // 2. Lấy đơn gốc
+                    var sourceOrder = await _context.Orders
+                        .Include(o => o.OrderDetails).ThenInclude(d => d.Dish).ThenInclude(c => c.Category)
+                        .Include(o => o.Table)
+                        .FirstOrDefaultAsync(o => o.TableID == sourceTableId && o.OrderStatus == "Pending");
+
+                    if (sourceOrder == null) return BadRequest("Bàn gốc không có đơn!");
+                    if (sourceTableId == req.TargetTableID) return BadRequest("Trùng bàn đích!");
+
+                    string oldTableName = sourceOrder.Table?.TableName ?? sourceTableId.ToString();
+                    string newTableName = "";
+
+                    // 3. Kiểm tra bàn đích
+                    var targetOrder = await _context.Orders
+                        .Include(o => o.OrderDetails)
+                        .Include(o => o.Table)
+                        .FirstOrDefaultAsync(o => o.TableID == req.TargetTableID && o.OrderStatus == "Pending");
+
+                    var targetTable = await _context.Tables.FindAsync(req.TargetTableID);
+                    if (targetTable != null) newTableName = targetTable.TableName;
+
+                    if (targetOrder != null)
+                    {
+                        // TRƯỜNG HỢP GỘP BÀN
+                        foreach (var detail in sourceOrder.OrderDetails)
+                        {
+                            detail.OrderID = targetOrder.OrderID;
+                        }
+                        targetOrder.SubTotal += sourceOrder.SubTotal;
+                        targetOrder.FinalAmount += sourceOrder.FinalAmount;
+
+                        _context.Orders.Remove(sourceOrder);
+                    }
+                    else
+                    {
+                        // TRƯỜNG HỢP CHUYỂN BÀN
+                        sourceOrder.TableID = req.TargetTableID;
+                        if (targetTable != null) targetTable.TableStatus = "Occupied";
+                    }
+
+                    // Trả bàn gốc về trống
+                    var sourceTable = await _context.Tables.FindAsync(sourceTableId);
+                    if (sourceTable != null) sourceTable.TableStatus = "Empty";
+
+                    await _context.SaveChangesAsync();
+                    transaction.Commit();
+                    
+                    // --- POST COMMIT ---
+
+                    // 4. IN PHIẾU BÁO BẾP
+                    Services.PrintService.PrintMoveTableNotification(targetOrder ?? sourceOrder, oldTableName, newTableName);
+
+                    // 5. Cập nhật UI
+                    await _hubContext.Clients.All.SendAsync("TableUpdated", sourceTableId);
+                    await _hubContext.Clients.All.SendAsync("TableUpdated", req.TargetTableID);
+
+                    return Ok(new { Message = "Chuyển bàn thành công!" });
                 }
-                // Tính lại tiền đơn đích
-                targetOrder.SubTotal += sourceOrder.SubTotal;
-                targetOrder.FinalAmount += sourceOrder.FinalAmount;
-
-                // Xóa đơn gốc
-                _context.Orders.Remove(sourceOrder);
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    return StatusCode(500, "Lỗi chuyển bàn: " + ex.Message);
+                }
             }
-            else
-            {
-                // TRƯỜNG HỢP CHUYỂN BÀN: Đổi TableID
-                sourceOrder.TableID = req.TargetTableID;
-                if (targetTable != null) targetTable.TableStatus = "Occupied";
-            }
-
-            // Trả bàn gốc về trống
-            var sourceTable = await _context.Tables.FindAsync(sourceTableId);
-            if (sourceTable != null) sourceTable.TableStatus = "Empty";
-
-            await _context.SaveChangesAsync();
-
-            // 4. IN PHIẾU BÁO BẾP (Quan trọng)
-            // Gọi hàm in có sẵn của Desktop
-            Services.PrintService.PrintMoveTableNotification(targetOrder ?? sourceOrder, oldTableName, newTableName);
-
-            // 5. Cập nhật UI
-            await _hubContext.Clients.All.SendAsync("TableUpdated", sourceTableId);
-            await _hubContext.Clients.All.SendAsync("TableUpdated", req.TargetTableID);
-
-            return Ok(new { Message = "Chuyển bàn thành công!" });
         }
         public class CancelItemRequest
         {
@@ -490,198 +541,224 @@ namespace PosSystem.Main.Server.Controllers
         [HttpPost("cancel-item")]
         public async Task<IActionResult> CancelItem([FromBody] CancelItemRequest req)
         {
-            // 1. Check quyền
-            var acc = await _context.Accounts.FindAsync(req.AccID);
-            if (acc == null || !acc.CanCancelItem) return StatusCode(403, "Bạn không có quyền hủy món!");
-
-            var detail = await _context.OrderDetails
-                .Include(d => d.Dish).ThenInclude(c => c.Category) // Load category để biết máy in nào
-                .Include(d => d.Order).ThenInclude(o => o.Table)
-                .FirstOrDefaultAsync(d => d.OrderDetailID == req.OrderDetailID);
-
-            if (detail == null) return NotFound();
-
-            if (req.Quantity > detail.Quantity) return BadRequest("Không thể hủy quá số lượng hiện có");
-
-            // 2. Giảm số lượng
-            detail.Quantity -= req.Quantity;
-            detail.PrintedQuantity -= req.Quantity; // Giảm luôn số đã in để đồng bộ
-            detail.TotalAmount = detail.Quantity * detail.UnitPrice; // Tính lại tiền row
-
-            // Nếu giảm về 0 thì xóa luôn dòng
-            bool isRemoved = false;
-            if (detail.Quantity <= 0)
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                _context.OrderDetails.Remove(detail);
-                isRemoved = true;
+                try
+                {
+                    // 1. Check quyền
+                    var acc = await _context.Accounts.FindAsync(req.AccID);
+                    if (acc == null || !acc.CanCancelItem) return StatusCode(403, "Bạn không có quyền hủy món!");
+
+                    var detail = await _context.OrderDetails
+                        .Include(d => d.Dish).ThenInclude(c => c.Category)
+                        .Include(d => d.Order).ThenInclude(o => o.Table)
+                        .FirstOrDefaultAsync(d => d.OrderDetailID == req.OrderDetailID);
+
+                    if (detail == null) return NotFound();
+
+                    if (req.Quantity > detail.Quantity) return BadRequest("Không thể hủy quá số lượng hiện có");
+
+                    // 2. Giảm số lượng
+                    detail.Quantity -= req.Quantity;
+                    detail.PrintedQuantity -= req.Quantity; 
+                    detail.TotalAmount = detail.Quantity * detail.UnitPrice;
+
+                    // Nếu giảm về 0 thì xóa luôn dòng
+                    bool isRemoved = false;
+                    if (detail.Quantity <= 0)
+                    {
+                        _context.OrderDetails.Remove(detail);
+                        isRemoved = true;
+                    }
+
+                    // Cập nhật tổng tiền đơn hàng
+                    var order = detail.Order;
+                    
+                    // Cần lấy list về và filter bằng logic vì chưa save
+                    var remainingItems = await _context.OrderDetails
+                        .Where(d => d.OrderID == order.OrderID)
+                        .ToListAsync();
+
+                    if (isRemoved)
+                    {
+                        remainingItems = remainingItems.Where(d => d.OrderDetailID != detail.OrderDetailID).ToList();
+                    }
+
+                    if (remainingItems.Count == 0)
+                    {
+                         // Nếu hủy hết món -> Xóa đơn & Trả bàn
+                         _context.Orders.Remove(order);
+                         if (order.Table != null) order.Table.TableStatus = "Empty";
+                    }
+                    else
+                    {
+                        order.SubTotal = remainingItems.Sum(d => d.TotalAmount);
+                        order.FinalAmount = order.SubTotal;
+                    }
+
+                    // [NEW] Lưu log hủy món
+                    var log = new CancelledLog
+                    {
+                        TableID = order.TableID,
+                        OrderID = order.OrderID,
+                        DishName = detail.Dish?.DishName ?? "Unknown",
+                        Quantity = req.Quantity,
+                        Amount = req.Quantity * detail.UnitPrice,
+                        DeletedBy = acc.AccName,
+                        CancelTime = DateTime.Now
+                    };
+                    _context.CancelledLogs.Add(log);
+
+                    await _context.SaveChangesAsync();
+                    transaction.Commit();
+                    
+                    // --- POST COMMIT ---
+
+                    // 3. IN PHIẾU HỦY XUỐNG BẾP
+                    var cancelItem = new OrderDetail
+                    {
+                        Dish = detail.Dish,
+                        DishID = detail.DishID,
+                        Quantity = -req.Quantity, // Số âm để template bếp hiểu là trả món
+                        Note =  detail.Note,
+                        KitchenBatch = 0
+                    };
+
+                    Services.PrintService.PrintKitchen(order, new List<OrderDetail> { cancelItem }, 0);
+
+                    await _hubContext.Clients.All.SendAsync("TableUpdated", order.TableID);
+
+                    return Ok(new { Message = "Đã hủy món & Báo bếp" });
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    return StatusCode(500, "Lỗi hủy món: " + ex.Message);
+                }
             }
-
-            // Cập nhật tổng tiền đơn hàng
-            var order = detail.Order;
-            
-            // [FIX] Vì chưa SaveChanges nên DB vẫn còn item vừa xóa. 
-            // Cần lấy list về và filter bằng logic
-            var remainingItems = await _context.OrderDetails
-                .Where(d => d.OrderID == order.OrderID)
-                .ToListAsync();
-
-            if (isRemoved)
-            {
-                remainingItems = remainingItems.Where(d => d.OrderDetailID != detail.OrderDetailID).ToList();
-            }
-
-            if (remainingItems.Count == 0)
-            {
-                 // Nếu hủy hết món -> Xóa đơn & Trả bàn
-                 _context.Orders.Remove(order);
-                 if (order.Table != null) order.Table.TableStatus = "Empty";
-            }
-            else
-            {
-                order.SubTotal = remainingItems.Sum(d => d.TotalAmount);
-                order.FinalAmount = order.SubTotal;
-            }
-
-            // [NEW] Lưu log hủy món
-            var log = new CancelledLog
-            {
-                TableID = order.TableID,
-                OrderID = order.OrderID,
-                DishName = detail.Dish?.DishName ?? "Unknown",
-                Quantity = req.Quantity,
-                Amount = req.Quantity * detail.UnitPrice,
-                // Reason removed
-                DeletedBy = acc.AccName, // Lấy tên người hủy từ Account check quyền
-                CancelTime = DateTime.Now
-            };
-            _context.CancelledLogs.Add(log);
-
-            await _context.SaveChangesAsync();
-
-            // 3. IN PHIẾU HỦY XUỐNG BẾP
-            // Mẹo: Tạo một OrderDetail ảo với số lượng ÂM
-            var cancelItem = new OrderDetail
-            {
-                Dish = detail.Dish,
-                DishID = detail.DishID,
-                Quantity = -req.Quantity, // Số âm để template bếp hiểu là trả món
-                Note =  detail.Note,
-                KitchenBatch = 0
-            };
-
-            // Gọi Service in bếp
-            Services.PrintService.PrintKitchen(order, new List<OrderDetail> { cancelItem }, 0);
-
-            await _hubContext.Clients.All.SendAsync("TableUpdated", order.TableID);
-
-            return Ok(new { Message = "Đã hủy món & Báo bếp" });
         }
         [HttpPost("cancel-multiple")]
         public async Task<IActionResult> CancelMultipleItems([FromBody] List<CancelItemRequest> requests)
         {
             if (requests == null || requests.Count == 0) return BadRequest("Danh sách trống");
 
-            // 1. Check quyền (Lấy request đầu tiên để check acc)
-            int accId = requests[0].AccID;
-            var acc = await _context.Accounts.FindAsync(accId);
-            if (acc == null || !acc.CanCancelItem) return StatusCode(403, "Bạn không có quyền hủy món!");
-
-            // Group prints
-            var aggregatedPrintItems = new List<OrderDetail>();
-            int tableId = 0;
-            long orderId = 0;
-
-            // [FIX] Iterate and process DB updates
-            foreach (var req in requests)
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                var detail = await _context.OrderDetails
-                    .Include(d => d.Dish).ThenInclude(c => c.Category)
-                    .Include(d => d.Order).ThenInclude(o => o.Table)
-                    .FirstOrDefaultAsync(d => d.OrderDetailID == req.OrderDetailID);
-
-                if (detail == null) continue;
-
-                // Capture Order Context
-                if (tableId == 0) tableId = detail.Order.TableID ?? 0;
-                if (orderId == 0) orderId = detail.Order.OrderID;
-
-                if (req.Quantity > detail.Quantity) continue;
-
-                // Update DB
-                detail.Quantity -= req.Quantity;
-                detail.PrintedQuantity -= req.Quantity; 
-                detail.TotalAmount = detail.Quantity * detail.UnitPrice;
-
-                // Log
-                var log = new CancelledLog
+                try
                 {
-                    TableID = detail.Order.TableID,
-                    OrderID = detail.Order.OrderID,
-                    DishName = detail.Dish?.DishName ?? "Unknown",
-                    Quantity = req.Quantity,
-                    Amount = req.Quantity * detail.UnitPrice,
-                    DeletedBy = acc.AccName,
-                    CancelTime = DateTime.Now
-                };
-                _context.CancelledLogs.Add(log);
+                    // 1. Check quyền (Lấy request đầu tiên để check acc)
+                    int accId = requests[0].AccID;
+                    var acc = await _context.Accounts.FindAsync(accId);
+                    if (acc == null || !acc.CanCancelItem) return StatusCode(403, "Bạn không có quyền hủy món!");
 
-                // Add to Print List (Negative Quantity)
-                // Aggregate logic: Check if already exists in list
-                var existingPrint = aggregatedPrintItems.FirstOrDefault(p => p.DishID == detail.DishID && (p.Note ?? "") == (detail.Note ?? ""));
-                if (existingPrint != null)
-                {
-                    existingPrint.Quantity -= req.Quantity; // Cộng dồn số âm (vd -1 + -1 = -2)
-                }
-                else
-                {
-                    aggregatedPrintItems.Add(new OrderDetail
+                    // Group prints
+                    var aggregatedPrintItems = new List<OrderDetail>();
+                    int tableId = 0;
+                    long orderId = 0;
+
+                    // [FIX] Iterate and process DB updates
+                    foreach (var req in requests)
                     {
-                        Dish = detail.Dish,
-                        DishID = detail.DishID,
-                        Quantity = -req.Quantity,
-                        Note = detail.Note,
-                        KitchenBatch = 0
-                    });
-                }
-                
-                // Remove if 0
-                if (detail.Quantity <= 0) _context.OrderDetails.Remove(detail);
-            }
+                        var detail = await _context.OrderDetails
+                            .Include(d => d.Dish).ThenInclude(c => c.Category)
+                            .Include(d => d.Order).ThenInclude(o => o.Table)
+                            .FirstOrDefaultAsync(d => d.OrderDetailID == req.OrderDetailID);
 
-            // Save Changes (DB Updates)
-            await _context.SaveChangesAsync();
+                        if (detail == null) continue;
 
-            // Check Order Context for Empty
-            var order = await _context.Orders.Include(o => o.Table).FirstOrDefaultAsync(o => o.OrderID == orderId);
-            if (order != null)
-            {
-                var remaining = await _context.OrderDetails.Where(d => d.OrderID == orderId).CountAsync();
-                if (remaining == 0)
-                {
-                    _context.Orders.Remove(order);
-                    if (order.Table != null) order.Table.TableStatus = "Empty";
+                        // Capture Order Context
+                        if (tableId == 0) tableId = detail.Order.TableID ?? 0;
+                        if (orderId == 0) orderId = detail.Order.OrderID;
+
+                        if (req.Quantity > detail.Quantity) continue;
+
+                        // Update DB
+                        detail.Quantity -= req.Quantity;
+                        detail.PrintedQuantity -= req.Quantity; 
+                        detail.TotalAmount = detail.Quantity * detail.UnitPrice;
+
+                        // Log
+                        var log = new CancelledLog
+                        {
+                            TableID = detail.Order.TableID,
+                            OrderID = detail.Order.OrderID,
+                            DishName = detail.Dish?.DishName ?? "Unknown",
+                            Quantity = req.Quantity,
+                            Amount = req.Quantity * detail.UnitPrice,
+                            DeletedBy = acc.AccName,
+                            CancelTime = DateTime.Now
+                        };
+                        _context.CancelledLogs.Add(log);
+
+                        // Add to Print List (Negative Quantity)
+                        var existingPrint = aggregatedPrintItems.FirstOrDefault(p => p.DishID == detail.DishID && (p.Note ?? "") == (detail.Note ?? ""));
+                        if (existingPrint != null)
+                        {
+                            existingPrint.Quantity -= req.Quantity;
+                        }
+                        else
+                        {
+                            aggregatedPrintItems.Add(new OrderDetail
+                            {
+                                Dish = detail.Dish,
+                                DishID = detail.DishID,
+                                Quantity = -req.Quantity,
+                                Note = detail.Note,
+                                KitchenBatch = 0
+                            });
+                        }
+                        
+                        // Remove if 0
+                        if (detail.Quantity <= 0) _context.OrderDetails.Remove(detail);
+                    }
+
+                    // Save Changes (DB Updates)
                     await _context.SaveChangesAsync();
-                }
-                else
-                {
-                    // Recalculate Totals
-                    var details = await _context.OrderDetails.Where(d => d.OrderID == orderId).ToListAsync();
-                    order.SubTotal = details.Sum(d => d.TotalAmount);
-                    order.FinalAmount = order.SubTotal;
-                    await _context.SaveChangesAsync();
-                }
 
-                // PRINT (One time)
-                if (aggregatedPrintItems.Count > 0)
-                {
-                    Services.PrintService.PrintKitchen(order, aggregatedPrintItems, 0);
-                }
+                    // Check Order Context for Empty
+                    var order = await _context.Orders.Include(o => o.Table).FirstOrDefaultAsync(o => o.OrderID == orderId);
+                    if (order != null)
+                    {
+                        var remaining = await _context.OrderDetails.Where(d => d.OrderID == orderId).CountAsync();
+                        if (remaining == 0)
+                        {
+                            _context.Orders.Remove(order);
+                            if (order.Table != null) order.Table.TableStatus = "Empty";
+                            await _context.SaveChangesAsync();
+                        }
+                        else
+                        {
+                            // Recalculate Totals
+                            var details = await _context.OrderDetails.Where(d => d.OrderID == orderId).ToListAsync();
+                            order.SubTotal = details.Sum(d => d.TotalAmount);
+                            order.FinalAmount = order.SubTotal;
+                            await _context.SaveChangesAsync();
+                        }
+                    }
 
-                // SignalR
-                await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+                    transaction.Commit();
+                    
+                    // --- POST COMMIT ---
+
+                    if (order != null)
+                    {
+                        // PRINT
+                        if (aggregatedPrintItems.Count > 0)
+                        {
+                            Services.PrintService.PrintKitchen(order, aggregatedPrintItems, 0);
+                        }
+                        // SignalR
+                        await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+                    }
+
+                    return Ok(new { Message = $"Đã hủy {requests.Count} yêu cầu thành công" });
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    return StatusCode(500, "Lỗi hủy món: " + ex.Message);
+                }
             }
-
-            return Ok(new { Message = $"Đã hủy {requests.Count} yêu cầu thành công" });
         }
     }
 }
