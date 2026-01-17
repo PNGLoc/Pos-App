@@ -53,6 +53,9 @@ namespace PosSystem.Main.Server
                         app.UseDefaultFiles();
                         app.UseStaticFiles();
 
+                        // Enable WebSockets (SignalR will use this transport)
+                        app.UseWebSockets();
+
                         app.UseRouting();
 
                         app.UseEndpoints(endpoints =>

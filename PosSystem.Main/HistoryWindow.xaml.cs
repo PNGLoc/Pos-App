@@ -83,23 +83,53 @@ namespace PosSystem.Main
         {
             try
             {
-                // Tạo kết nối riêng để lắng nghe
-                _connection = new HubConnectionBuilder()
-                    .WithUrl("http://localhost:5000/posHub") // Đảm bảo đúng port Server của bạn
-                    .WithAutomaticReconnect()
-                    .Build();
-
-                // Khi nhận tín hiệu "TableUpdated" từ bất kỳ đâu -> Reload dữ liệu ngay
-                _connection.On<int>("TableUpdated", (tableId) =>
+                HubConnection BuildConnection(bool forceWebSockets)
                 {
-                    Dispatcher.Invoke(() =>
-                    {
-                        // Reload data mà không cần bấm nút
-                        LoadAllData();
-                    });
-                });
+                    var conn = new HubConnectionBuilder()
+                        .WithUrl("http://localhost:5000/posHub", options =>
+                        {
+                            if (forceWebSockets)
+                            {
+                                options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+                                options.SkipNegotiation = true;
+                            }
+                            else
+                            {
+                                options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets |
+                                                     Microsoft.AspNetCore.Http.Connections.HttpTransportType.ServerSentEvents |
+                                                     Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
+                                options.SkipNegotiation = false;
+                            }
+                        })
+                        .WithAutomaticReconnect()
+                        .Build();
 
-                await _connection.StartAsync();
+                    // Khi nhận tín hiệu "TableUpdated" từ bất kỳ đâu -> Reload dữ liệu ngay
+                    conn.On<int>("TableUpdated", (tableId) =>
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            // Reload data mà không cần bấm nút
+                            LoadAllData();
+                        });
+                    });
+
+                    return conn;
+                }
+
+                // WebSocket-first
+                _connection = BuildConnection(forceWebSockets: true);
+                try
+                {
+                    await _connection.StartAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("History WS start failed, falling back: " + ex.Message);
+                    try { await _connection.DisposeAsync(); } catch { }
+                    _connection = BuildConnection(forceWebSockets: false);
+                    try { await _connection.StartAsync(); } catch { }
+                }
             }
             catch (Exception ex)
             {

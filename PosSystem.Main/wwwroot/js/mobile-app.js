@@ -54,17 +54,28 @@ function initSignalR() {
     if (typeof signalR === 'undefined') return;
 
     // 1. Cấu hình Connection
-    const connection = new signalR.HubConnectionBuilder()
-        .withUrl("/posHub")
-        .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
-        .configureLogging(signalR.LogLevel.Warning)
-        .build();
+    // Ưu tiên WebSockets để realtime ổn định hơn.
+    // Một số mạng/thiết bị có thể chặn WS -> fallback sang negotiate mặc định.
+    function createConnection(forceWebSockets) {
+        const urlOptions = forceWebSockets
+            ? { transport: signalR.HttpTransportType.WebSockets, skipNegotiation: true }
+            : undefined;
 
-    // --- SỬA LẠI THÔNG SỐ NÀY ---
-    // Vì Server ping mỗi 2s, nên nếu quá 6s không thấy đâu -> Coi là mất mạng.
-    connection.serverTimeoutInMilliseconds = 6000; // 6 giây (Cực nhạy)
-    connection.keepAliveIntervalInMilliseconds = 3000; // Client ping server mỗi 3s
-    // ----------------------------
+        return new signalR.HubConnectionBuilder()
+            .withUrl("/posHub", urlOptions)
+            .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
+            .configureLogging(signalR.LogLevel.Warning)
+            .build();
+    }
+
+    let connection = createConnection(true);
+
+    // --- TIMEOUT (ANTI-FALSE-DISCONNECT) ---
+    // 6s là quá nhạy: chỉ cần browser pause/GC/CPU spike ngắn là bị "Server timeout elapsed".
+    // Đặt ngưỡng thoải mái hơn để dùng WiFi ổn định không bị reconnect giả.
+    connection.keepAliveIntervalInMilliseconds = 15000;   // ping định kỳ từ client
+    connection.serverTimeoutInMilliseconds = 60000;       // nếu 60s không nhận gì từ server mới coi là timeout
+    // --------------------------------------
 
     // --- CÁC HÀM XỬ LÝ GIAO DIỆN ---
     const overlay = document.getElementById('connectionOverlay');
@@ -112,35 +123,75 @@ function initSignalR() {
 
     // --- SỰ KIỆN SIGNALR ---
 
-    // 1. Đang thử kết nối lại (Mạng chập chờn hoặc Server vừa tắt)
-    connection.onreconnecting(error => {
-        console.warn('Kết nối không ổn định:', error);
-        showOverlay('Mất kết nối!', 'Đang cố gắng tìm máy chủ...', false);
-    });
+    // [ANTI-FLICKER] Mobile browser/Wifi có thể làm websocket "rụng" rất ngắn (vài trăm ms)
+    // dù nhìn vẫn ổn định. Ta debounce để không spam overlay/toast và tránh reload dữ liệu liên tục.
+    let reconnectingSince = null;
+    let reconnectOverlayShown = false;
+    let reconnectOverlayTimer = null;
+    let hadFatalDisconnect = false;
+    const RECONNECT_OVERLAY_DELAY_MS = 2500; // chỉ hiện overlay nếu mất kết nối đủ lâu ("mất thật")
 
-    // 2. Đã kết nối lại thành công
-    connection.onreconnected(connectionId => {
-        console.log('Đã kết nối lại:', connectionId);
-        hideOverlay();
-        showToast('Đã khôi phục kết nối!', 'success');
-        updateConnectionStatus(true);
+    function bindSignalREvents(conn) {
+        // 1. Đang thử kết nối lại (Mạng chập chờn hoặc Server vừa tắt)
+        conn.onreconnecting(error => {
+            console.warn('Kết nối không ổn định:', error);
 
-        // Refresh dữ liệu để đảm bảo đúng
-        loadTables(false);
-        if (appState.currentTableId) loadOrderData(appState.currentTableId);
-    });
+        // Bình thường chỉ cần icon trạng thái
+        updateConnectionStatus(false);
 
-    // 3. Mất kết nối hoàn toàn (Hết số lần thử hoặc lỗi nghiêm trọng)
-    connection.onclose(error => {
-        console.error('Ngắt kết nối hẳn:', error);
-        showOverlay('Không tìm thấy máy chủ', 'Vui lòng kiểm tra lại Wifi hoặc Máy tính thu ngân.', true);
-    });
+            if (!reconnectingSince) reconnectingSince = Date.now();
+            reconnectOverlayShown = false;
 
-    // --- LOGIC NGHIỆP VỤ ---
-    connection.on("TableUpdated", (tableId) => {
-        loadTables(false);
-        if (appState.currentTableId == tableId) loadOrderData(tableId);
-    });
+            if (reconnectOverlayTimer) clearTimeout(reconnectOverlayTimer);
+            reconnectOverlayTimer = setTimeout(() => {
+                // Nếu vẫn đang reconnect sau delay thì mới show overlay
+                reconnectOverlayShown = true;
+                showOverlay('Mất kết nối!', 'Đang cố gắng tìm máy chủ...', false);
+            }, RECONNECT_OVERLAY_DELAY_MS);
+        });
+
+        // 2. Đã kết nối lại thành công
+        conn.onreconnected(connectionId => {
+            console.log('Đã kết nối lại:', connectionId);
+
+            if (reconnectOverlayTimer) { clearTimeout(reconnectOverlayTimer); reconnectOverlayTimer = null; }
+
+            const since = reconnectingSince;
+            reconnectingSince = null;
+
+            // Nếu overlay đã hiện thì chắc chắn phải ẩn
+            if (reconnectOverlayShown) hideOverlay();
+            updateConnectionStatus(true);
+
+            // Chỉ toast khi vừa mất kết nối "thật" (overlay đã hiện) hoặc từng bị onclose (fatal)
+            if (reconnectOverlayShown || hadFatalDisconnect) {
+                showToast('Đã khôi phục kết nối!', 'success');
+
+                // Sau khi mất thật, refresh để đảm bảo đồng bộ
+                loadTables(false);
+                if (appState.currentTableId) loadOrderData(appState.currentTableId);
+            }
+
+            hadFatalDisconnect = false;
+
+            reconnectOverlayShown = false;
+        });
+
+        // 3. Mất kết nối hoàn toàn (Hết số lần thử hoặc lỗi nghiêm trọng)
+        conn.onclose(error => {
+            console.error('Ngắt kết nối hẳn:', error);
+            hadFatalDisconnect = true;
+            showOverlay('Không tìm thấy máy chủ', 'Vui lòng kiểm tra lại Wifi hoặc Máy tính thu ngân.', true);
+        });
+
+        // --- LOGIC NGHIỆP VỤ ---
+        conn.on("TableUpdated", (tableId) => {
+            loadTables(false);
+            if (appState.currentTableId == tableId) loadOrderData(tableId);
+        });
+    }
+
+    bindSignalREvents(connection);
 
     // Bắt đầu kết nối
     async function start() {
@@ -151,6 +202,28 @@ function initSignalR() {
             updateConnectionStatus(true);
         } catch (err) {
             console.error("Khởi động lỗi:", err);
+
+            // Nếu WebSockets bị chặn/không hỗ trợ -> fallback sang negotiate mặc định
+            const msg = (err && (err.message || err.toString())) || '';
+            const isWebSocketStartFail = msg.toLowerCase().includes('websocket') || msg.toLowerCase().includes('negotiation') || msg.toLowerCase().includes('transport');
+            if (isWebSocketStartFail) {
+                try {
+                    console.warn('WebSocket failed, falling back to default transports...');
+                    connection = createConnection(false);
+                    // Apply same timeout settings
+                    connection.keepAliveIntervalInMilliseconds = 15000;
+                    connection.serverTimeoutInMilliseconds = 60000;
+                    bindSignalREvents(connection);
+                    await connection.start();
+                    console.log("SignalR Connected (fallback).");
+                    hideOverlay();
+                    updateConnectionStatus(true);
+                    return;
+                } catch (e2) {
+                    console.error('Fallback start failed:', e2);
+                }
+            }
+
             // Nếu mở app lên mà không thấy server ngay -> Báo lỗi luôn
             showOverlay('Không thể kết nối', 'Đang thử lại sau 5 giây...', false);
             setTimeout(start, 5000);

@@ -16,7 +16,6 @@ using System.Threading.Tasks;
 using System.Globalization;
 using System.Text;
 // [THÊM] Namespace quan trọng
-using Microsoft.AspNetCore.SignalR.Client; // Cho Client (Lắng nghe)
 using Microsoft.AspNetCore.SignalR;        // Cho Server (Gửi đi)
 using Microsoft.Extensions.DependencyInjection;
 using PosSystem.Main.Server.Hubs;
@@ -1529,27 +1528,46 @@ namespace PosSystem.Main
         }
 
         // --- 6. SIGNALR & CHECKOUT & IN BẾP (MAIN) ---
-        private async void SetupRealtime()
+        private HubConnection BuildRealtimeConnection(bool forceWebSockets)
         {
-            _connection = new HubConnectionBuilder().WithUrl("http://localhost:5000/posHub").WithAutomaticReconnect().Build();
-            _connection.On<int>("TableRequestPayment", (tableId) =>
+            var connection = new HubConnectionBuilder()
+                .WithUrl("http://localhost:5000/posHub", options =>
+                {
+                    if (forceWebSockets)
+                    {
+                        options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+                        options.SkipNegotiation = true;
+                    }
+                    else
+                    {
+                        // Fallback to normal negotiation (allows SSE/LongPolling if WS is blocked)
+                        options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets |
+                                             Microsoft.AspNetCore.Http.Connections.HttpTransportType.ServerSentEvents |
+                                             Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
+                        options.SkipNegotiation = false;
+                    }
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            connection.On<int>("TableRequestPayment", (tableId) =>
             {
                 Dispatcher.Invoke(() =>
-                    {
-                        _tablesRequestingPayment.Add(tableId);
-                        // Thay vì LoadTables sync (dễ lag), coalesce vào pipeline async
-                        QueueRealtimeTableUpdate(tableId);
-                        ShowToast($"🔔 Bàn {tableId} yêu cầu thanh toán!", 3000);
-
-                    });
+                {
+                    _tablesRequestingPayment.Add(tableId);
+                    // Thay vì LoadTables sync (dễ lag), coalesce vào pipeline async
+                    QueueRealtimeTableUpdate(tableId);
+                    ShowToast($"🔔 Bàn {tableId} yêu cầu thanh toán!", 3000);
+                });
             });
-            _connection.On<int>("TableUpdated", (id) =>
+
+            connection.On<int>("TableUpdated", (id) =>
             {
                 QueueRealtimeTableUpdate(id);
             });
 
             // [NEW] Listen for Order Notifications
-            _connection.On<string>("ReceiveOrderNotification", (msg) =>
+            connection.On<string>("ReceiveOrderNotification", (msg) =>
             {
                 Dispatcher.Invoke(() =>
                 {
@@ -1558,7 +1576,30 @@ namespace PosSystem.Main
                 });
             });
 
-            try { await _connection.StartAsync(); } catch { }
+            return connection;
+        }
+
+        private async void SetupRealtime()
+        {
+            _connection = BuildRealtimeConnection(forceWebSockets: true);
+
+            try
+            {
+                await _connection.StartAsync();
+            }
+            catch (Exception ex)
+            {
+                // If WS is blocked on some networks/devices, fall back to negotiated transport.
+                Console.WriteLine($"SignalR WS start failed, falling back: {ex.Message}");
+                try
+                {
+                    await _connection.DisposeAsync();
+                }
+                catch { }
+
+                _connection = BuildRealtimeConnection(forceWebSockets: false);
+                try { await _connection.StartAsync(); } catch { }
+            }
         }
 
         // ⭐ Helper: Gửi sự kiện cập nhật bàn cho mobile (via SignalR)
