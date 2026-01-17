@@ -59,8 +59,8 @@ namespace PosSystem.Main.Pages
                 txtPass.Text = acc.AccPass;
                 cboRole.SelectedIndex = acc.AccRole == "Admin" ? 0 : 1;
 
-                // Disable username editing to prevent system issues
-                txtUser.IsEnabled = false; 
+                // [MODIFIED] Allow username editing
+                txtUser.IsEnabled = true; 
 
                 chkMoveTable.IsChecked = acc.CanMoveTable;
                 chkPayment.IsChecked = acc.CanPayment;
@@ -137,11 +137,20 @@ namespace PosSystem.Main.Pages
                     var acc = db.Accounts.Find(_selectedAccount.AccID);
                     if (acc != null)
                     {
+                        // Check if new username exists (if changed)
+                        if (acc.Username != txtUser.Text)
+                        {
+                            if (db.Accounts.Any(a => a.Username == txtUser.Text))
+                            {
+                                MessageBox.Show("Tên đăng nhập đã tồn tại!");
+                                return;
+                            }
+                        }
+
                         acc.AccName = txtName.Text;
+                        acc.Username = txtUser.Text; // [MODIFIED] Allow update
                         acc.AccPass = txtPass.Text;
                         acc.AccRole = (cboRole.SelectedIndex == 0) ? "Admin" : "Staff";
-                        
-                        // Don't update Username
                         
                         acc.CanMoveTable = chkMoveTable.IsChecked == true;
                         acc.CanPayment = chkPayment.IsChecked == true;
