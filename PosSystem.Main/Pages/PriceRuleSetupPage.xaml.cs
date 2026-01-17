@@ -67,6 +67,24 @@ namespace PosSystem.Main.Pages
             if (_isLoadingData) return;
             if (cboActiveRule.SelectedIndex < 0) return;
 
+            // [MODIFIED] Check if any table is occupied
+            using (var db = new AppDbContext())
+            {
+               if (db.Tables.Any(t => t.TableStatus == "Occupied")) // or != "Empty"
+               {
+                   MessageBox.Show("Không thể thay đổi bảng giá khi còn bàn đang phục vụ!\nVui lòng thanh toán tất cả các bàn trước.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                   
+                   // Revert selection logic
+                   _isLoadingData = true;
+                   string currentRule = db.GlobalSettings.FirstOrDefault(g => g.Key == "activePriceRule")?.Value ?? "";
+                   if (string.IsNullOrEmpty(currentRule)) cboActiveRule.SelectedIndex = 0; // (Giá gốc)
+                   else cboActiveRule.SelectedItem = currentRule;
+                   _isLoadingData = false;
+                   
+                   return;
+               }
+            }
+
             string selectedRule = cboActiveRule.SelectedItem as string ?? "";
 
             if (selectedRule == "(Giá gốc)")
@@ -108,7 +126,8 @@ namespace PosSystem.Main.Pages
 
             using (var db = new AppDbContext())
             {
-                if (db.PriceRuleTypes.Any(p => p.RuleType == ruleName))
+                // [MODIFIED] Case insensitive check
+                if (db.PriceRuleTypes.ToList().Any(p => p.RuleType.ToLower() == ruleName.ToLower()))
                 {
                     MessageBox.Show("Loại giá này đã tồn tại!");
                     return;
