@@ -386,14 +386,19 @@ body {
     top: 0;
     left: 0;
     width: 280px;
-    height: 100%;
+    height: auto;
+    /* [MODIFIED] Không full màn hình */
+    max-height: 85vh;
+    /* Chiều cao tối đa */
     background: white;
     z-index: 2501;
     transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 2px 5px 15px rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: column;
+    border-bottom-right-radius: 20px;
+    /* Bo góc dưới */
 }
 
 .sidebar-drawer.show {
@@ -456,4 +461,24 @@ body {
 
 .status-check.error {
     color: #dc3545;
+}
+
+/* Sidebar Close Button */
+.btn-close-sidebar {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    margin-left: auto;
+    cursor: pointer;
+    opacity: 0.8;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-close-sidebar:active {
+    opacity: 0.5;
+    transform: scale(0.9);
 }
