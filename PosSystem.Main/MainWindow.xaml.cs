@@ -54,7 +54,7 @@ namespace PosSystem.Main
 
         public List<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
         public string DisplayText { get; set; }
-        
+
         public int TotalQuantity => OrderDetails.Sum(d => d.Quantity);
 
         private int _selectedQuantity;
@@ -88,7 +88,7 @@ namespace PosSystem.Main
                     // Let's keep SelectedQuantity sticky or reset? 
                     // Logic: If checking, ensure at least 1 is selected (Max).
                     if (value && SelectedQuantity == 0) SelectedQuantity = TotalQuantity;
-                    
+
                     OnPropertyChanged(nameof(IsSelected));
                 }
             }
@@ -104,7 +104,7 @@ namespace PosSystem.Main
 
         // List categories for Filter Bar
         public List<TableCategory> FilterCategories { get; set; } = new List<TableCategory>();
-        
+
         // [NEW] Notification List for UI
         public ObservableCollection<string> NotificationList { get; set; } = new ObservableCollection<string>();
 
@@ -124,7 +124,7 @@ namespace PosSystem.Main
         public MainWindow()
         {
             InitializeComponent();
-            
+
             // Load Categories for Filter
             using (var db = new AppDbContext())
             {
@@ -193,7 +193,7 @@ namespace PosSystem.Main
                         {
                             order.IsRequestingPayment = false;
                             db.SaveChanges();
-                            
+
                             // Send SignalR to update other clients
                             if (_connection.State == HubConnectionState.Connected)
                             {
@@ -366,7 +366,7 @@ namespace PosSystem.Main
                 }
                 else if (_tableTypeFilter != "All") // Backwards compatibility for old buttons if any exist
                 {
-                   tables = tables.Where(t => t.TableType == _tableTypeFilter).ToList();
+                    tables = tables.Where(t => t.TableType == _tableTypeFilter).ToList();
                 }
 
                 lstTables.ItemsSource = tables.Select(t =>
@@ -387,9 +387,9 @@ namespace PosSystem.Main
                         var order = t.Orders.FirstOrDefault(o => o.OrderStatus == "Pending");
                         // Only show time if FirstSentTime has value (order has been sent to kitchen)
                         if (order != null)
-                        { 
-                            if (order.FirstSentTime.HasValue) 
-                            { 
+                        {
+                            if (order.FirstSentTime.HasValue)
+                            {
                                 var elapsed = DateTime.Now - order.FirstSentTime.Value;
                                 if (elapsed.TotalMinutes < 1)
                                     vm.TimeDisplay = $"{(int)elapsed.TotalSeconds}s";
@@ -429,13 +429,13 @@ namespace PosSystem.Main
                         {
                             d.DishID,
                             // [FIX] Group Sent and Modified together. New items stay separate.
-                            GroupStatus = (d.ItemStatus == "New") ? "New" : "SentGroup", 
+                            GroupStatus = (d.ItemStatus == "New") ? "New" : "SentGroup",
                             Note = (d.Note ?? "").Trim()
                         })
                         .Select(g => new OrderDetailViewModel
                         {
                             // [FIX] Use First ID as representative. Handlers will look up siblings.
-                            OrderDetailID = g.First().OrderDetailID, 
+                            OrderDetailID = g.First().OrderDetailID,
                             DishName = g.First().Dish != null ? g.First().Dish.DishName : "Unknown",
                             UnitPrice = g.First().UnitPrice,
                             DiscountRate = g.First().DiscountRate,
@@ -451,7 +451,7 @@ namespace PosSystem.Main
 
                             // [FIX] Status Display Logic
                             StatusDisplay = g.Sum(x => x.Quantity) == 0 ? "❌ CHỜ HỦY" :
-                                            (g.Key.GroupStatus == "New" ? "Mới" : 
+                                            (g.Key.GroupStatus == "New" ? "Mới" :
                                             (g.Sum(x => x.Quantity) < g.Sum(x => x.PrintedQuantity) ? "⚠️ Sửa đổi" : "✓ Đã gửi")),
 
                             // [FIX] Row Color Logic
@@ -616,14 +616,14 @@ namespace PosSystem.Main
                         int? catId = _selectedCategoryId;
                         string typeFilter = _tableTypeFilter;
 
-                         // Apply filter
+                        // Apply filter
                         if (catId.HasValue)
                         {
                             tables = tables.Where(t => t.CategoryID == catId.Value).ToList();
                         }
-                        else if (typeFilter != "All") 
+                        else if (typeFilter != "All")
                         {
-                           tables = tables.Where(t => t.TableType == typeFilter).ToList();
+                            tables = tables.Where(t => t.TableType == typeFilter).ToList();
                         }
 
                         return tables.Select(t =>
@@ -636,15 +636,15 @@ namespace PosSystem.Main
                                 TimeDisplay = "",
                                 IsGrayedOut = false // Simplified safely
                             };
-                            
+
                             // Calculate time
                             if (t.TableStatus == "Occupied" && t.Orders.Any())
                             {
                                 var order = t.Orders.FirstOrDefault(o => o.OrderStatus == "Pending");
                                 if (order != null)
-                                { 
-                                    if (order.FirstSentTime.HasValue) 
-                                    { 
+                                {
+                                    if (order.FirstSentTime.HasValue)
+                                    {
                                         var elapsed = DateTime.Now - order.FirstSentTime.Value;
                                         if (elapsed.TotalMinutes < 1) vm.TimeDisplay = $"{(int)elapsed.TotalSeconds}s";
                                         else if (elapsed.TotalHours < 1) vm.TimeDisplay = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
@@ -679,7 +679,7 @@ namespace PosSystem.Main
 
         private async Task LoadOrderDetailsAsync(int tableId)
         {
-             try
+            try
             {
                 // 1. Fetch Logic in Background
                 var result = await Task.Run(() =>
@@ -720,9 +720,9 @@ namespace PosSystem.Main
                             .ThenBy(vm => vm.DishName)
                             .ToList();
 
-                        return new 
-                        { 
-                            ViewModels = vms, 
+                        return new
+                        {
+                            ViewModels = vms,
                             HasChanges = order.OrderDetails.Any(d => d.Quantity != d.PrintedQuantity),
                             HasValidItems = order.OrderDetails.Any(d => d.Quantity > 0),
                             Order = new { order.SubTotal, order.FinalAmount, order.DiscountPercent, order.DiscountAmount, order.OrderTime, order.FirstSentTime }
@@ -755,17 +755,17 @@ namespace PosSystem.Main
                     btnSendKitchen.IsEnabled = result.HasChanges;
                     btnSendKitchen.Content = result.HasChanges ? "🔔 GỬI BẾP (Cập nhật)" : "👨‍🍳 GỬI BẾP";
                     btnSendKitchen.Background = result.HasChanges ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14") : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6C757D");
-                    
+
                     // Timer logic if needed (Assuming timer handles itself or only stopped when leaving table)
                     if (result.Order.FirstSentTime.HasValue)
                     {
-                         _currentOrderTime = result.Order.FirstSentTime;
-                         if (!_tableTimeTimer.IsEnabled) _tableTimeTimer.Start();
+                        _currentOrderTime = result.Order.FirstSentTime;
+                        if (!_tableTimeTimer.IsEnabled) _tableTimeTimer.Start();
                     }
                 }
                 else
                 {
-                     // Empty table logic
+                    // Empty table logic
                     lstOrderDetails.ItemsSource = null;
                     lblTotal.Text = "0đ";
                     lblSubTotal.Text = "0đ";
@@ -773,8 +773,8 @@ namespace PosSystem.Main
                     btnCheckout.IsEnabled = false;
                     btnSendKitchen.IsEnabled = false;
                 }
-            } 
-            catch {}
+            }
+            catch { }
         }
 
         private void lstCategories_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateDishListDisplay();
@@ -883,11 +883,11 @@ namespace PosSystem.Main
                         // Tìm xem trong nhóm (Cùng Dish + Note + Đã gửi) có món nào đang bị giảm (Qty < Printed) không?
                         // Nếu có -> Tăng nó lên (Undo Cancel)
                         // Nếu không -> Gọi AddDishToOrder để thêm mới
-                        
+
                         var note = (detail.Note ?? "").Trim();
                         var candidate = db.OrderDetails
-                            .Where(d => d.OrderID == detail.OrderID 
-                                     && d.DishID == detail.DishID 
+                            .Where(d => d.OrderID == detail.OrderID
+                                     && d.DishID == detail.DishID
                                      && (d.Note ?? "").Trim() == note
                                      && (d.ItemStatus == "Sent" || d.ItemStatus == "Modified")
                                      && d.Quantity < d.PrintedQuantity) // ĐK: Đang bị giảm
@@ -899,21 +899,21 @@ namespace PosSystem.Main
                             // Restore Quantity
                             candidate.Quantity++;
                             candidate.TotalAmount = candidate.Quantity * candidate.UnitPrice * (1 - candidate.DiscountRate / 100);
-                            
+
                             // Restore Status if full
                             if (candidate.ItemStatus == "Modified" && candidate.Quantity == candidate.PrintedQuantity)
                             {
                                 candidate.ItemStatus = "Sent";
                             }
-                             db.SaveChanges();
-                             RecalculateOrder(db, candidate.OrderID);
-                             LoadOrderDetails(_selectedTableId);
-                             NotifyTableUpdated(_selectedTableId);
+                            db.SaveChanges();
+                            RecalculateOrder(db, candidate.OrderID);
+                            LoadOrderDetails(_selectedTableId);
+                            NotifyTableUpdated(_selectedTableId);
                         }
                         else
                         {
                             // Full hết rồi -> Thêm món mới
-                             AddDishToOrder(_selectedTableId, detail.DishID);
+                            AddDishToOrder(_selectedTableId, detail.DishID);
                         }
                     }
                     else
@@ -957,12 +957,12 @@ namespace PosSystem.Main
                                      && d.Quantity > 0)
                             .OrderByDescending(d => d.KitchenBatch)
                             .FirstOrDefault();
-                        
+
                         // Nếu tìm thấy ứng viên tốt hơn, đổi target
                         if (candidate != null) targetDetail = candidate;
                     }
 
-                    long currentOrderId = targetDetail.OrderID; 
+                    long currentOrderId = targetDetail.OrderID;
 
                     // 1. GIẢM SỐ LƯỢNG (Nếu đang > 0)
                     if (targetDetail.Quantity > 0)
@@ -981,7 +981,7 @@ namespace PosSystem.Main
                                 CancelTime = DateTime.Now
                             };
                             db.CancelledLogs.Add(log);
-                            
+
                             targetDetail.ItemStatus = "Modified";
                         }
 
@@ -1015,9 +1015,10 @@ namespace PosSystem.Main
                                 if (table != null) table.TableStatus = "Empty";
                                 db.Orders.Remove(order);
                                 db.SaveChanges();
-                                LoadTables(); 
-                                LoadOrderDetails(_selectedTableId); 
-                                return; 
+                                LoadTables();
+                                LoadOrderDetails(_selectedTableId);
+                                NotifyTableUpdated(order.TableID ?? _selectedTableId);
+                                return;
                             }
                         }
                     }
@@ -1105,12 +1106,12 @@ namespace PosSystem.Main
                 string targetNote = (detail.Note ?? "").Trim();
 
                 var siblings = db.OrderDetails
-                    .Where(d => d.OrderID == detail.OrderID 
-                             && d.DishID == detail.DishID 
+                    .Where(d => d.OrderID == detail.OrderID
+                             && d.DishID == detail.DishID
                              && d.OrderDetailID != detail.OrderDetailID)
                     .ToList(); // Client-side filtering for Note & Status to be safe
 
-                var siblingsToMerge = siblings.Where(d => 
+                var siblingsToMerge = siblings.Where(d =>
                     ((d.Note ?? "").Trim() == targetNote) &&
                     (isTargetNew ? (d.ItemStatus == "New") : (d.ItemStatus != "New"))
                 ).ToList();
@@ -1124,7 +1125,7 @@ namespace PosSystem.Main
                         detail.PrintedQuantity += s.PrintedQuantity;
                         // If Sent/Modified, maybe keep max Batch?
                         if (s.KitchenBatch > detail.KitchenBatch) detail.KitchenBatch = s.KitchenBatch;
-                        
+
                         db.OrderDetails.Remove(s);
                     }
                     // Save merge first? No, we will modify detail further.
@@ -1132,7 +1133,7 @@ namespace PosSystem.Main
 
                 long currentOrderId = detail.OrderID;
                 int oldQuantity = detail.Quantity; // This is now the "Group Total" before edit
-                
+
                 // NOW apply the new target quantity
                 detail.Quantity = newQuantity;
                 detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100);
@@ -1187,6 +1188,7 @@ namespace PosSystem.Main
                             db.SaveChanges();
                             LoadTables();
                             LoadOrderDetails(_selectedTableId);
+                            NotifyTableUpdated(order.TableID ?? _selectedTableId);
                             return;
                         }
                     }
@@ -1450,6 +1452,82 @@ namespace PosSystem.Main
             AdminWindow admin = new AdminWindow(); admin.Show(); this.Close();
         }
 
+        // --- REALTIME UPDATE COALESCING (ANTI-LAG) ---
+        // Khi mobile spam update (tăng số lượng liên tục), SignalR sẽ bắn rất nhiều "TableUpdated".
+        // Nếu mỗi event đều trigger load + update UI ngay, UI thread sẽ bị queue và trông như "đơ".
+        // Các biến dưới đây giúp debounce + chạy tuần tự, luôn cập nhật trạng thái mới nhất.
+        private int _pendingRealtimeTableId = -1;
+        private int _realtimeRefreshRunning = 0;
+        private CancellationTokenSource? _realtimeDebounceCts;
+
+        private Task InvokeOnUiAsync(Func<Task> action)
+        {
+            if (Dispatcher.CheckAccess()) return action();
+            return Dispatcher.InvokeAsync(action).Task.Unwrap();
+        }
+
+        private void QueueRealtimeTableUpdate(int tableId)
+        {
+            // Keep only the latest tableId; LoadTables will refresh all statuses anyway.
+            Interlocked.Exchange(ref _pendingRealtimeTableId, tableId);
+
+            // Debounce bursts (spam + button hold)
+            try { _realtimeDebounceCts?.Cancel(); } catch { }
+            var cts = new CancellationTokenSource();
+            _realtimeDebounceCts = cts;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(120, cts.Token);
+                    await ProcessRealtimeTableUpdatesAsync();
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Realtime debounce error: {ex.Message}");
+                }
+            });
+        }
+
+        private async Task ProcessRealtimeTableUpdatesAsync()
+        {
+            // Ensure single refresh pipeline at a time
+            if (Interlocked.CompareExchange(ref _realtimeRefreshRunning, 1, 0) != 0) return;
+
+            try
+            {
+                while (true)
+                {
+                    int tableId = Interlocked.Exchange(ref _pendingRealtimeTableId, -1);
+                    if (tableId <= 0) break;
+
+                    // Always refresh table grid; refresh details only if it is the selected table.
+                    int selected = _selectedTableId;
+                    await InvokeOnUiAsync(async () =>
+                    {
+                        if (selected == tableId)
+                        {
+                            await LoadOrderDetailsAsync(tableId);
+                        }
+                        await LoadTablesAsync();
+                    });
+
+                    // If another event arrived during refresh, loop and pick latest.
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _realtimeRefreshRunning, 0);
+                // If a new update arrived right after we released, kick again.
+                if (Volatile.Read(ref _pendingRealtimeTableId) > 0)
+                {
+                    QueueRealtimeTableUpdate(Volatile.Read(ref _pendingRealtimeTableId));
+                }
+            }
+        }
+
         // --- 6. SIGNALR & CHECKOUT & IN BẾP (MAIN) ---
         private async void SetupRealtime()
         {
@@ -1459,28 +1537,21 @@ namespace PosSystem.Main
                 Dispatcher.Invoke(() =>
                     {
                         _tablesRequestingPayment.Add(tableId);
-                        LoadTables(); // Load lại để cập nhật màu
+                        // Thay vì LoadTables sync (dễ lag), coalesce vào pipeline async
+                        QueueRealtimeTableUpdate(tableId);
                         ShowToast($"🔔 Bàn {tableId} yêu cầu thanh toán!", 3000);
 
                     });
             });
-            _connection.On<int>("TableUpdated", async (id) => 
+            _connection.On<int>("TableUpdated", (id) =>
             {
-                await Dispatcher.InvokeAsync(async () => 
-                {
-                    // [ASYNC] Non-blocking updates
-                    if (_selectedTableId == id) 
-                    {
-                        await LoadOrderDetailsAsync(id);
-                    }
-                    await LoadTablesAsync();
-                });
+                QueueRealtimeTableUpdate(id);
             });
-            
+
             // [NEW] Listen for Order Notifications
-            _connection.On<string>("ReceiveOrderNotification", (msg) => 
+            _connection.On<string>("ReceiveOrderNotification", (msg) =>
             {
-                Dispatcher.Invoke(() => 
+                Dispatcher.Invoke(() =>
                 {
                     NotificationList.Insert(0, $"[{DateTime.Now:HH:mm}] {msg}");
                     if (NotificationList.Count > 20) NotificationList.RemoveAt(NotificationList.Count - 1);
@@ -1666,7 +1737,7 @@ namespace PosSystem.Main
             _isWaitingForMoveTargetTable = false;
             btnCancelMove.Visibility = Visibility.Collapsed;
             HideToast();
-            
+
             // Return to Menu / Order Screen for the current table
             SelectAndLoadTable(_selectedTableId);
         }
@@ -1845,13 +1916,13 @@ namespace PosSystem.Main
             {
                 // Check if currently all selected
                 bool allSelected = items.All(i => i.IsSelected);
-                
+
                 // Toggle: If all selected -> Deselect all. Otherwise -> Select all.
                 bool newValue = !allSelected;
-                
+
                 foreach (var item in items) item.IsSelected = newValue;
                 lstReprintItems.Items.Refresh();
-                
+
                 // Update button text if needed, but for now purely logic
                 if (sender is Button btn)
                 {
@@ -1888,7 +1959,7 @@ namespace PosSystem.Main
                     {
                         // Get IDs of the items we want to print
                         var idsToPrint = vm.OrderDetails.Take(vm.SelectedQuantity).Select(d => d.OrderDetailID).ToList();
-                        
+
                         // Fetch the actual entities from the current 'order' context (which has Category loaded)
                         var details = order.OrderDetails.Where(d => idsToPrint.Contains(d.OrderDetailID)).ToList();
                         itemsToPrint.AddRange(details);
@@ -1936,7 +2007,7 @@ namespace PosSystem.Main
             {
                 // Toggle selection
                 vm.IsSelected = !vm.IsSelected;
-                
+
                 // Note: IsSelected setter in ViewModel handles the default quantity logic (defaults to max if 0).
             }
         }
@@ -1957,10 +2028,10 @@ namespace PosSystem.Main
             {
                 bool allSelected = items.All(i => i.IsSelected);
                 bool newValue = !allSelected;
-                
+
                 foreach (var item in items) item.IsSelected = newValue;
                 lstSplitItems.Items.Refresh();
-                
+
                 if (sender is Button btn)
                 {
                     btn.Content = newValue ? "Bỏ chọn tất cả" : "Chọn tất cả";
@@ -1981,11 +2052,11 @@ namespace PosSystem.Main
 
                 // Prepare transfer dictionary
                 var itemsToTransfer = new Dictionary<long, int>();
-                
+
                 foreach (var vm in selectedItems)
                 {
                     int quantityRemainingToSplit = vm.SelectedQuantity;
-                    
+
                     // Iterate through the underlying OrderDetails in this group
                     foreach (var detail in vm.OrderDetails)
                     {
@@ -2010,7 +2081,7 @@ namespace PosSystem.Main
                 pnlMenu.Visibility = Visibility.Collapsed;
                 pnlTableList.Visibility = Visibility.Visible;
                 btnCancelSplit.Visibility = Visibility.Visible; // [NEW] Show Cancel button
-                
+
                 LoadTables(); // [NEW] Refresh to gray out source table
                 _tableTimeTimer.Stop();
             }
@@ -2022,7 +2093,7 @@ namespace PosSystem.Main
             _pendingSplitItems.Clear();
             btnCancelSplit.Visibility = Visibility.Collapsed;
             HideToast();
-            
+
             // Return to Menu / Order Screen for the current table
             SelectAndLoadTable(_selectedTableId);
         }
@@ -2208,9 +2279,9 @@ namespace PosSystem.Main
 
         private void BtnFilterAll_Click(object sender, RoutedEventArgs e)
         {
-            _selectedCategoryId = null; 
-            if (btnFilterAll != null) 
-                 btnFilterAll.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007BFF"));
+            _selectedCategoryId = null;
+            if (btnFilterAll != null)
+                btnFilterAll.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007BFF"));
             LoadTables();
         }
 
@@ -2219,7 +2290,7 @@ namespace PosSystem.Main
             if (sender is Button btn && btn.Tag is int catId)
             {
                 _selectedCategoryId = catId;
-                if (btnFilterAll != null) 
+                if (btnFilterAll != null)
                     btnFilterAll.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6C757D"));
                 LoadTables();
             }

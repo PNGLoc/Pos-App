@@ -47,10 +47,13 @@ namespace PosSystem.Main.Server.Controllers
                     PaymentMethod = "Cash"
                 };
                 _context.Orders.Add(currentOrder);
-                
-                // [MODIFIED] Không set Occupied ngay. Chỉ set khi gửi bếp.
-                // var table = await _context.Tables.FindAsync(request.TableID);
-                // if (table != null) table.TableStatus = "Occupied";
+            }
+
+            // [FIX] Có món trong cart => bàn phải được xem là có khách
+            var table = await _context.Tables.FindAsync(request.TableID);
+            if (table != null && table.TableStatus == "Empty")
+            {
+                table.TableStatus = "Occupied";
             }
 
             foreach (var itemDto in request.Items)
@@ -105,34 +108,46 @@ namespace PosSystem.Main.Server.Controllers
                         currentOrder.AccID = request.AccID;
                     }
 
+                    // [PERF] Batch load dishes to avoid N+1 queries
+                    var dishIds = request.Details.Select(d => d.DishID).Distinct().ToList();
+                    var dishMap = await _context.Dishes
+                        .Where(d => dishIds.Contains(d.DishID))
+                        .ToDictionaryAsync(d => d.DishID);
+
                     foreach (var itemDto in request.Details)
                     {
-                        var dish = await _context.Dishes.FindAsync(itemDto.DishID);
-                        if (dish != null)
-                        {
-                            // Gộp vào dòng "New" nếu trùng món và note
-                            var existingItem = currentOrder.OrderDetails
-                                .FirstOrDefault(d => d.DishID == dish.DishID && d.ItemStatus == "New" && (d.Note ?? "") == (itemDto.Note ?? ""));
+                        if (!dishMap.TryGetValue(itemDto.DishID, out var dish)) continue;
 
-                            if (existingItem != null)
-                            {
-                                existingItem.Quantity += itemDto.Quantity;
-                                existingItem.TotalAmount = existingItem.Quantity * existingItem.UnitPrice;
-                            }
-                            else
-                            {
-                                currentOrder.OrderDetails.Add(new OrderDetail
-                                {
-                                    DishID = dish.DishID,
-                                    Quantity = itemDto.Quantity,
-                                    UnitPrice = dish.Price,
-                                    Note = itemDto.Note ?? "",
-                                    ItemStatus = "New",
-                                    PrintedQuantity = 0,
-                                    TotalAmount = itemDto.Quantity * dish.Price
-                                });
-                            }
+                        // Gộp vào dòng "New" nếu trùng món và note
+                        var existingItem = currentOrder.OrderDetails
+                            .FirstOrDefault(d => d.DishID == dish.DishID && d.ItemStatus == "New" && (d.Note ?? "") == (itemDto.Note ?? ""));
+
+                        if (existingItem != null)
+                        {
+                            existingItem.Quantity += itemDto.Quantity;
+                            existingItem.UnitPrice = dish.Price;
+                            existingItem.TotalAmount = existingItem.Quantity * existingItem.UnitPrice;
                         }
+                        else
+                        {
+                            currentOrder.OrderDetails.Add(new OrderDetail
+                            {
+                                DishID = dish.DishID,
+                                Quantity = itemDto.Quantity,
+                                UnitPrice = dish.Price,
+                                Note = itemDto.Note ?? "",
+                                ItemStatus = "New",
+                                PrintedQuantity = 0,
+                                TotalAmount = itemDto.Quantity * dish.Price
+                            });
+                        }
+                    }
+
+                    // [FIX] Có món trong cart => bàn phải đỏ/có khách
+                    var table = await _context.Tables.FindAsync(tableId);
+                    if (table != null && table.TableStatus == "Empty")
+                    {
+                        table.TableStatus = "Occupied";
                     }
 
                     currentOrder.SubTotal = currentOrder.OrderDetails.Sum(d => d.TotalAmount);
@@ -140,7 +155,7 @@ namespace PosSystem.Main.Server.Controllers
 
                     await _context.SaveChangesAsync();
                     transaction.Commit();
-                    
+
                     // SignalR after commit
                     await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
 
@@ -230,7 +245,7 @@ namespace PosSystem.Main.Server.Controllers
 
                     await _context.SaveChangesAsync();
                     transaction.Commit();
-                    
+
                     // --- NON DUPLICATE ACTIONS (Post Commit) ---
 
                     // Gọi Service In Bếp 
@@ -296,6 +311,13 @@ namespace PosSystem.Main.Server.Controllers
                 // Còn món -> Tính lại tiền
                 order.SubTotal = remainingItems.Sum(d => d.TotalAmount);
                 order.FinalAmount = order.SubTotal;
+
+                // [FIX] Còn món trong cart => bàn phải Occupied
+                var table = await _context.Tables.FindAsync(order.TableID);
+                if (table != null && table.TableStatus == "Empty")
+                {
+                    table.TableStatus = "Occupied";
+                }
             }
 
             await _context.SaveChangesAsync();
@@ -373,7 +395,7 @@ namespace PosSystem.Main.Server.Controllers
 
                     await _context.SaveChangesAsync();
                     transaction.Commit();
-                    
+
                     // --- POST COMMIT ---
 
                     // 3. GỌI IN HÓA ĐƠN TRÊN SERVER
@@ -394,7 +416,7 @@ namespace PosSystem.Main.Server.Controllers
                 }
             }
         }
-        
+
         public class PrintProvisionalRequest
         {
             public int AccID { get; set; }
@@ -511,7 +533,7 @@ namespace PosSystem.Main.Server.Controllers
 
                     await _context.SaveChangesAsync();
                     transaction.Commit();
-                    
+
                     // --- POST COMMIT ---
 
                     // 4. IN PHIẾU BÁO BẾP
@@ -535,7 +557,7 @@ namespace PosSystem.Main.Server.Controllers
             public int AccID { get; set; }
             public long OrderDetailID { get; set; }
             public int Quantity { get; set; } // Số lượng muốn hủy
-           //blic string Reason { get; set; }
+                                              //blic string Reason { get; set; }
         }
 
         [HttpPost("cancel-item")]
@@ -560,7 +582,7 @@ namespace PosSystem.Main.Server.Controllers
 
                     // 2. Giảm số lượng
                     detail.Quantity -= req.Quantity;
-                    detail.PrintedQuantity -= req.Quantity; 
+                    detail.PrintedQuantity -= req.Quantity;
                     detail.TotalAmount = detail.Quantity * detail.UnitPrice;
 
                     // Nếu giảm về 0 thì xóa luôn dòng
@@ -573,7 +595,7 @@ namespace PosSystem.Main.Server.Controllers
 
                     // Cập nhật tổng tiền đơn hàng
                     var order = detail.Order;
-                    
+
                     // Cần lấy list về và filter bằng logic vì chưa save
                     var remainingItems = await _context.OrderDetails
                         .Where(d => d.OrderID == order.OrderID)
@@ -586,9 +608,9 @@ namespace PosSystem.Main.Server.Controllers
 
                     if (remainingItems.Count == 0)
                     {
-                         // Nếu hủy hết món -> Xóa đơn & Trả bàn
-                         _context.Orders.Remove(order);
-                         if (order.Table != null) order.Table.TableStatus = "Empty";
+                        // Nếu hủy hết món -> Xóa đơn & Trả bàn
+                        _context.Orders.Remove(order);
+                        if (order.Table != null) order.Table.TableStatus = "Empty";
                     }
                     else
                     {
@@ -611,7 +633,7 @@ namespace PosSystem.Main.Server.Controllers
 
                     await _context.SaveChangesAsync();
                     transaction.Commit();
-                    
+
                     // --- POST COMMIT ---
 
                     // 3. IN PHIẾU HỦY XUỐNG BẾP
@@ -620,7 +642,7 @@ namespace PosSystem.Main.Server.Controllers
                         Dish = detail.Dish,
                         DishID = detail.DishID,
                         Quantity = -req.Quantity, // Số âm để template bếp hiểu là trả món
-                        Note =  detail.Note,
+                        Note = detail.Note,
                         KitchenBatch = 0
                     };
 
@@ -674,7 +696,7 @@ namespace PosSystem.Main.Server.Controllers
 
                         // Update DB
                         detail.Quantity -= req.Quantity;
-                        detail.PrintedQuantity -= req.Quantity; 
+                        detail.PrintedQuantity -= req.Quantity;
                         detail.TotalAmount = detail.Quantity * detail.UnitPrice;
 
                         // Log
@@ -707,7 +729,7 @@ namespace PosSystem.Main.Server.Controllers
                                 KitchenBatch = 0
                             });
                         }
-                        
+
                         // Remove if 0
                         if (detail.Quantity <= 0) _context.OrderDetails.Remove(detail);
                     }
@@ -737,7 +759,7 @@ namespace PosSystem.Main.Server.Controllers
                     }
 
                     transaction.Commit();
-                    
+
                     // --- POST COMMIT ---
 
                     if (order != null)

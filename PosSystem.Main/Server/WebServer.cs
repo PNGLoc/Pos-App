@@ -33,11 +33,10 @@ namespace PosSystem.Main.Server
                         services.AddControllers();
                         services.AddSignalR(hubOptions =>
 {
-    // Quan trọng: Server gửi Ping mỗi 2 giây (mặc định là 15s)
-    hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(2);
-
-    // Nếu Client im lặng quá 10s thì Server sẽ đá Client (mặc định 30s)
-    hubOptions.ClientTimeoutInterval = TimeSpan.FromSeconds(10);
+    // Thực tế mạng Wifi/mobile + UI thread có thể bận ngắn hạn.
+    // KeepAlive quá thấp làm tăng overhead; timeout quá thấp dễ bị đá nhầm khi tải cao.
+    hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(5);
+    hubOptions.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
 });
 
                         // --- [SỬA LỖI TẠI ĐÂY] ---
