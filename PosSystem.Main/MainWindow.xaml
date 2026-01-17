@@ -270,12 +270,30 @@
                     <Grid x:Name="pnlTableList"
                           Visibility="Visible">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/> <!-- 0. Notifications -->
+                            <RowDefinition Height="Auto"/> <!-- 1. Title/Filter -->
+                            <RowDefinition Height="*"/>    <!-- 2. Tables -->
                         </Grid.RowDefinitions>
 
-                        <!-- Title + Filter Bar in same row -->
-                        <Border Grid.Row="0"
+                        <!-- [NEW] Notification Area -->
+                        <Border Grid.Row="0" Margin="0,0,0,10" Background="White" CornerRadius="8" Padding="10">
+                             <Border.Effect>
+                                <DropShadowEffect Color="Gray" BlurRadius="5" ShadowDepth="1" Opacity="0.1"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <TextBlock Text="🔔 HOẠT ĐỘNG MỚI" FontWeight="Bold" Margin="0,0,0,5" Foreground="#FD7E14"/>
+                                <ListBox ItemsSource="{Binding NotificationList}" Height="100" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                     <ListBox.ItemTemplate>
+                                         <DataTemplate>
+                                             <TextBlock Text="{Binding}" FontSize="13" TextWrapping="Wrap" Margin="0,2" Foreground="#333"/>
+                                         </DataTemplate>
+                                     </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Title + Filter Bar -->
+                        <Border Grid.Row="1"
                                 Background="White"
                                 Padding="20,15"
                                 BorderThickness="0,0,0,1"
@@ -382,7 +400,7 @@
                             </Grid>
                         </Border>
 
-                        <ScrollViewer Grid.Row="1"
+                        <ScrollViewer Grid.Row="2"
                                       VerticalScrollBarVisibility="Auto">
                             <ListBox x:Name="lstTables"
                                      SelectionChanged="lstTables_SelectionChanged"

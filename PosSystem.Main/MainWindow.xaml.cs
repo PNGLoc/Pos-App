@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Collections.ObjectModel; // [NEW]
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Database;
@@ -103,6 +104,9 @@ namespace PosSystem.Main
 
         // List categories for Filter Bar
         public List<TableCategory> FilterCategories { get; set; } = new List<TableCategory>();
+        
+        // [NEW] Notification List for UI
+        public ObservableCollection<string> NotificationList { get; set; } = new ObservableCollection<string>();
 
         private List<Dish> _allDishes = new List<Dish>();
         private List<DishViewModel> _dishViewModels = new List<DishViewModel>();
@@ -569,6 +573,7 @@ namespace PosSystem.Main
                 .Replace('Đ', 'D');
         }
 
+
         private bool MatchDishSearch(string dishName, string searchText)
         {
             string normalized = RemoveDiacritics(dishName).ToLower();
@@ -592,6 +597,184 @@ namespace PosSystem.Main
             }
 
             return false;
+        }
+
+        // --- ASYNC VERSIONS FOR HIGH PERFORMANCE ---
+        private async Task LoadTablesAsync()
+        {
+            try
+            {
+                // 1. Fetch Data in Background
+                var viewModels = await Task.Run(() =>
+                {
+                    using (var db = new AppDbContext())
+                    {
+                        var tables = db.Tables.Include(t => t.Orders).ThenInclude(o => o.OrderDetails).ToList();
+
+                        // Use local copies of filters to avoid threading issues
+                        // Note: If you have dynamic filters, capture them before Task.Run or use Dispatcher if they are UI elements (but here they are simple fields)
+                        int? catId = _selectedCategoryId;
+                        string typeFilter = _tableTypeFilter;
+
+                         // Apply filter
+                        if (catId.HasValue)
+                        {
+                            tables = tables.Where(t => t.CategoryID == catId.Value).ToList();
+                        }
+                        else if (typeFilter != "All") 
+                        {
+                           tables = tables.Where(t => t.TableType == typeFilter).ToList();
+                        }
+
+                        return tables.Select(t =>
+                        {
+                            var vm = new TableViewModel
+                            {
+                                TableID = t.TableID,
+                                TableName = t.TableName,
+                                TableStatus = t.TableStatus,
+                                TimeDisplay = "",
+                                IsGrayedOut = false // Simplified safely
+                            };
+                            
+                            // Calculate time
+                            if (t.TableStatus == "Occupied" && t.Orders.Any())
+                            {
+                                var order = t.Orders.FirstOrDefault(o => o.OrderStatus == "Pending");
+                                if (order != null)
+                                { 
+                                    if (order.FirstSentTime.HasValue) 
+                                    { 
+                                        var elapsed = DateTime.Now - order.FirstSentTime.Value;
+                                        if (elapsed.TotalMinutes < 1) vm.TimeDisplay = $"{(int)elapsed.TotalSeconds}s";
+                                        else if (elapsed.TotalHours < 1) vm.TimeDisplay = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
+                                        else vm.TimeDisplay = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
+                                    }
+                                    if (order.IsPreCalculated) vm.HasProvisionalBill = true;
+                                    if (order.IsRequestingPayment) vm.IsRequestingPayment = true;
+                                }
+                            }
+                            return vm;
+                        }).ToList();
+                    }
+                });
+
+                // 2. Update UI on Dispatcher
+                if (viewModels != null)
+                {
+                    // Re-apply any UI-specific state like selection gray-out
+                    if (_isWaitingForTargetTable || _isWaitingForMoveTargetTable)
+                    {
+                        var selected = viewModels.FirstOrDefault(t => t.TableID == _selectedTableId);
+                        if (selected != null) selected.IsGrayedOut = true;
+                    }
+                    lstTables.ItemsSource = viewModels;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Async LoadTables Error: " + ex.Message);
+            }
+        }
+
+        private async Task LoadOrderDetailsAsync(int tableId)
+        {
+             try
+            {
+                // 1. Fetch Logic in Background
+                var result = await Task.Run(() =>
+                {
+                    using (var db = new AppDbContext())
+                    {
+                        var order = db.Orders
+                            .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
+                            .FirstOrDefault(o => o.TableID == tableId && o.OrderStatus == "Pending");
+
+                        if (order == null) return null;
+
+                        // Calculate totals
+                        decimal subTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.Quantity * d.UnitPrice);
+                        decimal discountVal = (order.DiscountPercent > 0) ? subTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
+                        decimal final = subTotal - discountVal;
+
+                        // Create View Models
+                        var vms = order.OrderDetails
+                            .GroupBy(d => new { d.DishID, GroupStatus = (d.ItemStatus == "New" ? "New" : "SentGroup"), Note = (d.Note ?? "").Trim() })
+                            .Select(g => new OrderDetailViewModel
+                            {
+                                OrderDetailID = g.First().OrderDetailID,
+                                DishName = g.First().Dish != null ? g.First().Dish.DishName : "Unknown",
+                                UnitPrice = g.First().UnitPrice,
+                                DiscountRate = g.First().DiscountRate,
+                                ItemStatus = g.Key.GroupStatus == "New" ? "New" : (g.Sum(x => x.Quantity) < g.Sum(x => x.PrintedQuantity) ? "Modified" : "Sent"),
+                                Note = g.Key.Note,
+                                Quantity = g.Sum(x => x.Quantity),
+                                TotalAmount = g.Sum(x => x.TotalAmount),
+                                KitchenBatch = g.Max(x => x.KitchenBatch),
+                                BatchDisplay = g.Sum(x => x.PrintedQuantity) == 0 ? "⏳" : (g.Max(x => x.KitchenBatch) > 0 ? $"Đợt {g.Max(x => x.KitchenBatch)}" : "---"),
+                                StatusDisplay = g.Sum(x => x.Quantity) == 0 ? "❌ CHỜ HỦY" : (g.Key.GroupStatus == "New" ? "Mới" : (g.Sum(x => x.Quantity) < g.Sum(x => x.PrintedQuantity) ? "⚠️ Sửa đổi" : "✓ Đã gửi")),
+                                RowColor = g.Sum(x => x.Quantity) == 0 ? "#FFCCCC" : (g.Key.GroupStatus == "New" ? "#FFF3CD" : (g.Sum(x => x.Quantity) < g.Sum(x => x.PrintedQuantity) ? "#FFF3CD" : "#D4EDDA"))
+                            })
+                            .OrderByDescending(vm => vm.ItemStatus == "New")
+                            .ThenByDescending(vm => vm.KitchenBatch)
+                            .ThenBy(vm => vm.DishName)
+                            .ToList();
+
+                        return new 
+                        { 
+                            ViewModels = vms, 
+                            HasChanges = order.OrderDetails.Any(d => d.Quantity != d.PrintedQuantity),
+                            HasValidItems = order.OrderDetails.Any(d => d.Quantity > 0),
+                            Order = new { order.SubTotal, order.FinalAmount, order.DiscountPercent, order.DiscountAmount, order.OrderTime, order.FirstSentTime }
+                        };
+                    }
+                });
+
+                // 2. Update UI
+                // [FIX] Race Condition: Check if user is still on this table
+                if (tableId != _selectedTableId) return;
+
+                if (result != null)
+                {
+                    lstOrderDetails.ItemsSource = result.ViewModels;
+
+                    // Update Labels
+                    lblSubTotal.Text = result.Order.SubTotal.ToString("N0") + "đ";
+                    lblTotal.Text = result.Order.FinalAmount.ToString("N0") + "đ";
+
+                    decimal dVal = (result.Order.DiscountPercent > 0) ? result.Order.SubTotal * (result.Order.DiscountPercent / 100) : result.Order.DiscountAmount;
+                    if (dVal > 0)
+                    {
+                        lblDiscount.Text = $"-{dVal:N0}đ";
+                        pnlDiscount.Visibility = Visibility.Visible;
+                    }
+                    else pnlDiscount.Visibility = Visibility.Collapsed;
+
+                    // Update Buttons
+                    btnCheckout.IsEnabled = result.HasValidItems;
+                    btnSendKitchen.IsEnabled = result.HasChanges;
+                    btnSendKitchen.Content = result.HasChanges ? "🔔 GỬI BẾP (Cập nhật)" : "👨‍🍳 GỬI BẾP";
+                    btnSendKitchen.Background = result.HasChanges ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14") : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6C757D");
+                    
+                    // Timer logic if needed (Assuming timer handles itself or only stopped when leaving table)
+                    if (result.Order.FirstSentTime.HasValue)
+                    {
+                         _currentOrderTime = result.Order.FirstSentTime;
+                         if (!_tableTimeTimer.IsEnabled) _tableTimeTimer.Start();
+                    }
+                }
+                else
+                {
+                     // Empty table logic
+                    lstOrderDetails.ItemsSource = null;
+                    lblTotal.Text = "0đ";
+                    lblSubTotal.Text = "0đ";
+                    pnlDiscount.Visibility = Visibility.Collapsed;
+                    btnCheckout.IsEnabled = false;
+                    btnSendKitchen.IsEnabled = false;
+                }
+            } 
+            catch {}
         }
 
         private void lstCategories_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateDishListDisplay();
@@ -1281,7 +1464,29 @@ namespace PosSystem.Main
 
                     });
             });
-            _connection.On<int>("TableUpdated", (id) => Dispatcher.Invoke(() => { LoadTables(); if (_selectedTableId == id) LoadOrderDetails(id); }));
+            _connection.On<int>("TableUpdated", async (id) => 
+            {
+                await Dispatcher.InvokeAsync(async () => 
+                {
+                    // [ASYNC] Non-blocking updates
+                    if (_selectedTableId == id) 
+                    {
+                        await LoadOrderDetailsAsync(id);
+                    }
+                    await LoadTablesAsync();
+                });
+            });
+            
+            // [NEW] Listen for Order Notifications
+            _connection.On<string>("ReceiveOrderNotification", (msg) => 
+            {
+                Dispatcher.Invoke(() => 
+                {
+                    NotificationList.Insert(0, $"[{DateTime.Now:HH:mm}] {msg}");
+                    if (NotificationList.Count > 20) NotificationList.RemoveAt(NotificationList.Count - 1);
+                });
+            });
+
             try { await _connection.StartAsync(); } catch { }
         }
 

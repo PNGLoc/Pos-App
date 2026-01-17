@@ -220,6 +220,11 @@ namespace PosSystem.Main.Server.Controllers
             // Bắn SignalR
             await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
 
+            // [NEW] Bắn thông báo cho Desktop
+            string tableName = order.Table?.TableName ?? $"Bàn {tableId}";
+            string notiMsg = $"{senderName} đã thêm {printQueue.Count} món cho {tableName}";
+            await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", notiMsg);
+
             return Ok(new { Message = $"Đã gửi {printQueue.Count} món xuống bếp!" });
         }
         // POST: api/Order/{tableId}/update-item
