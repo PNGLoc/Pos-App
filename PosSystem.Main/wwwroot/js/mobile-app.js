@@ -494,7 +494,7 @@ async function updateCartItem(detailId, newQty, note) {
     try {
         const res = await fetch(`${API_URL}/Order/${appState.currentTableId}/update-item`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderDetailID: detailId, quantity: newQty, note: note })
+            body: JSON.stringify({ accID: (currentUser && currentUser.accID) ? currentUser.accID : 0, orderDetailID: detailId, quantity: newQty, note: note })
         });
         if (res.ok) loadOrderData(appState.currentTableId);
         else showToast(await res.text(), 'danger');
@@ -701,7 +701,7 @@ function logout() { localStorage.removeItem('posUser'); window.location.href = '
 async function requestBillMobile() {
     if (!confirm("Gửi yêu cầu in bill cho thu ngân?")) return;
     try {
-        await fetch(`${API_URL}/Order/${appState.currentTableId}/request-payment`, { method: 'POST' });
+        await fetch(`${API_URL}/Order/${appState.currentTableId}/request-payment?accID=${(currentUser && currentUser.accID) ? currentUser.accID : 0}`, { method: 'POST' });
         showToast("Đã gửi yêu cầu!");
     } catch (e) { showToast("Lỗi mạng", "danger"); }
 }
@@ -944,7 +944,7 @@ function openConfirmModal(type) {
 async function executeRequestBill() {
     closeModal('confirmModal');
     try {
-        await fetch(`${API_URL}/Order/${appState.currentTableId}/request-payment`, { method: 'POST' });
+        await fetch(`${API_URL}/Order/${appState.currentTableId}/request-payment?accID=${(currentUser && currentUser.accID) ? currentUser.accID : 0}`, { method: 'POST' });
         showToast("Đã gửi yêu cầu!");
     } catch (e) { showToast("Lỗi kết nối", "danger"); }
 }

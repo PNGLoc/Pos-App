@@ -25,6 +25,39 @@ namespace PosSystem.Main.Server.Controllers
             _hubContext = hubContext;
         }
 
+        private async Task<string> GetAccountNameAsync(int accId, string fallback = "Admin")
+        {
+            if (accId <= 0) return fallback;
+            var acc = await _context.Accounts.FindAsync(accId);
+            return acc?.AccName ?? fallback;
+        }
+
+        private async Task<string> GetTableNameAsync(int tableId)
+        {
+            var table = await _context.Tables.FindAsync(tableId);
+            return table?.TableName ?? $"Bàn {tableId}";
+        }
+
+        private static string FormatItem(string dishName, int quantity, string? note)
+        {
+            var baseText = $"{dishName} x{quantity}";
+            var n = (note ?? string.Empty).Trim();
+            return string.IsNullOrEmpty(n) ? baseText : $"{baseText} ({n})";
+        }
+
+        private static string SummarizeItems(IEnumerable<(string dishName, int quantity, string note)> items, int maxItems = 6)
+        {
+            var list = items.Where(i => i.quantity != 0).ToList();
+            if (list.Count == 0) return "(không có món)";
+
+            var shown = list.Take(maxItems).Select(i => FormatItem(i.dishName, i.quantity, i.note)).ToList();
+            if (list.Count > maxItems)
+            {
+                shown.Add($"+{list.Count - maxItems} món khác");
+            }
+            return string.Join(", ", shown);
+        }
+
         // 1. MỞ BÀN & TẠO ĐƠN (Chỉ lưu status New, CHƯA IN)
         [HttpPost("create")]
         public async Task<IActionResult> CreateOrder([FromBody] OrderRequest request)
@@ -255,9 +288,15 @@ namespace PosSystem.Main.Server.Controllers
                     await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
 
                     // [NEW] Bắn thông báo cho Desktop
-                    string tableName = order.Table?.TableName ?? $"Bàn {tableId}";
-                    string notiMsg = $"{senderName} đã thêm {printQueue.Count} món cho {tableName}";
-                    await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", notiMsg);
+                    try
+                    {
+                        string tableName = order.Table?.TableName ?? $"Bàn {tableId}";
+                        var items = printQueue.Select(i => (i.Dish?.DishName ?? "Unknown", i.Quantity, i.Note ?? string.Empty));
+                        var totalQty = printQueue.Sum(i => i.Quantity);
+                        var notiMsg = $"{senderName} gửi bếp ({tableName}): {totalQty} phần — {SummarizeItems(items)}";
+                        await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", notiMsg);
+                    }
+                    catch { }
 
                     return Ok(new { Message = $"Đã gửi {printQueue.Count} món xuống bếp!" });
                 }
@@ -273,6 +312,7 @@ namespace PosSystem.Main.Server.Controllers
         public async Task<IActionResult> UpdateItem(int tableId, [FromBody] UpdateItemRequest req)
         {
             var orderDetail = await _context.OrderDetails
+                .Include(od => od.Dish)
                 .Include(od => od.Order)
                 .FirstOrDefaultAsync(od => od.OrderDetailID == req.OrderDetailID && od.Order.TableID == tableId);
 
@@ -420,6 +460,18 @@ namespace PosSystem.Main.Server.Controllers
 
                     await _hubContext.Clients.All.SendAsync("TableUpdated", order.TableID);
 
+                    // Activity log
+                    try
+                    {
+                        var tableName = order.Table?.TableName ?? (order.TableID.HasValue ? $"Bàn {order.TableID.Value}" : "Mang về");
+                        var accName = acc?.AccName ?? "Admin";
+                        var total = order.FinalAmount;
+                        var method = string.IsNullOrWhiteSpace(order.PaymentMethod) ? "Cash" : order.PaymentMethod;
+                        var msg = $"{accName} thanh toán ({tableName}): {total:n0}đ ({method})";
+                        await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+                    }
+                    catch { }
+
                     return Ok(new { Message = "Đã thanh toán & In hóa đơn!" });
                 }
                 catch (Exception ex)
@@ -459,12 +511,21 @@ namespace PosSystem.Main.Server.Controllers
             // 4. Bắn SignalR
             await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
 
+            // Activity log
+            try
+            {
+                var tableName = await GetTableNameAsync(tableId);
+                var msg = $"{acc.AccName} in tạm tính ({tableName})";
+                await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+            }
+            catch { }
+
             return Ok(new { Message = "Đã in tạm tính!" });
         }
 
         // [POST] api/Order/{tableId}/request-payment
         [HttpPost("{tableId}/request-payment")]
-        public async Task<IActionResult> RequestPayment(int tableId)
+        public async Task<IActionResult> RequestPayment(int tableId, [FromQuery] int accID = 0)
         {
             // [FIX] Cập nhật vào DB
             var order = await _context.Orders.FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
@@ -479,6 +540,16 @@ namespace PosSystem.Main.Server.Controllers
             await _hubContext.Clients.All.SendAsync("TableRequestPayment", tableId);
             // [FIX] Gửi thêm TableUpdated để Mobile reload lại list và hiện icon Chuông
             await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+
+            // Activity log
+            try
+            {
+                var accName = await GetAccountNameAsync(accID, "Admin");
+                var tableName = await GetTableNameAsync(tableId);
+                var msg = $"{accName} yêu cầu thanh toán ({tableName})";
+                await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+            }
+            catch { }
             return Ok(new { Message = "Đã gửi yêu cầu thanh toán!" });
         }
         // DTO nhận dữ liệu chuyển bàn
@@ -555,6 +626,15 @@ namespace PosSystem.Main.Server.Controllers
                     // 5. Cập nhật UI
                     await _hubContext.Clients.All.SendAsync("TableUpdated", sourceTableId);
                     await _hubContext.Clients.All.SendAsync("TableUpdated", req.TargetTableID);
+
+                    // Activity log
+                    try
+                    {
+                        var action = targetOrder != null ? "gộp bàn" : "chuyển bàn";
+                        var msg = $"{acc.AccName} {action}: {oldTableName} → {newTableName}";
+                        await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+                    }
+                    catch { }
 
                     return Ok(new { Message = "Chuyển bàn thành công!" });
                 }
@@ -662,6 +742,16 @@ namespace PosSystem.Main.Server.Controllers
                     Services.PrintService.PrintKitchen(order, new List<OrderDetail> { cancelItem }, 0);
 
                     await _hubContext.Clients.All.SendAsync("TableUpdated", order.TableID);
+
+                    // Activity log
+                    try
+                    {
+                        var tableName = order.Table?.TableName ?? $"Bàn {order.TableID}";
+                        var dishName = detail.Dish?.DishName ?? "Unknown";
+                        var msg = $"{acc.AccName} hủy món ({tableName}): {FormatItem(dishName, req.Quantity, detail.Note)}";
+                        await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+                    }
+                    catch { }
 
                     return Ok(new { Message = "Đã hủy món & Báo bếp" });
                 }
@@ -784,6 +874,17 @@ namespace PosSystem.Main.Server.Controllers
                         }
                         // SignalR
                         await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+
+                        // Activity log
+                        try
+                        {
+                            var tableName = order.Table?.TableName ?? $"Bàn {tableId}";
+                            var items = aggregatedPrintItems.Select(i => (i.Dish?.DishName ?? "Unknown", -i.Quantity, i.Note ?? string.Empty));
+                            var totalQty = aggregatedPrintItems.Sum(i => -i.Quantity);
+                            var msg = $"{acc.AccName} hủy món ({tableName}): {totalQty} phần — {SummarizeItems(items)}";
+                            await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+                        }
+                        catch { }
                     }
 
                     return Ok(new { Message = $"Đã hủy {requests.Count} yêu cầu thành công" });

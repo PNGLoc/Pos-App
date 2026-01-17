@@ -47,7 +47,7 @@ namespace PosSystem.Main
             using (var db = new AppDbContext())
             {
                 db.Database.EnsureCreated();
-                
+
                 // [MIGRATION] Thêm cột CanPrintProvisional nếu chưa có (cho DB cũ)
                 try
                 {
@@ -79,7 +79,27 @@ namespace PosSystem.Main
                 // [EXISTING CODE]
                 try
                 {
-                   db.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN IsRequestingPayment INTEGER NOT NULL DEFAULT 0;");
+                    db.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN IsRequestingPayment INTEGER NOT NULL DEFAULT 0;");
+                }
+                catch { }
+
+                // [NEW] Activity logs (persist "Hoạt động mới" in DB, keep last 200)
+                try
+                {
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS ""ActivityLogs"" (
+                            ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_ActivityLogs"" PRIMARY KEY AUTOINCREMENT,
+                            ""CreatedAt"" TEXT NOT NULL DEFAULT (datetime('now')),
+                            ""Message"" TEXT NOT NULL
+                        );
+                    ");
+
+                    db.Database.ExecuteSqlRaw(@"
+                        DELETE FROM ""ActivityLogs""
+                        WHERE ""Id"" NOT IN (
+                            SELECT ""Id"" FROM ""ActivityLogs"" ORDER BY ""Id"" DESC LIMIT 200
+                        );
+                    ");
                 }
                 catch { }
             }

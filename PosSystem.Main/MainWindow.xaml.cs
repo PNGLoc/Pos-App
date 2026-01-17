@@ -19,6 +19,7 @@ using System.Text;
 using Microsoft.AspNetCore.SignalR;        // Cho Server (Gửi đi)
 using Microsoft.Extensions.DependencyInjection;
 using PosSystem.Main.Server.Hubs;
+using System.Threading;
 namespace PosSystem.Main
 {
     // ViewModels
@@ -104,8 +105,10 @@ namespace PosSystem.Main
         // List categories for Filter Bar
         public List<TableCategory> FilterCategories { get; set; } = new List<TableCategory>();
 
-        // [NEW] Notification List for UI
-        public ObservableCollection<string> NotificationList { get; set; } = new ObservableCollection<string>();
+        // Notification List for UI (persisted in DB)
+        public ObservableCollection<string> NotificationList { get; } = new ObservableCollection<string>();
+
+        private readonly SemaphoreSlim _activityLogLock = new SemaphoreSlim(1, 1);
 
         private List<Dish> _allDishes = new List<Dish>();
         private List<DishViewModel> _dishViewModels = new List<DishViewModel>();
@@ -130,6 +133,8 @@ namespace PosSystem.Main
                 FilterCategories = db.TableCategories.ToList();
             }
             this.DataContext = this; // Bind to self
+
+            LoadActivityLogFromDb();
 
             LoadTables();
             if (UserSession.IsLoggedIn) lblStaffName.Text = UserSession.AccName;
@@ -159,6 +164,79 @@ namespace PosSystem.Main
             LoadTables();
             LoadMenu();
             SetupRealtime();
+        }
+
+        private void LoadActivityLogFromDb()
+        {
+            try
+            {
+                using (var db = new AppDbContext())
+                {
+                    var latest = db.ActivityLogs
+                        .OrderByDescending(x => x.Id)
+                        .Take(200)
+                        .Select(x => new { x.CreatedAt, x.Message })
+                        .ToList();
+
+                    NotificationList.Clear();
+                    foreach (var row in latest)
+                    {
+                        var ts = row.CreatedAt == default ? DateTime.Now : row.CreatedAt;
+                        NotificationList.Add($"[{ts:HH:mm:ss}] {row.Message}");
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore (DB may not be ready yet); realtime will still function.
+            }
+        }
+
+        private void AppendActivityLog(string message)
+        {
+            // Fire-and-forget to avoid blocking UI thread
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _activityLogLock.WaitAsync();
+                    try
+                    {
+                        using (var db = new AppDbContext())
+                        {
+                            db.ActivityLogs.Add(new ActivityLogEntry
+                            {
+                                CreatedAt = DateTime.Now,
+                                Message = message
+                            });
+                            await db.SaveChangesAsync();
+
+                            // Keep only 200 newest in DB
+                            try
+                            {
+                                await db.Database.ExecuteSqlRawAsync(@"
+                                    DELETE FROM ""ActivityLogs""
+                                    WHERE ""Id"" NOT IN (
+                                        SELECT ""Id"" FROM ""ActivityLogs"" ORDER BY ""Id"" DESC LIMIT 200
+                                    );
+                                ");
+                            }
+                            catch { }
+                        }
+                    }
+                    finally
+                    {
+                        _activityLogLock.Release();
+                    }
+
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        NotificationList.Insert(0, $"[{DateTime.Now:HH:mm:ss}] {message}");
+                        while (NotificationList.Count > 200) NotificationList.RemoveAt(NotificationList.Count - 1);
+                    });
+                }
+                catch { }
+            });
         }
 
 
@@ -1569,11 +1647,7 @@ namespace PosSystem.Main
             // [NEW] Listen for Order Notifications
             connection.On<string>("ReceiveOrderNotification", (msg) =>
             {
-                Dispatcher.Invoke(() =>
-                {
-                    NotificationList.Insert(0, $"[{DateTime.Now:HH:mm}] {msg}");
-                    if (NotificationList.Count > 20) NotificationList.RemoveAt(NotificationList.Count - 1);
-                });
+                AppendActivityLog(msg);
             });
 
             return connection;

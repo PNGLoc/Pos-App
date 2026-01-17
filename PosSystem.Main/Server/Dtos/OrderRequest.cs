@@ -24,6 +24,7 @@ namespace PosSystem.Main.Server.Dtos
     }
     public class UpdateItemRequest
     {
+        public int AccID { get; set; } // optional: who performed the change
         public int OrderDetailID { get; set; }
         public int Quantity { get; set; }
         public string Note { get; set; } = "";
