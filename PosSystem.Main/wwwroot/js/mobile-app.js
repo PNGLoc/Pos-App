@@ -343,8 +343,35 @@ async function loadOrderData(tableId) {
     // 5. [QUAN TRỌNG] Cập nhật ẩn/hiện các nút chức năng theo quyền
     updateUIByPermission();
 
+    // 6. [NEW] Cập nhật Badge trên Tab
+    updateTabBadges();
+
     renderCartTab();
     renderConfirmedTab();
+}
+
+function updateTabBadges() {
+    const cartQty = appState.orderDetails
+        .filter(d => d.itemStatus === 'New')
+        .reduce((sum, d) => sum + d.quantity, 0);
+
+    const confirmedQty = appState.orderDetails
+        .filter(d => d.itemStatus !== 'New')
+        .reduce((sum, d) => sum + d.quantity, 0);
+
+    const badgeCart = document.getElementById('badgeCart');
+    if (badgeCart) {
+        badgeCart.innerText = cartQty;
+        if (cartQty > 0) badgeCart.classList.remove('d-none');
+        else badgeCart.classList.add('d-none');
+    }
+
+    const badgeConf = document.getElementById('badgeConfirmed');
+    if (badgeConf) {
+        badgeConf.innerText = confirmedQty;
+        if (confirmedQty > 0) badgeConf.classList.remove('d-none');
+        else badgeConf.classList.add('d-none');
+    }
 }
 
 // --- TAB CART (MÓN STATUS = NEW) ---
