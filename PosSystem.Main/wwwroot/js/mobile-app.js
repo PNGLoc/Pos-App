@@ -136,8 +136,8 @@ function initSignalR() {
         conn.onreconnecting(error => {
             console.warn('Kết nối không ổn định:', error);
 
-        // Bình thường chỉ cần icon trạng thái
-        updateConnectionStatus(false);
+            // Bình thường chỉ cần icon trạng thái
+            updateConnectionStatus(false);
 
             if (!reconnectingSince) reconnectingSince = Date.now();
             reconnectOverlayShown = false;

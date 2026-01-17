@@ -207,7 +207,7 @@ namespace PosSystem.Main
                     .Include(l => l.Table)
                     .Where(l => l.CancelTime.Date == selectedDate)
                     .OrderByDescending(l => l.CancelTime)
-                    .Select(l => new 
+                    .Select(l => new
                     {
                         LogTime = l.CancelTime,
                         TableName = l.Table != null ? l.Table.TableName : (l.TableID == 0 ? "Mang về" : "---"),
