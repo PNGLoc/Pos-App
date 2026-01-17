@@ -175,7 +175,7 @@
         </button>
 
         <button id="btnMenuPay" class="action-btn bg-success-subtle text-success-emphasis"
-            onclick="openConfirmModal('payment')">
+            onclick="openPaymentChoiceModal()">
             <i class="fas fa-money-bill-wave"></i> Thanh toán NGAY
         </button>
 
@@ -223,6 +223,26 @@
             <div class="modal-footer">
                 <button class="btn btn-light" onclick="closeModal('cancelModal')">Đóng</button>
                 <button class="btn btn-danger" onclick="submitCancelItem()">Xác nhận Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAYMENT OPTION MODAL -->
+    <div id="paymentModal" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <div class="modal-header">Chọn hình thức thanh toán</div>
+            <div class="modal-body">
+                <div class="d-grid gap-3">
+                    <button class="btn btn-outline-success btn-lg py-3" onclick="doPaymentMobile('Cash')">
+                        <i class="fas fa-money-bill-wave fa-lg me-2"></i> Tiền mặt
+                    </button>
+                    <button class="btn btn-outline-primary btn-lg py-3" onclick="doPaymentMobile('Transfer')">
+                        <i class="fas fa-qrcode fa-lg me-2"></i> Chuyển khoản / QR
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-light w-100" onclick="closeModal('paymentModal')">Hủy bỏ</button>
             </div>
         </div>
     </div>

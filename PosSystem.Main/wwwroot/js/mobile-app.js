@@ -631,8 +631,12 @@ async function moveTableMobile() {
 }
 
 // --- 3. Thanh toán ---
-async function doPaymentMobile() {
+// --- 3. Thanh toán ---
+async function doPaymentMobile(method = 'Cash') {
     if (!currentUser.canPayment) { showToast("Bạn không có quyền thanh toán!", "warning"); return; }
+
+    // Đóng modal nếu đang mở
+    closeModal('paymentModal');
 
     // Kiểm tra xem có OrderID hợp lệ không
     if (!appState.currentOrderId || appState.currentOrderId === 0) {
@@ -640,14 +644,13 @@ async function doPaymentMobile() {
         return;
     }
 
-    if (!confirm("Xác nhận thanh toán và in hóa đơn?")) return;
+    if (!confirm(`Xác nhận thanh toán (${method === 'Cash' ? 'Tiền mặt' : 'Chuyển khoản'}) và in hóa đơn?`)) return;
 
     try {
-        // Log ra console để kiểm tra dữ liệu trước khi gửi (F12 trên trình duyệt để xem)
         const payload = {
             accID: currentUser.accID,
-            orderID: appState.currentOrderId, // Phải đảm bảo cái này có giá trị số (VD: 105)
-            paymentMethod: "Cash",
+            orderID: appState.currentOrderId,
+            paymentMethod: method, // [MODIFIED] Use argument
             discountPercent: 0,
             discountAmount: 0
         };
@@ -668,7 +671,6 @@ async function doPaymentMobile() {
             // Quay về trang chủ
             showView('view-tables');
         } else {
-            // Đọc lỗi từ server trả về
             const errorText = await res.text();
             showToast("Lỗi: " + errorText, "danger");
         }
@@ -676,6 +678,12 @@ async function doPaymentMobile() {
         console.error(e);
         showToast("Lỗi kết nối", "danger");
     }
+}
+
+// [NEW] Open Modal
+function openPaymentChoiceModal() {
+    toggleActionMenu(); // Đóng menu action sheet
+    document.getElementById('paymentModal').style.display = 'flex';
 }
 async function cancelItemMobile(detailId, maxQty) {
     // 1. Check quyền

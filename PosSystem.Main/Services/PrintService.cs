@@ -136,6 +136,23 @@ namespace PosSystem.Main.Services
                     try { elements = JsonSerializer.Deserialize<List<PrintElement>>(layoutConfig.TemplateContentJson); } catch { }
                 }
 
+                // [NEW] Inject QR Code if Transfer
+                if (order.PaymentMethod == "Transfer" && elements != null)
+                {
+                    // Check if QR already exists to avoid duplicate
+                    if (!elements.Any(e => e.ElementType == "QRCode"))
+                    {
+                        elements.Add(new PrintElement 
+                        { 
+                            ElementType = "QRCode", 
+                            Content = "qr_code.png", // File name in Images folder
+                            Align = "Center",
+                            ImageHeight = 250,
+                            IsVisible = true
+                        });
+                    }
+                }
+
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     try
