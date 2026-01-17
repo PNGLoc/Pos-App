@@ -213,8 +213,8 @@
                     </Style>
                 </DataGrid.ColumnHeaderStyle>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Danh mục" Binding="{Binding CategoryName}" Width="150" IsReadOnly="True" FontWeight="SemiBold"/>
                     <DataGridTextColumn Header="Tên Sản Phẩm" Binding="{Binding DishName}" Width="*" IsReadOnly="True" FontWeight="SemiBold"/>
+                    <DataGridTextColumn Header="Danh mục" Binding="{Binding CategoryName}" Width="150" IsReadOnly="True" FontWeight="SemiBold"/>
                     <DataGridTextColumn Header="Đơn vị" Binding="{Binding Unit}" Width="100" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Giá Gốc" Binding="{Binding BasePrice, StringFormat=N0}" Width="150" IsReadOnly="True" Foreground="#666"/>
                     

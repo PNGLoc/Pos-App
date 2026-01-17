@@ -298,7 +298,7 @@ namespace PosSystem.Main.Pages
             string text = txtDetailSearch.Text.Trim().ToLower();
             if (!string.IsNullOrEmpty(text))
             {
-               filtered = filtered.Where(d => RemoveDiacritics(d.DishName.ToLower()).Contains(RemoveDiacritics(text)));
+               filtered = filtered.Where(d => MatchDishSearch(d.DishName, text));
             }
 
             dgRuleDetails.ItemsSource = filtered.ToList();
@@ -306,6 +306,30 @@ namespace PosSystem.Main.Pages
 
         private void CboDetailCategory_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateDetailFilter();
         private void TxtDetailSearch_TextChanged(object sender, TextChangedEventArgs e) => UpdateDetailFilter();
+
+        private bool MatchDishSearch(string dishName, string searchText)
+        {
+            string normalized = RemoveDiacritics(dishName).ToLower();
+            string normalizedSearch = RemoveDiacritics(searchText).ToLower();
+
+            // Full name match (handles diacritical marks)
+            if (normalized.Contains(normalizedSearch))
+                return true;
+
+            // First letter abbreviation match (e.g., "mctc" for "mỳ cay thập cẩm")
+            var words = dishName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            string firstLetters = string.Concat(words.Select(w => RemoveDiacritics(w.Substring(0, 1)).ToLower()));
+            if (firstLetters.Contains(normalizedSearch))
+                return true;
+            
+            // Partial first letter match (e.g., "tc" for "thập cẩm" in "mỳ cay thập cẩm")
+            foreach (var word in words)
+            {
+               if (RemoveDiacritics(word).ToLower().StartsWith(normalizedSearch)) return true;
+            }
+
+            return false;
+        }
 
         private string RemoveDiacritics(string text)
         {
