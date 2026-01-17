@@ -90,7 +90,7 @@ namespace PosSystem.Main.Database
                 new TableCategory { CategoryID = 4, CategoryName = "Ship", Description = "Giao hàng tận nơi" }
             );
             // Seed Template Mặc định
-            string defaultJson = "[{\"ElementType\":\"Text\",\"Content\":\"NHÀ HÀNG DEMO\",\"FontSize\":24,\"IsBold\":true,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"Separator\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"OrderDetails\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"Separator\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true},{\"ElementType\":\"Total\",\"Content\":\"\",\"FontSize\":14,\"IsBold\":false,\"Align\":\"Center\",\"IsVisible\":true}]";
+            string defaultJson = "[{\"ElementType\":\"Text\",\"Content\":\"ITADA LONG M\\u1EF8\",\"Align\":\"Center\",\"FontSize\":50,\"IsBold\":true,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"\\u0110C: CMT8, TT.Long M\\u1EF9, Long M\\u1EF9, H\\u1EADu Giang\",\"Align\":\"Left\",\"FontSize\":24,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"B\\u00E0n: {Table}\",\"Align\":\"Left\",\"FontSize\":28,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"Gi\\u1EDD \\u0111\\u1EBFn: {CheckInTime} | Gi\\u1EDD in: {PrintTime}\",\"Align\":\"Left\",\"FontSize\":26,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Separator\",\"Content\":\"\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"OrderDetails\",\"Content\":\"HeaderSize=28;ItemSize=28;ShowNote=False;NoteSize=26;ColumnSpacing=10;ItemSep=True;SepStyle=Dashed\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Total\",\"Content\":\"ShowSub=True;ShowDisc=True;TotalHeaderSize=30;SubSize=28\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":true,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Logo\",\"Content\":\"Logo\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":200}]";
 
             modelBuilder.Entity<PrintTemplate>().HasData(
                 new PrintTemplate
@@ -99,6 +99,14 @@ namespace PosSystem.Main.Database
                     TemplateName = "Mẫu chuẩn",
                     TemplateType = "Bill",
                     TemplateContentJson = defaultJson,
+                    IsActive = true
+                },
+                new PrintTemplate
+                {
+                    TemplateID = 2,
+                    TemplateName = "Mẫu bếp chuẩn",
+                    TemplateType = "Kitchen",
+                    TemplateContentJson = "[{\"ElementType\":\"Text\",\"Content\":\"{Table}\",\"Align\":\"Center\",\"FontSize\":55,\"IsBold\":true,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\" \\u0110\\u1EE2T {Batch}\",\"Align\":\"Left\",\"FontSize\":26,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"Ng\\u01B0\\u1EDDi g\\u1EEDi: {Sender}\",\"Align\":\"Left\",\"FontSize\":26,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Separator\",\"Content\":\"\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"KitchenOrderDetails\",\"Content\":\"HeaderSize=30;ItemSize=30;NoteSize=28;ColumnSpacing=10;ItemSep=True;SepStyle=Dashed\",\"Align\":\"Center\",\"FontSize\":14,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300},{\"ElementType\":\"Text\",\"Content\":\"Gi\\u1EDD in: {PrintTime}\",\"Align\":\"Center\",\"FontSize\":26,\"IsBold\":false,\"IsVisible\":true,\"ImageHeight\":300}]",
                     IsActive = true
                 }
             );
