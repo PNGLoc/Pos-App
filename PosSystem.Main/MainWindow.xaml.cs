@@ -45,6 +45,7 @@ namespace PosSystem.Main
         public string DishName { get; set; } = "";
         public decimal Price { get; set; }
         public int CategoryID { get; set; }
+        public string ImagePath { get; set; } = "";
     }
 
     public class ReprintItemViewModel : System.ComponentModel.INotifyPropertyChanged
@@ -100,6 +101,9 @@ namespace PosSystem.Main
         private HubConnection _connection = default!;
         private int _selectedTableId = 0;
         private int? _selectedCategoryId = null; // Filter by CategoryID
+
+        // Menu dish ordering: category OrderIndex lookup (used when selecting "TẤT CẢ")
+        private Dictionary<int, int> _menuCategoryOrderIndexById = new Dictionary<int, int>();
         private string _tableTypeFilter = "All"; // Legacy or backup
 
         // List categories for Filter Bar
@@ -607,7 +611,12 @@ namespace PosSystem.Main
         {
             using (var db = new AppDbContext())
             {
-                var cats = db.Categories.OrderBy(c => c.OrderIndex).ToList();
+                var cats = db.Categories
+                    .OrderBy(c => c.OrderIndex)
+                    .ThenBy(c => c.CategoryID)
+                    .ToList();
+
+                _menuCategoryOrderIndexById = cats.ToDictionary(c => c.CategoryID, c => c.OrderIndex);
                 var catViewModels = new List<CategoryViewModel> { new CategoryViewModel { CategoryID = 0, CategoryName = "TẤT CẢ" } };
                 catViewModels.AddRange(cats.Select(c => new CategoryViewModel { CategoryID = c.CategoryID, CategoryName = c.CategoryName }));
 
@@ -619,7 +628,8 @@ namespace PosSystem.Main
                     DishID = d.DishID,
                     DishName = d.DishName,
                     Price = Services.PriceService.GetCurrentPrice(d.DishID),
-                    CategoryID = d.CategoryID
+                    CategoryID = d.CategoryID,
+                    ImagePath = d.ImagePath
                 }).ToList();
 
                 UpdateDishListDisplay();
@@ -642,6 +652,26 @@ namespace PosSystem.Main
             if (!string.IsNullOrEmpty(searchText))
             {
                 filtered = filtered.Where(d => MatchDishSearch(d.DishName, searchText)).ToList();
+            }
+
+            // Ordering:
+            // - When "TẤT CẢ": order by category display order (OrderIndex), then dish name
+            // - When a category is chosen: order by dish name
+            if (lstCategories.SelectedItem is CategoryViewModel selectedCategory && selectedCategory.CategoryID != 0)
+            {
+                filtered = filtered
+                    .OrderBy(d => d.DishName)
+                    .ToList();
+            }
+            else
+            {
+                filtered = filtered
+                    .OrderBy(d =>
+                        _menuCategoryOrderIndexById.TryGetValue(d.CategoryID, out var idx)
+                            ? idx
+                            : int.MaxValue)
+                    .ThenBy(d => d.DishName)
+                    .ToList();
             }
 
             lstDishes.ItemsSource = filtered;
