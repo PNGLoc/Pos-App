@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 using PosSystem.Main.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace PosSystem.Main.Pages
 {
@@ -13,6 +14,7 @@ namespace PosSystem.Main.Pages
     {
         private string? _editingRuleType = null;
         private List<RuleTypeViewModel>? _originalRuleTypes = null;
+        private List<RuleDetailViewModel>? _allRuleDetails = null; // [NEW] Cache for filtering
         private bool _isLoadingData = true;
 
         public PriceRuleSetupPage()
@@ -188,19 +190,36 @@ namespace PosSystem.Main.Pages
                 lblSelectedRuleType.Text = ruleType;
                 _editingRuleType = ruleType;
 
-                var dishes = db.Dishes.Where(d => d.DishStatus == "Active").ToList();
+                // [MODIFIED] Include Category
+                var dishes = db.Dishes.Include(d => d.Category).Where(d => d.DishStatus == "Active").ToList();
                 var rules = db.DishPriceRules.Where(p => p.RuleType == ruleType).ToList();
 
                 var detailsViewModels = dishes.Select(d => new RuleDetailViewModel
                 {
                     DishID = d.DishID,
                     DishName = d.DishName,
+                    CategoryName = d.Category?.CategoryName ?? "---", // [NEW]
                     Unit = d.Unit,
+                    CategoryID = d.CategoryID, // [NEW]
                     BasePrice = d.Price, // Giá gốc
-                    NewPrice = rules.FirstOrDefault(p => p.DishID == d.DishID)?.Price ?? d.Price // Giá mới (nếu có) hoặc mặc định bằng giá cũ
+                    // [MODIFIED] Init NewPrice and OriginalPrice
+                    OriginalPrice = rules.FirstOrDefault(p => p.DishID == d.DishID)?.Price ?? d.Price,
+                    NewPrice = rules.FirstOrDefault(p => p.DishID == d.DishID)?.Price ?? d.Price
                 }).ToList();
 
-                dgRuleDetails.ItemsSource = detailsViewModels;
+                _allRuleDetails = detailsViewModels; // [NEW] Store full list
+                
+                // Load Categories for Filter
+                var cats = db.Categories.OrderBy(c => c.OrderIndex).Select(c => new { c.CategoryID, c.CategoryName }).ToList();
+                var catList = new List<dynamic> { new { CategoryID = 0, CategoryName = "Tất cả danh mục" } };
+                catList.AddRange(cats);
+                cboDetailCategory.ItemsSource = catList;
+                cboDetailCategory.SelectedValuePath = "CategoryID";
+                cboDetailCategory.DisplayMemberPath = "CategoryName";
+                cboDetailCategory.SelectedIndex = 0;
+                txtDetailSearch.Clear();
+
+                UpdateDetailFilter(); // Initial Load
                 DetailPanel.Visibility = Visibility.Visible;
             }
         }
@@ -243,7 +262,15 @@ namespace PosSystem.Main.Pages
 
                 db.SaveChanges();
                 ShowNotification("Lưu giá mới thành công!");
-                DetailPanel.Visibility = Visibility.Collapsed;
+                
+                // [MODIFIED] Update OriginalPrice to clear highlights
+                foreach (var detail in detailsData)
+                {
+                    detail.CommitChange();
+                }
+
+                // DetailPanel.Visibility = Visibility.Collapsed; // User wants to keep open
+                _allRuleDetails = null; // Clear cache
                 LoadData();
             }
         }
@@ -251,6 +278,47 @@ namespace PosSystem.Main.Pages
         private void BtnBackToRuleList_Click(object sender, RoutedEventArgs e)
         {
             DetailPanel.Visibility = Visibility.Collapsed;
+            _allRuleDetails = null; // Clear memory
+        }
+
+        // --- FILTER LOGIC ---
+        private void UpdateDetailFilter()
+        {
+            if (_allRuleDetails == null) return;
+
+            var filtered = _allRuleDetails.AsEnumerable();
+
+            // Filter by Category
+            if (cboDetailCategory.SelectedValue is int catId && catId != 0)
+            {
+                filtered = filtered.Where(d => d.CategoryID == catId);
+            }
+
+            // Filter by Search Text
+            string text = txtDetailSearch.Text.Trim().ToLower();
+            if (!string.IsNullOrEmpty(text))
+            {
+               filtered = filtered.Where(d => RemoveDiacritics(d.DishName.ToLower()).Contains(RemoveDiacritics(text)));
+            }
+
+            dgRuleDetails.ItemsSource = filtered.ToList();
+        }
+
+        private void CboDetailCategory_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateDetailFilter();
+        private void TxtDetailSearch_TextChanged(object sender, TextChangedEventArgs e) => UpdateDetailFilter();
+
+        private string RemoveDiacritics(string text)
+        {
+            // Simple helper or copy from MainWindow
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            var normalized = text.Normalize(System.Text.NormalizationForm.FormD);
+            var sb = new System.Text.StringBuilder();
+            foreach (var c in normalized)
+            {
+                if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+                    sb.Append(c);
+            }
+            return sb.ToString().Normalize(System.Text.NormalizationForm.FormC).Replace('đ', 'd').Replace('Đ', 'D');
         }
 
         // --- UTILS ---
@@ -278,12 +346,42 @@ namespace PosSystem.Main.Pages
         public bool IsActive { get; set; }
     }
 
-    public class RuleDetailViewModel
+    public class RuleDetailViewModel : System.ComponentModel.INotifyPropertyChanged
     {
         public int DishID { get; set; }
+        public string CategoryName { get; set; } = "";
         public string DishName { get; set; } = "";
         public string Unit { get; set; } = "";
+        public int CategoryID { get; set; }
         public decimal BasePrice { get; set; }
-        public decimal NewPrice { get; set; }
+        
+        // [NEW] Logic for tracking changes
+        public decimal OriginalPrice { get; set; }
+
+        private decimal _newPrice;
+        public decimal NewPrice 
+        { 
+            get => _newPrice;
+            set 
+            { 
+                if (_newPrice != value)
+                {
+                    _newPrice = value;
+                    OnPropertyChanged(nameof(NewPrice));
+                    OnPropertyChanged(nameof(RowBackground));
+                }
+            }
+        }
+
+        public string RowBackground => (NewPrice != OriginalPrice) ? "#FFF3CD" : "White"; // Yellowish if changed
+
+        public void CommitChange()
+        {
+            OriginalPrice = NewPrice;
+            OnPropertyChanged(nameof(RowBackground));
+        }
+
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(name));
     }
 }

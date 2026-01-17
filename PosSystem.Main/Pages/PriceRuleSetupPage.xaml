@@ -149,17 +149,42 @@
 
             <!-- Detail Header -->
             <Border Grid.Row="0" Background="#F8F9FA" Padding="15" BorderThickness="0,0,0,1" BorderBrush="#DEE2E6">
-                <DockPanel>
+                <!-- [MODIFIED] LastChildFill="False" to keep button right-aligned without stretching -->
+                <DockPanel LastChildFill="False">
                     <Button DockPanel.Dock="Left" Content="⬅️ Quay lại" Click="BtnBackToRuleList_Click"
                             Background="Transparent" Foreground="#6C757D" BorderThickness="0" FontWeight="Bold" Cursor="Hand" FontSize="14"/>
                     
                     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="Chi tiết bảng giá:" FontWeight="SemiBold" Margin="0,0,5,0" FontSize="16"/>
-                        <TextBlock x:Name="lblSelectedRuleType" Text="VIP" FontWeight="Bold" Foreground="#007BFF" FontSize="16"/>
+                        <TextBlock x:Name="lblSelectedRuleType" Text="VIP" FontWeight="Bold" Foreground="#007BFF" FontSize="16" Margin="0,0,20,0"/>
+
+                        <!-- FILTER CONTROLS -->
+                        <ComboBox x:Name="cboDetailCategory" Width="180" Height="30" Margin="0,0,10,0"
+                                  SelectionChanged="CboDetailCategory_SelectionChanged" VerticalContentAlignment="Center"/>
+                        
+                        <!-- [MODIFIED] Wider Search + Placeholder -->
+                        <Grid>
+                            <TextBox x:Name="txtDetailSearch" Width="300" Height="30" Padding="5,0"
+                                     VerticalContentAlignment="Center" BorderBrush="#CED4DA"
+                                     TextChanged="TxtDetailSearch_TextChanged"/>
+                            <TextBlock Text="🔍 Nhập để tìm kiếm..." IsHitTestVisible="False" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#999">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Text, ElementName=txtDetailSearch}" Value="">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
                     </StackPanel>
 
-                    <Button DockPanel.Dock="Right" Content="💾 LƯU THAY ĐỔI" Click="BtnSaveRuleDetails_Click"
-                            Padding="20,8" Background="#007BFF" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
+                    <!-- [MODIFIED] Smaller button, right aligned -->
+                    <Button DockPanel.Dock="Right" Content="💾 Lưu lại" Click="BtnSaveRuleDetails_Click"
+                            Padding="15,5" Background="#007BFF" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand" FontSize="13">
                         <Button.Resources>
                             <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="4"/>
@@ -173,6 +198,11 @@
             <DataGrid x:Name="dgRuleDetails" Grid.Row="1" Margin="20"
                       AutoGenerateColumns="False" CanUserAddRows="False"
                       Background="White" RowHeight="40" BorderThickness="1" BorderBrush="#DEE2E6">
+                 <DataGrid.ItemContainerStyle>
+                     <Style TargetType="DataGridRow">
+                         <Setter Property="Background" Value="{Binding RowBackground}"/>
+                     </Style>
+                 </DataGrid.ItemContainerStyle>
                  <DataGrid.ColumnHeaderStyle>
                     <Style TargetType="DataGridColumnHeader">
                         <Setter Property="Background" Value="#F8F9FA"/>
@@ -183,6 +213,7 @@
                     </Style>
                 </DataGrid.ColumnHeaderStyle>
                 <DataGrid.Columns>
+                    <DataGridTextColumn Header="Danh mục" Binding="{Binding CategoryName}" Width="150" IsReadOnly="True" FontWeight="SemiBold"/>
                     <DataGridTextColumn Header="Tên Sản Phẩm" Binding="{Binding DishName}" Width="*" IsReadOnly="True" FontWeight="SemiBold"/>
                     <DataGridTextColumn Header="Đơn vị" Binding="{Binding Unit}" Width="100" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Giá Gốc" Binding="{Binding BasePrice, StringFormat=N0}" Width="150" IsReadOnly="True" Foreground="#666"/>
