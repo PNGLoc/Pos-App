@@ -124,8 +124,6 @@
                                         Value="1"/>
                                 <Setter Property="BorderBrush"
                                         Value="#007BFF"/>
-                                <Setter Property="Background"
-                                        Value="White"/>
                                 <Setter Property="Foreground"
                                         Value="Black"/>
                                 <Setter Property="FontStyle"
@@ -134,8 +132,10 @@
 
                             <Trigger Property="IsMouseOver"
                                      Value="True">
-                                <Setter Property="Background"
-                                        Value="#F8F9FA"/>
+                                <Setter Property="BorderThickness"
+                                        Value="1"/>
+                                <Setter Property="BorderBrush"
+                                        Value="#DEE2E6"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -696,11 +696,11 @@
                                                         Visibility="{Binding ImagePath, Converter={StaticResource DishImagePathToVisibilityConverter}}">
                                                     <Border.Background>
                                                         <LinearGradientBrush StartPoint="0,0"
-                                                                EndPoint="0,1">
+                                                                             EndPoint="0,1">
                                                             <GradientStop Color="#20000000"
-                                                                    Offset="0"/>
+                                                                          Offset="0"/>
                                                             <GradientStop Color="#A0000000"
-                                                                    Offset="1"/>
+                                                                          Offset="1"/>
                                                         </LinearGradientBrush>
                                                     </Border.Background>
                                                 </Border>
@@ -1025,19 +1025,66 @@
                                   Background="White"
                                   MinRowHeight="55"
                                   FontSize="14">
+                            <!-- Remove selection highlight (row/cell blue) to keep RowColor readable when clicking rows or focusing note textbox -->
+                            <DataGrid.Resources>
+                                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"
+                                        Color="Transparent"/>
+                                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"
+                                        Color="Transparent"/>
+                                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}"
+                                        Color="Black"/>
+                                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}"
+                                        Color="Black"/>
+                            </DataGrid.Resources>
+
                             <DataGrid.RowStyle>
                                 <Style TargetType="DataGridRow">
                                     <Setter Property="Background"
                                             Value="{Binding RowColor}"/>
+                                    <Setter Property="BorderThickness"
+                                            Value="0"/>
+                                    <Setter Property="BorderBrush"
+                                            Value="Transparent"/>
+                                    <Setter Property="FocusVisualStyle"
+                                            Value="{x:Null}"/>
                                     <Style.Triggers>
                                         <Trigger Property="IsSelected"
                                                  Value="True">
                                             <Setter Property="Background"
                                                     Value="{Binding RowColor}"/>
+                                            <Setter Property="BorderThickness"
+                                                    Value="0"/>
+                                            <Setter Property="BorderBrush"
+                                                    Value="Transparent"/>
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
                             </DataGrid.RowStyle>
+
+                            <DataGrid.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="BorderThickness"
+                                            Value="0"/>
+                                    <Setter Property="FocusVisualStyle"
+                                            Value="{x:Null}"/>
+                                    <Setter Property="Background"
+                                            Value="Transparent"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsSelected"
+                                                Value="True">
+                                            <Setter Property="Background"
+                                                    Value="Transparent"/>
+                                            <Setter Property="BorderThickness"
+                                                    Value="0"/>
+                                        </Trigger>
+                                        <Trigger Property="IsKeyboardFocusWithin"
+                                                Value="True">
+                                            <Setter Property="BorderThickness"
+                                                    Value="0"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.CellStyle>
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="Món"
                                                         Width="*"
@@ -1050,59 +1097,108 @@
                                                            TextWrapping="Wrap"
                                                            Margin="0,0,0,3"/>
 
-                                                <Grid>
-                                                    <TextBox Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             Tag="{Binding OrderDetailID}"
-                                                             LostFocus="TxtNote_LostFocus"
-                                                             Padding="0,2"
-                                                             TextWrapping="Wrap"
-                                                             AcceptsReturn="True">
-                                                        <TextBox.Style>
-                                                            <Style TargetType="TextBox"
-                                                                   BasedOn="{StaticResource NoteTextBoxStyle}">
-                                                                <Setter Property="IsReadOnly"
-                                                                        Value="False"/>
-                                                                <Setter Property="ToolTip"
-                                                                        Value="Nhập ghi chú (Ví dụ: Ít đường...)"/>
+                                                <!-- NOTE RULES:
+                                                     - Món đã gửi bếp (ItemStatus=Sent): chỉ hiển thị ghi chú nếu có ghi chú; không cho sửa.
+                                                     - Món chưa gửi bếp (New/Modified): làm nổi bật khu vực nhập ghi chú (nền vàng). -->
+                                                <Border x:Name="noteBorder"
+                                                        CornerRadius="4"
+                                                        Padding="4"
+                                                        Background="#FFF3CD"
+                                                        BorderBrush="#FFEEBA"
+                                                        BorderThickness="1">
+                                                    <Grid>
+                                                        <!-- Editable note (for New/Modified) -->
+                                                        <TextBox x:Name="txtNoteEdit"
+                                                                 Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                 Tag="{Binding OrderDetailID}"
+                                                                 LostFocus="TxtNote_LostFocus"
+                                                                 Padding="0,2"
+                                                                 TextWrapping="Wrap"
+                                                                 AcceptsReturn="True"
+                                                                 Background="Transparent">
+                                                            <TextBox.Style>
+                                                                <Style TargetType="TextBox"
+                                                                       BasedOn="{StaticResource NoteTextBoxStyle}">
+                                                                    <Setter Property="IsReadOnly"
+                                                                            Value="False"/>
+                                                                    <Setter Property="ToolTip"
+                                                                            Value="Nhập ghi chú (Ví dụ: Ít đường...)"/>
+                                                                </Style>
+                                                            </TextBox.Style>
+                                                        </TextBox>
 
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding ItemStatus}"
-                                                                                 Value="Sent">
-                                                                        <Setter Property="IsReadOnly"
-                                                                                Value="True"/>
-                                                                        <Setter Property="Foreground"
-                                                                                Value="#999"/>
-                                                                        <Setter Property="BorderThickness"
-                                                                                Value="0"/>
-                                                                        <Setter Property="ToolTip"
-                                                                                Value="Món đã gửi bếp - Không thể sửa ghi chú"/>
-                                                                        <Setter Property="Cursor"
-                                                                                Value="Arrow"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding ItemStatus}"
-                                                                                 Value="Done">
-                                                                        <Setter Property="IsReadOnly"
-                                                                                Value="True"/>
-                                                                        <Setter Property="Foreground"
-                                                                                Value="#999"/>
-                                                                        <Setter Property="BorderThickness"
-                                                                                Value="0"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBox.Style>
-                                                    </TextBox>
+                                                        <!-- Placeholder only for editable mode -->
+                                                        <TextBlock x:Name="txtNotePlaceholder"
+                                                                   Text="Ghi chú"
+                                                                   FontSize="12"
+                                                                   Foreground="#8A6D3B"
+                                                                   FontStyle="Italic"
+                                                                   Margin="5,2"
+                                                                   IsHitTestVisible="False"
+                                                                   VerticalAlignment="Center"
+                                                                   Visibility="{Binding Note, Converter={StaticResource EmptyStringToVisibilityConverter}}"/>
 
-                                                    <TextBlock Text="Ghi chú"
-                                                               FontSize="12"
-                                                               Foreground="#BBB"
-                                                               FontStyle="Italic"
-                                                               Margin="5,2"
-                                                               IsHitTestVisible="False"
-                                                               VerticalAlignment="Center"
-                                                               Visibility="{Binding Note, Converter={StaticResource EmptyStringToVisibilityConverter}}"/>
-                                                </Grid>
+                                                        <!-- Read-only note display for Sent items (only shown when note exists) -->
+                                                        <TextBlock x:Name="txtNoteDisplay"
+                                                                   Visibility="Collapsed"
+                                                                   TextWrapping="Wrap"
+                                                                   FontSize="12"
+                                                                   Foreground="#495057">
+                                                            <Run Text="📝 "/>
+                                                            <Run Text="{Binding Note}"/>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                </Border>
                                             </StackPanel>
+
+                                            <DataTemplate.Triggers>
+                                                <!-- Sent: show note only if it exists, hide editor -->
+                                                <DataTrigger Binding="{Binding ItemStatus}"
+                                                             Value="Sent">
+                                                    <Setter TargetName="noteBorder"
+                                                            Property="Background"
+                                                            Value="Transparent"/>
+                                                    <Setter TargetName="noteBorder"
+                                                            Property="BorderThickness"
+                                                            Value="0"/>
+                                                    <Setter TargetName="noteBorder"
+                                                            Property="Padding"
+                                                            Value="0"/>
+                                                    <Setter TargetName="txtNoteEdit"
+                                                            Property="Visibility"
+                                                            Value="Collapsed"/>
+                                                    <Setter TargetName="txtNotePlaceholder"
+                                                            Property="Visibility"
+                                                            Value="Collapsed"/>
+                                                    <Setter TargetName="txtNoteDisplay"
+                                                            Property="Visibility"
+                                                            Value="Visible"/>
+                                                </DataTrigger>
+
+                                                <!-- Sent + empty note => hide note area entirely -->
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding ItemStatus}"
+                                                                   Value="Sent"/>
+                                                        <Condition Binding="{Binding Note}"
+                                                                   Value=""/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter TargetName="noteBorder"
+                                                            Property="Visibility"
+                                                            Value="Collapsed"/>
+                                                </MultiDataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding ItemStatus}"
+                                                                   Value="Sent"/>
+                                                        <Condition Binding="{Binding Note}"
+                                                                   Value="{x:Null}"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter TargetName="noteBorder"
+                                                            Property="Visibility"
+                                                            Value="Collapsed"/>
+                                                </MultiDataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
