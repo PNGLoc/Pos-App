@@ -78,7 +78,8 @@
                              HorizontalContentAlignment="Center"
                             Text="0"
                              PreviewTextInput="NumberValidationTextBox"
-                            GotFocus="Txt_GotFocus"/>
+                            GotFocus="Txt_GotFocus"
+                            TextChanged="TxtAmount_TextChanged"/>
                     <TextBlock Text="(Nhập thẳng giá bán mới hoặc số tiền giảm)"
                             FontSize="11"
                             Foreground="#999"

@@ -151,6 +151,7 @@ namespace PosSystem.Main
             lblSubTotal.Text = "0đ";
             lblTotal.Text = "0đ";
             pnlDiscount.Visibility = Visibility.Collapsed;
+            btnDiscountBill.Visibility = Visibility.Collapsed; // [FIX] Hide initially
 
             LoadTables();
             LoadMenu();
@@ -218,7 +219,10 @@ namespace PosSystem.Main
                 // Show split and move buttons when selecting a table
                 btnSplitTable.Visibility = Visibility.Visible;
                 btnMoveTable.Visibility = Visibility.Visible;
+                btnSplitTable.Visibility = Visibility.Visible;
+                btnMoveTable.Visibility = Visibility.Visible;
                 btnReprintKitchen.Visibility = Visibility.Visible;
+                btnDiscountBill.Visibility = Visibility.Visible; // [FIX] Show when table selected
 
                 // Stop timer when entering a table (will start only when sending kitchen)
                 _tableTimeTimer.Stop();
@@ -261,7 +265,8 @@ namespace PosSystem.Main
             // Reset split mode when returning to table list
             _isWaitingForTargetTable = false;
             _pendingSplitItems.Clear();
-            btnDiscountBill.Visibility = Visibility.Visible;
+            _pendingSplitItems.Clear();
+            btnDiscountBill.Visibility = Visibility.Collapsed; // [FIX] Hide when returning to table list
 
             // Reset move mode when returning to table list
             _isWaitingForMoveTargetTable = false;
@@ -296,7 +301,9 @@ namespace PosSystem.Main
             pnlMenu.Visibility = Visibility.Visible;
             btnSplitTable.Visibility = Visibility.Visible;
             btnMoveTable.Visibility = Visibility.Visible;
+            btnMoveTable.Visibility = Visibility.Visible;
             btnReprintKitchen.Visibility = Visibility.Visible;
+            btnDiscountBill.Visibility = Visibility.Visible; // [FIX] Show when table loaded
 
             // Stop timer when entering a table
             _tableTimeTimer.Stop();

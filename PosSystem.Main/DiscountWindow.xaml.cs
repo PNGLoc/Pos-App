@@ -58,7 +58,9 @@ namespace PosSystem.Main
             if (_isQuantityMode)
             {
                 // Logic trả về số lượng
-                decimal.TryParse(txtAmount.Text, out decimal val);
+                // Logic trả về số lượng
+                string rawText = txtAmount.Text.Replace(".", ""); // Remove separators
+                decimal.TryParse(rawText, out decimal val);
                 ResultValue = val;
                 this.DialogResult = true;
                 return;
@@ -75,7 +77,8 @@ namespace PosSystem.Main
             else // Tab Tiền
             {
                 IsPercentage = false;
-                decimal.TryParse(txtAmount.Text, out decimal val);
+                string rawText = txtAmount.Text.Replace(".", ""); // Remove separators
+                decimal.TryParse(rawText, out decimal val);
                 ResultValue = val;
             }
 
@@ -93,6 +96,28 @@ namespace PosSystem.Main
         private void Txt_GotFocus(object sender, RoutedEventArgs e)
         {
             if (sender is TextBox tb) tb.SelectAll();
+        }
+
+        private void TxtAmount_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox txt)
+            {
+                // Remove existing separators
+                string rawText = txt.Text.Replace(".", "").Trim();
+                
+                if (long.TryParse(rawText, out long value))
+                {
+                    txt.TextChanged -= TxtAmount_TextChanged;
+                    // Format with dots (Vietnamese style)
+                    txt.Text = value.ToString("#,##0", new System.Globalization.CultureInfo("vi-VN"));
+                    txt.CaretIndex = txt.Text.Length;
+                    txt.TextChanged += TxtAmount_TextChanged;
+                }
+                else if (string.IsNullOrEmpty(rawText))
+                {
+                     // Handle empty case
+                }
+            }
         }
     }
 }
