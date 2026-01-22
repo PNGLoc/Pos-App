@@ -1848,7 +1848,8 @@ namespace PosSystem.Main
                 _tableTimeTimer.Stop();
 
                 LoadTables();
-                LoadOrderDetails(_selectedTableId);
+                // [MODIFIED] Return to Table List after Payment
+                BtnBackToTables_Click(null, null);
             }
             else if (payWindow.IsProvisionalSuccess)
             {
