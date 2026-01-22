@@ -304,20 +304,21 @@ function updateTableTimers() {
         const diff = Math.floor((now - startTime) / 1000); // seconds
 
         if (diff < 0) {
-            el.innerText = "0s";
+            el.innerText = "0p";
             return;
         }
 
         let display = "";
-        if (diff < 60) display = diff + "s";
-        else if (diff < 3600) {
+        // [MODIFIED] Show minutes only (User request)
+        if (diff < 60) {
+            display = "0p";
+        } else if (diff < 3600) {
             const m = Math.floor(diff / 60);
-            const s = diff % 60;
-            display = `${m}m ${s}s`;
+            display = `${m}p`;
         } else {
             const h = Math.floor(diff / 3600);
             const m = Math.floor((diff % 3600) / 60);
-            display = `${h}h ${m}m`;
+            display = `${h}h${m}`;
         }
         el.innerText = display;
     });
@@ -360,9 +361,9 @@ function renderTables(filterId) {
 
         div.onclick = () => openTableDetail(t);
 
-        // [NEW] Timer Element
+        // [NEW] Timer Element (Flush Top, Square, No BG, Red Text)
         const timerHtml = (t.tableStatus === 'Occupied' && t.orderTime)
-            ? `<div class="position-absolute top-0 end-0 m-1 bg-white rounded px-1 small border table-timer" data-ordertime="${t.orderTime}" style="font-size: 0.75rem; margin-top: 25px !important;"><i class="fas fa-clock text-muted"></i> ...</div>`
+            ? `<div class="position-absolute top-0 start-50 translate-middle-x mt-0 px-2 border border-danger text-danger fw-bold table-timer" data-ordertime="${t.orderTime}" style="z-index: 5; font-size: 0.85rem;"><i class="fas fa-clock me-1"></i> ...</div>`
             : '';
 
         div.innerHTML = `
