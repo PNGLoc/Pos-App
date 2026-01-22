@@ -425,15 +425,45 @@ namespace PosSystem.Main
         }
 
         // Recalculate order totals based on order details
+        // Recalculate order totals based on order details
         private void RecalculateOrderTotals(Order order)
         {
             if (order == null) return;
 
-            decimal subTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.Quantity * d.UnitPrice);
-            order.SubTotal = subTotal;
+            // 1. Calculate Base Total (Original Price * Quantity)
+            decimal baseTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.Quantity * d.UnitPrice);
 
-            decimal discountValue = (order.DiscountPercent > 0) ? subTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
-            order.FinalAmount = subTotal - discountValue;
+            // 2. Calculate Actual Total (After Item Discount/Surcharge)
+            decimal actualTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.TotalAmount);
+            
+            order.SubTotal = actualTotal;
+
+            // 3. Display Adjustment (Difference)
+            decimal adjustment = actualTotal - baseTotal;
+            if (adjustment != 0)
+            {
+                pnlAdjustment.Visibility = Visibility.Visible;
+                if (adjustment > 0)
+                {
+                    lblAdjustmentTitle.Text = "Đã bao gồm tăng giá món: ";
+                    lblAdjustment.Text = $"+{adjustment:N0}đ";
+                    lblAdjustment.Foreground = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14"); // Orange
+                }
+                else
+                {
+                    lblAdjustmentTitle.Text = "Đã bao gồm giảm giá món: ";
+                    lblAdjustment.Text = $"{adjustment:N0}đ";
+                    lblAdjustment.Foreground = System.Windows.Media.Brushes.Red;
+                }
+            }
+            else
+            {
+                pnlAdjustment.Visibility = Visibility.Collapsed;
+            }
+
+            // 4. Calculate Final Bill Discount
+            decimal discountValue = (order.DiscountPercent > 0) ? actualTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
+            order.FinalAmount = actualTotal - discountValue;
         }
 
         // --- 2. LOAD DATA ---
@@ -1367,23 +1397,24 @@ namespace PosSystem.Main
                         // (Ở đây ta giả định DiscountWindow sẽ trả về Giá Mới hoặc % Giảm)
                         currentVal = detail.UnitPrice;
 
-                    // Mở Dialog Discount (Mode: isEditItem = true để đổi tiêu đề thành "Giá mới")
-                    // Constructor: (giá trị hiện tại, mode %, mode Sửa Món)
-                    var dialog = new DiscountWindow(currentVal, isPercentMode: isPercent, isEditItem: true);
+                    // Mở Dialog Discount (Mode: isEditItem = true)
+                    // [MODIFIED] Pass maxLimit = UnitPrice to clamp discount amount
+                    var dialog = new DiscountWindow(currentVal, isPercentMode: isPercent, isEditItem: true, maxLimit: detail.UnitPrice);
 
                     if (dialog.ShowDialog() == true)
                     {
                         if (dialog.IsPercentage)
                         {
                             // GIẢM THEO %
-                            detail.DiscountRate = dialog.ResultValue; // Vd: 10%
+                            detail.DiscountRate = dialog.ResultValue; 
                         }
                         else
                         {
-                            // GIẢM THEO GIÁ TIỀN MỚI (Set Price)
-                            decimal newPrice = dialog.ResultValue; // Vd: Bán 20k (Gốc 25k)
+                            // GIẢM THEO TIỀN
+                            // Dialog logic has been updated to return the NEW PRICE directly (adjusting for Increase/Decrease)
+                            decimal newPrice = dialog.ResultValue; 
 
-                            // Cập nhật lại DiscountRate dựa trên giá mới để hệ thống thống nhất
+                            // Update DiscountRate based on New Price vs Unit Price
                             if (detail.UnitPrice > 0)
                                 detail.DiscountRate = ((detail.UnitPrice - newPrice) / detail.UnitPrice) * 100;
                             else
@@ -2497,8 +2528,8 @@ namespace PosSystem.Main
         public string Note { get; set; } = "";
 
         // Các thuộc tính hiển thị
-        public bool HasDiscount => DiscountRate > 0;
-        public string DiscountDisplay => HasDiscount ? $"Giảm {DiscountRate:0.#}%" : "";
+        public bool HasDiscount => DiscountRate != 0;
+        public string DiscountDisplay => DiscountRate > 0 ? $"Giảm {DiscountRate:0.#}%" : $"Tăng {-DiscountRate:0.#}%";
         public string BatchDisplay { get; set; } = "";
         public string StatusDisplay { get; set; } = "";
         public string RowColor { get; set; } = "White";

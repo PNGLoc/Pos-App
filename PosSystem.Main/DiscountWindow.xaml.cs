@@ -25,16 +25,58 @@ namespace PosSystem.Main
             {
                 lblCashTitle.Text = "Nhập giá bán mới (đ):";
             }
+            else
+            {
+                // [NEW] Bill Discount -> Disable Increase Option (Hide Toggle)
+                pnlToggleMode.Visibility = Visibility.Collapsed;
+            }
 
             if (isPercentMode)
             {
                 tabMain.SelectedIndex = 0;
-                txtPercent.Text = currentVal.ToString("0");
+                // [MODIFIED] Check sign to set Toggle
+                if (currentVal >= 0)
+                {
+                    optDecrease.IsChecked = true;
+                    txtPercent.Text = currentVal.ToString("0");
+                }
+                else
+                {
+                    optIncrease.IsChecked = true;
+                    txtPercent.Text = (-currentVal).ToString("0"); // Show positive number
+                }
             }
             else
             {
                 tabMain.SelectedIndex = 1;
-                txtAmount.Text = currentVal.ToString("0");
+                // Does logic support negative cash discount? usually yes.
+                if (currentVal >= 0)
+                {
+                    optDecrease.IsChecked = true;
+                    txtAmount.Text = currentVal.ToString("0");
+                }
+                else
+                {
+                    optIncrease.IsChecked = true;
+                    txtAmount.Text = (-currentVal).ToString("0");
+                }
+            }
+            
+            // Set initial label text
+            OptMode_Click(null, null);
+        }
+
+        // Event for toggle click
+        private void OptMode_Click(object sender, RoutedEventArgs e)
+        {
+            // [NEW] Update Title for Item Price Mode
+            bool isItemPriceMode = (tabMain.SelectedIndex == 1 && _maxLimit >= 0); // Hacky check but works for now (passed UnitPrice as limit)
+            if (isItemPriceMode)
+            {
+                if (optDecrease.IsChecked == true)
+                    lblCashTitle.Text = "Nhập số tiền giảm (đ):";
+                else
+                    lblCashTitle.Text = "Nhập giá bán mới (đ):";
             }
         }
 
@@ -82,13 +124,31 @@ namespace PosSystem.Main
                 string rawText = txtAmount.Text.Replace(".", ""); // Remove separators
                 decimal.TryParse(rawText, out decimal val);
 
-                // [NEW] Validate Max Limit (Auto Cap)
-                if (_maxLimit >= 0 && val > _maxLimit)
-                {
-                    val = _maxLimit;
-                }
+                bool isItemPriceMode = (_maxLimit >= 0); // Assuming Limit is passed only for Item Edit (and Bill which uses Decrease only)
 
-                ResultValue = val;
+                if (isItemPriceMode && optDecrease.IsChecked == true)
+                {
+                    // MODE DECREASE: Input is DISCOUNT AMOUNT
+                    // Cap at Max Limit (Price)
+                    if (val > _maxLimit) val = _maxLimit;
+
+                    // Result = New Price = Price - Discount
+                    ResultValue = _maxLimit - val;
+                }
+                else if (isItemPriceMode && optIncrease.IsChecked == true)
+                {
+                    // MODE INCREASE: Input is NEW PRICE
+                    // [NEW] Validate: New Price MUST be >= Original Price (_maxLimit)
+                    if (val < _maxLimit) val = _maxLimit;
+                    ResultValue = val;
+                }
+                else
+                {
+                    // Fallback / Bill Discount Mode (Decrease only)
+                    if (_maxLimit >= 0 && val > _maxLimit) val = _maxLimit;
+                    ResultValue = val;
+                    if (optIncrease.IsChecked == true) ResultValue = -ResultValue;
+                }
             }
 
             this.DialogResult = true;
@@ -98,7 +158,7 @@ namespace PosSystem.Main
 
         private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
         {
-            Regex regex = new Regex("[^0-9-]+"); // Cho phép dấu âm nếu cần (giảm món)
+            Regex regex = new Regex("[^0-9]+"); // Chỉ cho nhập số dương
             e.Handled = regex.IsMatch(e.Text);
         }
 
@@ -116,8 +176,9 @@ namespace PosSystem.Main
                 
                 if (long.TryParse(rawText, out long value))
                 {
-                    // [NEW] Immediate Clamp: If value > Limit -> Set to Limit
-                    if (_maxLimit >= 0 && value > _maxLimit)
+                    // [NEW] Immediate Clamp ONLY if Decrease Mode
+                    bool isDecrease = (optDecrease.IsChecked == true);
+                    if (_maxLimit >= 0 && isDecrease && value > _maxLimit)
                     {
                         value = (long)_maxLimit;
                     }

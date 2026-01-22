@@ -1416,10 +1416,24 @@
                                             HorizontalAlignment="Right">
                                     <StackPanel Orientation="Horizontal"
                                                 HorizontalAlignment="Right">
-                                        <TextBlock Text="Tổng: "/>
+                                        <TextBlock Text="Tổng (gốc): "/>
                                         <TextBlock x:Name="lblSubTotal"
                                                    Text="0đ"
                                                    FontWeight="Bold"/>
+                                    </StackPanel>
+                                    
+                                    <!-- [NEW] Item Adjustments Display -->
+                                    <StackPanel x:Name="pnlAdjustment"
+                                                Orientation="Horizontal"
+                                                HorizontalAlignment="Right"
+                                                Visibility="Collapsed">
+                                        <TextBlock x:Name="lblAdjustmentTitle" 
+                                                   Text="Chênh lệch món: "
+                                                   Foreground="#FD7E14"/>
+                                        <TextBlock x:Name="lblAdjustment"
+                                                   Text="+0đ"
+                                                   FontWeight="Bold"
+                                                   Foreground="#FD7E14"/>
                                     </StackPanel>
                                     <StackPanel x:Name="pnlDiscount"
                                                 Orientation="Horizontal"
