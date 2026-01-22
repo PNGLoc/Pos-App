@@ -2454,6 +2454,15 @@ namespace PosSystem.Main
             }
         }
 
+
+
+        private void BtnExpense_Click(object sender, RoutedEventArgs e)
+        {
+            var expenseWin = new ExpenseWindow();
+            expenseWin.Owner = this;
+            expenseWin.ShowDialog();
+        }
+
         private void BtnFilterAll_Click(object sender, RoutedEventArgs e)
         {
             _selectedCategoryId = null;

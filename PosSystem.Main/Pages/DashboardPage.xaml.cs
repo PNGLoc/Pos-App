@@ -96,11 +96,20 @@ namespace PosSystem.Main.Pages
                 // Số bàn đang có khách (Realtime status, not history)
                 int activeTables = _context.Tables.Count(t => t.TableStatus == "Occupied");
 
+                // [NEW] Tính chi phí
+                decimal totalExpense = _context.Expenses
+                    .Where(e => e.ExpenseDate >= start && e.ExpenseDate <= end)
+                    .Sum(e => e.Amount);
+                
+                decimal netRevenue = revenue - totalExpense;
+
                 // Hiển thị lên UI
-                txtRevenue.Text = string.Format("{0:N0} đ", revenue);
+                txtRevenue.Text = string.Format("{0:N0}", revenue); // Doanh thu tổng
+                txtExpense.Text = string.Format("{0:N0}", totalExpense); // Chi phí
+                txtNetRevenue.Text = string.Format("{0:N0}", netRevenue); // Thực thu
+
                 txtOrderCount.Text = orderCount.ToString();
                 txtActiveTables.Text = activeTables.ToString();
-                txtSoldItems.Text = soldItems.ToString();
 
                 // 2. Load Top món bán chạy & Thống kê nhóm
                 LoadAnalytics(start, end);

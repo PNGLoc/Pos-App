@@ -137,6 +137,10 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="OrderHistory"/>
+                <RadioButton Content="💸 Lịch sử Chi tiêu"
+                             Style="{StaticResource AdminMenuButton}"
+                             Click="Menu_Click"
+                             Tag="ExpenseHistory"/>
                
             </StackPanel>
         </Border>

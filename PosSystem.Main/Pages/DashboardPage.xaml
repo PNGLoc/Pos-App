@@ -107,16 +107,22 @@
                 Columns="4">
             <Border Style="{StaticResource StatCardStyle}">
                 <StackPanel>
-                    <TextBlock Text="DOANH THU"
-                            FontSize="13"
-                            Foreground="#95A5A6"
-                            FontWeight="SemiBold"/>
-                    <TextBlock x:Name="txtRevenue"
-                            Text="0 đ"
-                            FontSize="26"
-                            FontWeight="Bold"
-                            Foreground="#27AE60"
-                            Margin="0,5,0,0"/>
+                    <TextBlock Text="DOANH THU" FontSize="13" Foreground="#95A5A6" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtRevenue" Text="0" FontSize="26" FontWeight="Bold" Foreground="#27AE60" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource StatCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="CHI PHÍ" FontSize="13" Foreground="#95A5A6" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtExpense" Text="0" FontSize="26" FontWeight="Bold" Foreground="#E74C3C" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource StatCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="THỰC THU" FontSize="13" Foreground="#95A5A6" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtNetRevenue" Text="0" FontSize="26" FontWeight="Bold" Foreground="#2980B9" Margin="0,5,0,0"/>
                 </StackPanel>
             </Border>
 

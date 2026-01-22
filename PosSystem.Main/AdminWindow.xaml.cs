@@ -81,6 +81,9 @@ namespace PosSystem.Main
                     case "OrderHistory":
                         mainFrame.Navigate(new Pages.OrderHistoryPage());
                         break;
+                    case "ExpenseHistory": // [NEW] Link to Expense Page
+                        mainFrame.Navigate(new Pages.ExpenseHistoryPage());
+                        break;
                 }
             }
         }

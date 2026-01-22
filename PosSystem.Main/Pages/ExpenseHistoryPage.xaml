@@ -1,0 +1,29 @@
+<Page x:Class="PosSystem.Main.Pages.ExpenseHistoryPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="Lịch sử chi tiêu" Background="White">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+            <TextBlock Text="TỪ NGÀY:" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,10,0"/>
+            <DatePicker x:Name="dpFrom" Width="120" SelectedDateChanged="DatePicker_SelectedDateChanged"/>
+            <TextBlock Text="ĐẾN NGÀY:" VerticalAlignment="Center" FontWeight="Bold" Margin="20,0,10,0"/>
+            <DatePicker x:Name="dpTo" Width="120" SelectedDateChanged="DatePicker_SelectedDateChanged"/>
+        </StackPanel>
+
+        <DataGrid Grid.Row="1" x:Name="dgExpenses" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" Background="White" RowHeight="35">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID" Binding="{Binding ExpenseID}" Width="60"/>
+                <DataGridTextColumn Header="Ngày chi" Binding="{Binding ExpenseDate, StringFormat=dd/MM/yyyy HH:mm}" Width="140"/>
+                <DataGridTextColumn Header="Số tiền" Binding="{Binding Amount, StringFormat=N0}" Width="120" FontWeight="Bold"/>
+                <!-- Removed Category Column -->
+                <DataGridTextColumn Header="Lý do / Ghi chú" Binding="{Binding Note}" Width="*"/>
+                <DataGridTextColumn Header="Người nhập" Binding="{Binding CreatedBy}" Width="120"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Page>

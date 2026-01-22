@@ -24,6 +24,7 @@ namespace PosSystem.Main.Database
         public DbSet<Employee> Employees { get; set; }
         public DbSet<TimeLog> TimeLogs { get; set; }
         public DbSet<ActivityLogEntry> ActivityLogs { get; set; }
+        public DbSet<Expense> Expenses { get; set; } // [NEW] Expense Table
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             AppPaths.EnsureInitialized();

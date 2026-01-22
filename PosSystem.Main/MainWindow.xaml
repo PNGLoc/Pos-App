@@ -221,6 +221,23 @@
                                 </Style>
                             </Button.Resources>
                         </Button>
+                        
+                        <Button Content="💸 NHẬP CHI"
+                                Click="BtnExpense_Click"
+                                Height="35"
+                                Background="#E74C3C" 
+                                Foreground="White"
+                                Padding="15,0"
+                                BorderThickness="0"
+                                FontWeight="SemiBold"
+                                Margin="0,0,10,0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius"
+                                            Value="5"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
 
                         <Button Content="📜 LỊCH SỬ"
                                 Click="BtnHistory_Click"
@@ -254,6 +271,7 @@
                                 </Style>
                             </Button.Resources>
                         </Button>
+
                     </StackPanel>
 
                     <ToggleButton Grid.Column="1"
