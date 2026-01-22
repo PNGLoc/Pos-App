@@ -35,10 +35,14 @@ namespace PosSystem.Main.Server.Controllers
                     t.CategoryID,
                     t.TableType,
                     // [NEW] Kiểm tra có đơn tạm tính không
-                    // [NEW] Kiểm tra có đơn tạm tính không
                     HasProvisionalBill = _context.Orders.Any(o => o.TableID == t.TableID && o.OrderStatus == "Pending" && o.IsPreCalculated),
                     // [NEW] Kiểm tra có yêu cầu thanh toán không
-                    IsRequestingPayment = _context.Orders.Any(o => o.TableID == t.TableID && o.OrderStatus == "Pending" && o.IsRequestingPayment)
+                    IsRequestingPayment = _context.Orders.Any(o => o.TableID == t.TableID && o.OrderStatus == "Pending" && o.IsRequestingPayment),
+                    // [NEW] Lấy thời gian tạo đơn để đếm giờ
+                    OrderTime = _context.Orders
+                        .Where(o => o.TableID == t.TableID && o.OrderStatus == "Pending")
+                        .Select(o => (DateTime?)o.OrderTime)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
 

@@ -321,10 +321,10 @@ namespace PosSystem.Main
                 using (var db = new AppDbContext())
                 {
                     var order = db.Orders.FirstOrDefault(o => o.TableID == selected.TableID && o.OrderStatus == "Pending");
-                    if (order != null && order.FirstSentTime.HasValue)
+                    if (order != null)
                     {
-                        // Order has been sent to kitchen - start timer from FirstSentTime
-                        _currentOrderTime = order.FirstSentTime;
+                        // [MODIFIED] Use OrderTime (Creation Time) immediately
+                        _currentOrderTime = order.OrderTime;
                         _tableTimeTimer.Start();
                     }
                 }
@@ -402,9 +402,9 @@ namespace PosSystem.Main
             using (var db = new AppDbContext())
             {
                 var order = db.Orders.FirstOrDefault(o => o.TableID == tableId && o.OrderStatus == "Pending");
-                if (order != null && order.FirstSentTime.HasValue)
+                if (order != null)
                 {
-                    _currentOrderTime = order.FirstSentTime;
+                    _currentOrderTime = order.OrderTime;
                     _tableTimeTimer.Start();
                     // Manually trigger timer tick to show time immediately
                     TableTimeTimer_Tick(null, null);
@@ -488,9 +488,9 @@ namespace PosSystem.Main
                         // Only show time if FirstSentTime has value (order has been sent to kitchen)
                         if (order != null)
                         {
-                            if (order.FirstSentTime.HasValue)
+                            if (order != null)
                             {
-                                var elapsed = DateTime.Now - order.FirstSentTime.Value;
+                                var elapsed = DateTime.Now - order.OrderTime;
                                 if (elapsed.TotalMinutes < 1)
                                     vm.TimeDisplay = $"{(int)elapsed.TotalSeconds}s";
                                 else if (elapsed.TotalHours < 1)
@@ -521,8 +521,13 @@ namespace PosSystem.Main
 
                 if (order != null)
                 {
-                    // (Giữ nguyên đoạn xử lý Timer...)
-                    if (order.FirstSentTime.HasValue) { /*Code cũ...*/ } else { /*Code cũ...*/ }
+                    // [MODIFIED] Start Timer immediately
+                    _currentOrderTime = order.OrderTime;
+                    if (!_tableTimeTimer.IsEnabled)
+                    {
+                        _tableTimeTimer.Start();
+                        TableTimeTimer_Tick(null, null);
+                    }
 
                     var viewModels = order.OrderDetails
                         .GroupBy(d => new
@@ -769,9 +774,9 @@ namespace PosSystem.Main
                                 var order = t.Orders.FirstOrDefault(o => o.OrderStatus == "Pending");
                                 if (order != null)
                                 {
-                                    if (order.FirstSentTime.HasValue)
+                                    if (order != null)
                                     {
-                                        var elapsed = DateTime.Now - order.FirstSentTime.Value;
+                                        var elapsed = DateTime.Now - order.OrderTime;
                                         if (elapsed.TotalMinutes < 1) vm.TimeDisplay = $"{(int)elapsed.TotalSeconds}s";
                                         else if (elapsed.TotalHours < 1) vm.TimeDisplay = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
                                         else vm.TimeDisplay = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
@@ -883,10 +888,12 @@ namespace PosSystem.Main
                     btnSendKitchen.Background = result.HasChanges ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14") : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6C757D");
 
                     // Timer logic if needed (Assuming timer handles itself or only stopped when leaving table)
-                    if (result.Order.FirstSentTime.HasValue)
+                    // [MODIFIED] Start Timer immediately using OrderTime
+                    if (result.Order.OrderTime != DateTime.MinValue)
                     {
-                        _currentOrderTime = result.Order.FirstSentTime;
+                        _currentOrderTime = result.Order.OrderTime;
                         if (!_tableTimeTimer.IsEnabled) _tableTimeTimer.Start();
+                        // Async context, invoke tick on dispatcher if needed, but Start() is enough for next tick
                     }
                 }
                 else

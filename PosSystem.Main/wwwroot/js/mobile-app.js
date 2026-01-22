@@ -282,7 +282,45 @@ async function loadTables(renderFilter = true) {
 
         if (renderFilter) renderFilterButtons();
         renderTables(appState.currentFilter);
+        startTableTimers(); // [NEW] Start timer loop
     } catch (e) { console.error(e); }
+}
+
+let tableTimerInterval = null;
+function startTableTimers() {
+    if (tableTimerInterval) clearInterval(tableTimerInterval);
+    updateTableTimers(); // Run immediately
+    tableTimerInterval = setInterval(updateTableTimers, 1000);
+}
+
+function updateTableTimers() {
+    // Iterate over all table cards that have data-ordertime
+    document.querySelectorAll('.table-timer').forEach(el => {
+        const timeStr = el.dataset.ordertime;
+        if (!timeStr) return;
+
+        const startTime = new Date(timeStr);
+        const now = new Date();
+        const diff = Math.floor((now - startTime) / 1000); // seconds
+
+        if (diff < 0) {
+            el.innerText = "0s";
+            return;
+        }
+
+        let display = "";
+        if (diff < 60) display = diff + "s";
+        else if (diff < 3600) {
+            const m = Math.floor(diff / 60);
+            const s = diff % 60;
+            display = `${m}m ${s}s`;
+        } else {
+            const h = Math.floor(diff / 3600);
+            const m = Math.floor((diff % 3600) / 60);
+            display = `${h}h ${m}m`;
+        }
+        el.innerText = display;
+    });
 }
 
 function renderTables(filterId) {
@@ -321,9 +359,16 @@ function renderTables(filterId) {
             : '';
 
         div.onclick = () => openTableDetail(t);
+
+        // [NEW] Timer Element
+        const timerHtml = (t.tableStatus === 'Occupied' && t.orderTime)
+            ? `<div class="position-absolute top-0 end-0 m-1 bg-white rounded px-1 small border table-timer" data-ordertime="${t.orderTime}" style="font-size: 0.75rem; margin-top: 25px !important;"><i class="fas fa-clock text-muted"></i> ...</div>`
+            : '';
+
         div.innerHTML = `
             ${provMarker}
             ${payMarker}
+            ${timerHtml}
             <div class="fs-4 mb-1"><i class="fas fa-chair"></i></div>
             <div class="fw-bold">${t.tableName}</div>
             <small class="${t.tableStatus === 'Occupied' ? 'text-danger' : 'text-success'}">
