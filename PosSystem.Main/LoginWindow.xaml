@@ -13,8 +13,8 @@
     <Border Background="White"
             CornerRadius="20"
             BorderBrush="#DDD"
-        BorderThickness="1"
-        MouseDown="Card_MouseDown">
+            BorderThickness="1"
+            MouseDown="Card_MouseDown">
         <Border.Effect>
             <DropShadowEffect BlurRadius="20"
                               ShadowDepth="5"
@@ -35,7 +35,7 @@
                     FontSize="16"
                     FontWeight="Bold"
                     Cursor="Hand"
-                    Click="BtnClose_Click" />
+                    Click="BtnClose_Click"/>
 
             <StackPanel VerticalAlignment="Center">
                 <!-- Logo / Tiêu đề -->
@@ -96,34 +96,35 @@
                             Cursor="Hand"
                             Click="BtnTogglePassword_Click"
                             ToolTip="Hiện mật khẩu">
-                        <Grid Width="20" Height="20">
+                        <Grid Width="20"
+                                Height="20">
                             <!-- Eye (open) -->
                             <Path x:Name="iconEyeOpen"
-                                Stroke="#333"
-                                StrokeThickness="1.6"
-                                StrokeLineJoin="Round"
-                                StrokeStartLineCap="Round"
-                                StrokeEndLineCap="Round"
-                                Data="M1,10 C4,3 16,3 19,10 C16,17 4,17 1,10 Z"/>
+                                  Stroke="#333"
+                                  StrokeThickness="1.6"
+                                  StrokeLineJoin="Round"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  Data="M1,10 C4,3 16,3 19,10 C16,17 4,17 1,10 Z"/>
                             <Path x:Name="iconEyePupil"
-                                Stroke="#333"
-                                StrokeThickness="1.6"
-                                StrokeLineJoin="Round"
-                                StrokeStartLineCap="Round"
-                                StrokeEndLineCap="Round"
-                                Data="M10,7.2 A2.8,2.8 0 1 1 9.999,7.2"/>
+                                  Stroke="#333"
+                                  StrokeThickness="1.6"
+                                  StrokeLineJoin="Round"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  Data="M10,7.2 A2.8,2.8 0 1 1 9.999,7.2"/>
 
                             <!-- Eye (closed / slashed) -->
                             <Path x:Name="iconEyeSlash"
-                                Visibility="Collapsed"
-                                Stroke="#333"
-                                StrokeThickness="1.6"
-                                StrokeLineJoin="Round"
-                                StrokeStartLineCap="Round"
-                                StrokeEndLineCap="Round"
-                                Data="M2,18 L18,2"/>
+                                  Visibility="Collapsed"
+                                  Stroke="#333"
+                                  StrokeThickness="1.6"
+                                  StrokeLineJoin="Round"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  Data="M2,18 L18,2"/>
                         </Grid>
-                      </Button>
+                    </Button>
                 </Grid>
 
                 <!-- Inline error -->
@@ -133,7 +134,7 @@
                            FontWeight="SemiBold"
                            TextAlignment="Center"
                            Margin="0,12,0,0"
-                           TextWrapping="Wrap" />
+                           TextWrapping="Wrap"/>
 
                 <!-- Button Login -->
                 <Button Content="ĐĂNG NHẬP"
