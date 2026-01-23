@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 using PosSystem.Main.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace PosSystem.Main.Pages
 {
@@ -306,6 +308,78 @@ namespace PosSystem.Main.Pages
 
         private void CboDetailCategory_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateDetailFilter();
         private void TxtDetailSearch_TextChanged(object sender, TextChangedEventArgs e) => UpdateDetailFilter();
+
+        private void NumberOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // Digits only
+            e.Handled = Regex.IsMatch(e.Text, "[^0-9]+");
+        }
+
+        private void BtnGroupIncrease_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyGroupDelta(isIncrease: true);
+        }
+
+        private void BtnGroupDecrease_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyGroupDelta(isIncrease: false);
+        }
+
+        private void ApplyGroupDelta(bool isIncrease)
+        {
+            if (_editingRuleType == null) return;
+            if (_allRuleDetails == null) return;
+
+            if (!int.TryParse((txtGroupDeltaK.Text ?? string.Empty).Trim(), out var deltaK) || deltaK <= 0)
+            {
+                MessageBox.Show("Vui lòng nhập số nghìn hợp lệ (ví dụ: 5 = 5.000đ).", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                txtGroupDeltaK.Focus();
+                txtGroupDeltaK.SelectAll();
+                return;
+            }
+
+            decimal delta = deltaK * 1000m;
+
+            int selectedCategoryId = 0;
+            if (cboDetailCategory.SelectedValue is int catId)
+                selectedCategoryId = catId;
+
+            IEnumerable<RuleDetailViewModel> targets = _allRuleDetails;
+
+            if (selectedCategoryId != 0)
+            {
+                targets = targets.Where(d => d.CategoryID == selectedCategoryId);
+            }
+            else
+            {
+                // Apply all dishes confirmation
+                var msg = isIncrease
+                    ? $"Bạn có chắc muốn TĂNG {deltaK:N0} nghìn cho TẤT CẢ món trong bảng giá này?"
+                    : $"Bạn có chắc muốn GIẢM {deltaK:N0} nghìn cho TẤT CẢ món trong bảng giá này?";
+
+                if (MessageBox.Show(msg, "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                    return;
+            }
+
+            var list = targets.ToList();
+            if (list.Count == 0)
+            {
+                MessageBox.Show("Không có món nào trong nhóm đang chọn.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            foreach (var item in list)
+            {
+                var newPrice = isIncrease ? (item.NewPrice + delta) : (item.NewPrice - delta);
+                if (newPrice < 0) newPrice = 0;
+                item.NewPrice = newPrice;
+            }
+
+            UpdateDetailFilter();
+
+            var actionText = isIncrease ? "Tăng" : "Giảm";
+            ShowNotification($"{actionText} {deltaK:N0} nghìn cho {list.Count} món. (Nhớ bấm 'Lưu lại' để lưu) ");
+        }
 
         private bool MatchDishSearch(string dishName, string searchText)
         {

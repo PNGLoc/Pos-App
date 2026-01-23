@@ -182,6 +182,57 @@
                         </Grid>
                     </StackPanel>
 
+                    <!-- Group adjust: +/- X nghìn cho toàn bộ món trong nhóm (theo danh mục đang chọn) -->
+                    <StackPanel DockPanel.Dock="Right"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Margin="0,0,10,0">
+                        <TextBlock Text="Điều chỉnh nhóm:" FontWeight="SemiBold" Foreground="#374151" VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                        <TextBox x:Name="txtGroupDeltaK"
+                                 Width="70"
+                                 Height="30"
+                                 Padding="6,0"
+                                 VerticalContentAlignment="Center"
+                                 BorderBrush="#CED4DA"
+                                 PreviewTextInput="NumberOnly_PreviewTextInput"
+                                 Text="1"/>
+                        <TextBlock Text="nghìn" Foreground="#6B7280" VerticalAlignment="Center" Margin="6,0,10,0"/>
+
+                        <Button Content="+ Tăng"
+                                Height="30"
+                                Padding="10,0"
+                                Margin="0,0,6,0"
+                                Click="BtnGroupIncrease_Click"
+                                Background="#198754"
+                                Foreground="White"
+                                FontWeight="Bold"
+                                BorderThickness="0"
+                                Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="4"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <Button Content="- Giảm"
+                                Height="30"
+                                Padding="10,0"
+                                Click="BtnGroupDecrease_Click"
+                                Background="#DC3545"
+                                Foreground="White"
+                                FontWeight="Bold"
+                                BorderThickness="0"
+                                Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="4"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </StackPanel>
+
                     <!-- [MODIFIED] Smaller button, right aligned -->
                     <Button DockPanel.Dock="Right" Content="💾 Lưu lại" Click="BtnSaveRuleDetails_Click"
                             Padding="15,5" Background="#007BFF" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand" FontSize="13">
