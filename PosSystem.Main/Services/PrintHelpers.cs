@@ -25,6 +25,21 @@ namespace PosSystem.Main.Services
         public static byte[] Init = { 0x1B, 0x40 }; // Khởi tạo
         public static byte[] CutPaper = { 0x1D, 0x56, 0x42, 0x00 }; // Cắt giấy
 
+        // Buzzer (một số máy in nhiệt ESC/POS hỗ trợ): ESC B n t
+        // n: số lần (1..9), t: thời gian mỗi lần (đơn vị 0.1s, tuỳ máy)
+        public static byte[] Buzzer = { 0x1B, 0x42, 0x03, 0x02 };
+
+        public static byte[] BuzzerTimes(int times, int timeUnit = 2)
+        {
+            if (times < 1) times = 1;
+            if (times > 9) times = 9;
+
+            if (timeUnit < 1) timeUnit = 1;
+            if (timeUnit > 9) timeUnit = 9;
+
+            return new byte[] { 0x1B, 0x42, (byte)times, (byte)timeUnit };
+        }
+
         // Căn lề
         public static byte[] AlignLeft = { 0x1B, 0x61, 0 };
         public static byte[] AlignCenter = { 0x1B, 0x61, 1 };

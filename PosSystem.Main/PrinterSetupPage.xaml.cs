@@ -34,6 +34,7 @@ namespace PosSystem.Main.Pages
             txtString.Text = "";
             cboType.SelectedIndex = 0;
             chkIsBill.IsChecked = false;
+            cboBeepCount.SelectedIndex = 0;
 
             modalOverlay.Visibility = Visibility.Visible;
             txtName.Focus();
@@ -49,6 +50,10 @@ namespace PosSystem.Main.Pages
                 txtString.Text = prt.ConnectionString;
                 cboType.SelectedIndex = prt.ConnectionType == "LAN" ? 0 : 1;
                 chkIsBill.IsChecked = prt.IsBillPrinter;
+                int beepCount = prt.BeepCount;
+                if (beepCount < 0) beepCount = 0;
+                if (beepCount > 3) beepCount = 3;
+                cboBeepCount.SelectedIndex = beepCount;
 
                 modalOverlay.Visibility = Visibility.Visible;
                 txtName.Focus();
@@ -105,6 +110,11 @@ namespace PosSystem.Main.Pages
 
             using (var db = new AppDbContext())
             {
+                int beepCount = cboBeepCount.SelectedIndex;
+                if (beepCount < 0) beepCount = 0;
+                if (beepCount > 3) beepCount = 3;
+                bool beepOnPrint = beepCount > 0;
+
                 if (_selectedPrinter == null)
                 {
                     // Add
@@ -114,6 +124,8 @@ namespace PosSystem.Main.Pages
                         ConnectionType = cboType.SelectedIndex == 0 ? "LAN" : "USB",
                         ConnectionString = txtString.Text,
                         IsBillPrinter = chkIsBill.IsChecked == true,
+                        BeepOnPrint = beepOnPrint,
+                        BeepCount = beepCount,
                         IsActive = true
                     };
                     db.Printers.Add(p);
@@ -128,6 +140,8 @@ namespace PosSystem.Main.Pages
                         p.ConnectionType = cboType.SelectedIndex == 0 ? "LAN" : "USB";
                         p.ConnectionString = txtString.Text;
                         p.IsBillPrinter = chkIsBill.IsChecked == true;
+                        p.BeepOnPrint = beepOnPrint;
+                        p.BeepCount = beepCount;
                     }
                 }
                 db.SaveChanges();

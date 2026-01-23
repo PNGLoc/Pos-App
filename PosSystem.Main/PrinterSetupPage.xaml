@@ -75,6 +75,7 @@
                             <DataGridTextColumn Header="Loại" Binding="{Binding ConnectionType}" Width="100"/>
                             <DataGridTextColumn Header="Kết nối" Binding="{Binding ConnectionString}" Width="200"/>
                             <DataGridCheckBoxColumn Header="In Bill?" Binding="{Binding IsBillPrinter}" Width="80" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Bíp" Binding="{Binding BeepCount}" Width="60"/>
                             
                             <!-- ACTION COLUMN -->
                             <DataGridTemplateColumn Header="Hành động" Width="220">
@@ -147,6 +148,16 @@
                                 <TextBlock Text="* Với USB, nhập đúng tên máy in trong Control Panel." FontSize="11" Foreground="Gray" Margin="0,0,0,15"/>
 
                                 <CheckBox x:Name="chkIsBill" Content="Đây là máy in Hóa đơn (Thu ngân)" FontWeight="SemiBold" Margin="0,0,0,20"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,20" VerticalAlignment="Center">
+                                    <TextBlock Text="Bíp khi in:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="cboBeepCount" Width="140" Height="32" Margin="10,0,0,0" SelectedIndex="0" BorderBrush="#CED4DA">
+                                        <ComboBoxItem Content="0 (Không kêu)"/>
+                                        <ComboBoxItem Content="1 lần"/>
+                                        <ComboBoxItem Content="2 lần"/>
+                                        <ComboBoxItem Content="3 lần"/>
+                                    </ComboBox>
+                                </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                     <Button Content="Hủy bỏ" Click="BtnCloseModal_Click" Width="100" Height="35" Margin="0,0,10,0" 

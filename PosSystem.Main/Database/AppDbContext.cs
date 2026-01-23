@@ -35,10 +35,10 @@ namespace PosSystem.Main.Database
         {
             // Seed dữ liệu mẫu cho máy in
             modelBuilder.Entity<Printer>().HasData(
-                new Printer { PrinterID = 1, PrinterName = "Máy Thu Ngân", ConnectionType = "USB", ConnectionString = "XP-80C", IsBillPrinter = true },
-                new Printer { PrinterID = 2, PrinterName = "Máy Pha Chế", ConnectionType = "USB", ConnectionString = "192.168.1.201", IsBillPrinter = false },
-                new Printer { PrinterID = 3, PrinterName = "Máy Bếp Mì", ConnectionType = "LAN", ConnectionString = "192.168.1.202", IsBillPrinter = false },
-                new Printer { PrinterID = 4, PrinterName = "Máy Bếp Bánh", ConnectionType = "LAN", ConnectionString = "192.168.1.203", IsBillPrinter = false }
+                new Printer { PrinterID = 1, PrinterName = "Máy Thu Ngân", ConnectionType = "USB", ConnectionString = "XP-80C", IsBillPrinter = true, BeepOnPrint = false, BeepCount = 0 },
+                new Printer { PrinterID = 2, PrinterName = "Máy Pha Chế", ConnectionType = "USB", ConnectionString = "192.168.1.201", IsBillPrinter = false, BeepOnPrint = false, BeepCount = 0 },
+                new Printer { PrinterID = 3, PrinterName = "Máy Bếp Mì", ConnectionType = "LAN", ConnectionString = "192.168.1.202", IsBillPrinter = false, BeepOnPrint = false, BeepCount = 0 },
+                new Printer { PrinterID = 4, PrinterName = "Máy Bếp Bánh", ConnectionType = "LAN", ConnectionString = "192.168.1.203", IsBillPrinter = false, BeepOnPrint = false, BeepCount = 0 }
             );
             // Seed Table & Account giữ nguyên như cũ...
             modelBuilder.Entity<Account>().HasData(

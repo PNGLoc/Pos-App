@@ -23,7 +23,37 @@ namespace PosSystem.Main.Services
         {
             try
             {
-                byte[] data = byteList.ToArray();
+                List<byte> finalBytes;
+                int beepCount = printer.BeepCount;
+                if (beepCount < 0) beepCount = 0;
+                if (beepCount > 3) beepCount = 3;
+
+                if (beepCount > 0)
+                {
+                    var buzzerCmd = EscPos.BuzzerTimes(beepCount);
+
+                    // Nếu job đã có Init (ESC @) ở đầu, chèn buzzer ngay sau Init
+                    if (byteList.Count >= 2 && byteList[0] == 0x1B && byteList[1] == 0x40)
+                    {
+                        finalBytes = new List<byte>(byteList.Count + buzzerCmd.Length);
+                        finalBytes.Add(byteList[0]);
+                        finalBytes.Add(byteList[1]);
+                        finalBytes.AddRange(buzzerCmd);
+                        finalBytes.AddRange(byteList.Skip(2));
+                    }
+                    else
+                    {
+                        finalBytes = new List<byte>(byteList.Count + buzzerCmd.Length);
+                        finalBytes.AddRange(buzzerCmd);
+                        finalBytes.AddRange(byteList);
+                    }
+                }
+                else
+                {
+                    finalBytes = byteList;
+                }
+
+                byte[] data = finalBytes.ToArray();
                 if (printer.ConnectionType == "LAN") return PrintLan(printer.ConnectionString, data);
                 else return PrintUsb(printer.ConnectionString, data);
             }

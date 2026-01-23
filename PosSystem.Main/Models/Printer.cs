@@ -21,6 +21,13 @@ namespace PosSystem.Main.Models
         // nhưng ta cần 1 cờ để biết máy nào in Bill tính tiền.
         public bool IsBillPrinter { get; set; } = false;
 
+        // Bật buzzer (máy in kêu "bíp") mỗi lần gửi lệnh in
+        public bool BeepOnPrint { get; set; } = false;
+
+        // Số lần bíp (1..3). Một số máy chỉ hỗ trợ mức giới hạn.
+        // 0 = không kêu
+        public int BeepCount { get; set; } = 0;
+
         public int PaperSize { get; set; } = 80; // 80mm hoặc 58mm
         public bool IsActive { get; set; } = true;
     }
