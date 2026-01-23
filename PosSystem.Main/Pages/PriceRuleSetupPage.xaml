@@ -1,19 +1,170 @@
 <UserControl x:Class="PosSystem.Main.Pages.PriceRuleSetupPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Resources>
+        <!-- Shared styles to reduce visual noise -->
+        <Style TargetType="TextBox">
+            <Setter Property="Height"
+                    Value="32"/>
+            <Setter Property="Padding"
+                    Value="8,0"/>
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center"/>
+            <Setter Property="BorderBrush"
+                    Value="#CED4DA"/>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Height"
+                    Value="32"/>
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center"/>
+            <Setter Property="BorderBrush"
+                    Value="#CED4DA"/>
+        </Style>
+
+        <Style x:Key="BtnPrimary"
+               TargetType="Button">
+            <Setter Property="Background"
+                    Value="#007BFF"/>
+            <Setter Property="Foreground"
+                    Value="White"/>
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+            <Setter Property="Cursor"
+                    Value="Hand"/>
+            <Setter Property="Padding"
+                    Value="14,6"/>
+            <Setter Property="MinHeight"
+                    Value="32"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="BtnSubtle"
+               TargetType="Button"
+               BasedOn="{StaticResource BtnPrimary}">
+            <Setter Property="Background"
+                    Value="#F1F3F5"/>
+            <Setter Property="Foreground"
+                    Value="#111"/>
+            <Setter Property="FontWeight"
+                    Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="BtnSuccess"
+               TargetType="Button"
+               BasedOn="{StaticResource BtnPrimary}">
+            <Setter Property="Background"
+                    Value="#198754"/>
+        </Style>
+
+        <Style x:Key="BtnDanger"
+               TargetType="Button"
+               BasedOn="{StaticResource BtnPrimary}">
+            <Setter Property="Background"
+                    Value="#DC3545"/>
+        </Style>
+
+        <Style x:Key="CardBorder"
+               TargetType="Border">
+            <Setter Property="BorderBrush"
+                    Value="#DEE2E6"/>
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+            <Setter Property="CornerRadius"
+                    Value="8"/>
+            <Setter Property="Background"
+                    Value="White"/>
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background"
+                    Value="#F8F9FA"/>
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+            <Setter Property="Padding"
+                    Value="10,12"/>
+            <Setter Property="BorderBrush"
+                    Value="#DEE2E6"/>
+            <Setter Property="BorderThickness"
+                    Value="0,0,0,1"/>
+        </Style>
+
+        <Style TargetType="DataGridCell">
+            <Setter Property="Padding"
+                    Value="10,0"/>
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center"/>
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+            <Style.Triggers>
+                <!-- Don't highlight cell selection; keep row color based on RowBackground -->
+                <Trigger Property="IsSelected"
+                         Value="True">
+                    <Setter Property="Background"
+                            Value="Transparent"/>
+                    <Setter Property="BorderBrush"
+                            Value="Transparent"/>
+                    <!-- Prevent text from turning white on selection -->
+                    <Setter Property="Foreground"
+                            Value="#111"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="RuleDetailsReadOnlyText"
+               TargetType="TextBlock">
+            <Setter Property="Foreground"
+                    Value="#111"/>
+            <Setter Property="TextTrimming"
+                    Value="CharacterEllipsis"/>
+            <Setter Property="VerticalAlignment"
+                    Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+
     <Grid Background="White">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- HEADER: ÁP DỤNG GIÁ -->
-        <Border Grid.Row="0" Background="#F8F9FA" Padding="15" BorderThickness="0,0,0,1" BorderBrush="#DEE2E6">
+        <Border Grid.Row="0"
+                Background="#F8F9FA"
+                Padding="15"
+                BorderThickness="0,0,0,1"
+                BorderBrush="#DEE2E6">
             <DockPanel LastChildFill="False">
-                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="🎯 ÁP DỤNG LOẠI GIÁ:" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" Margin="0,0,15,0" Foreground="#333"/>
-                    <ComboBox x:Name="cboActiveRule" Width="220" Height="35" VerticalContentAlignment="Center"
-                              SelectionChanged="CboActiveRule_SelectionChanged" BorderBrush="#CED4DA"/>
+                <StackPanel DockPanel.Dock="Left"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="🎯 ÁP DỤNG LOẠI GIÁ:"
+                               FontWeight="Bold"
+                               FontSize="14"
+                               VerticalAlignment="Center"
+                               Margin="0,0,15,0"
+                               Foreground="#333"/>
+                    <ComboBox x:Name="cboActiveRule"
+                              Width="220"
+                              Height="35"
+                              VerticalContentAlignment="Center"
+                              SelectionChanged="CboActiveRule_SelectionChanged"
+                              BorderBrush="#CED4DA"/>
                 </StackPanel>
 
                 <Button Content="➕ THÊM LOẠI GIÁ"
@@ -28,109 +179,495 @@
                         Cursor="Hand">
                     <Button.Resources>
                         <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4"/>
+                            <Setter Property="CornerRadius"
+                                    Value="4"/>
                         </Style>
                     </Button.Resources>
                 </Button>
             </DockPanel>
         </Border>
 
-        <!-- CONTENT: LIST -->
-        <Grid Grid.Row="1" Margin="15">
-            <DataGrid x:Name="dgRuleTypes"
-                      AutoGenerateColumns="False"
-                      CanUserAddRows="False"
-                      IsReadOnly="True"
-                      Background="White"
-                      RowHeight="45"
-                      BorderThickness="1"
-                      BorderBrush="#DEE2E6"
-                      GridLinesVisibility="Horizontal"
-                      HeadersVisibility="Column"
-                      SelectionChanged="dgRuleTypes_SelectionChanged">
-                <DataGrid.ColumnHeaderStyle>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="#F8F9FA"/>
-                        <Setter Property="FontWeight" Value="Bold"/>
-                        <Setter Property="Padding" Value="10,12"/>
-                        <Setter Property="BorderBrush" Value="#DEE2E6"/>
-                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                    </Style>
-                </DataGrid.ColumnHeaderStyle>
-                <DataGrid.CellStyle>
-                    <Style TargetType="DataGridCell">
-                        <Setter Property="Padding" Value="10,0"/>
-                        <Setter Property="VerticalContentAlignment" Value="Center"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                    </Style>
-                </DataGrid.CellStyle>
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Tên Loại Giá" Binding="{Binding RuleType}" Width="*" FontWeight="SemiBold"/>
-                    <DataGridTextColumn Header="Số Sản Phẩm" Binding="{Binding ProductCount}" Width="120" IsReadOnly="True"/>
-                    
-                    <DataGridTemplateColumn Header="Hành động" Width="200">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Content="📄 Chi tiết"
-                                            Click="BtnEditRuleType_Click"
-                                            Width="80" Height="30" Margin="0,0,8,0"
-                                            Background="#17A2B8" Foreground="White" BorderThickness="0" Cursor="Hand">
-                                        <Button.Resources>
-                                            <Style TargetType="Border">
-                                                <Setter Property="CornerRadius" Value="3"/>
+        <!-- CONTENT: Split view (left: rule types, right: details) -->
+        <Grid Grid.Row="1"
+              Margin="15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: Rule types -->
+            <Border Grid.Column="0"
+                    Style="{StaticResource CardBorder}"
+                    Padding="10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Danh sách loại giá"
+                               FontWeight="Bold"
+                               Foreground="#111"
+                               Margin="4,0,0,8"/>
+
+                    <DataGrid x:Name="dgRuleTypes"
+                              Grid.Row="1"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              Background="White"
+                              RowHeight="44"
+                              BorderThickness="0"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column"
+                              SelectionChanged="dgRuleTypes_SelectionChanged">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="Background"
+                                        Value="Transparent"/>
+                                <Setter Property="Foreground"
+                                        Value="#111"/>
+                                <Setter Property="BorderThickness"
+                                        Value="0"/>
+                                <Setter Property="FocusVisualStyle"
+                                        Value="{x:Null}"/>
+                                <Style.Triggers>
+                                    <!-- Selected row: light blue (readable), no text inversion -->
+                                    <Trigger Property="IsSelected"
+                                             Value="True">
+                                        <Setter Property="Background"
+                                                Value="#E7F1FF"/>
+                                        <Setter Property="Foreground"
+                                                Value="#111"/>
+                                        <Setter Property="FontWeight"
+                                                Value="Bold"/>
+                                    </Trigger>
+                                    <Trigger Property="IsKeyboardFocusWithin"
+                                             Value="True">
+                                        <Setter Property="Background"
+                                                Value="#E7F1FF"/>
+                                        <Setter Property="Foreground"
+                                                Value="#111"/>
+                                        <Setter Property="FontWeight"
+                                                Value="Bold"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Padding"
+                                        Value="10,0"/>
+                                <Setter Property="VerticalContentAlignment"
+                                        Value="Center"/>
+                                <Setter Property="BorderThickness"
+                                        Value="0"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected"
+                                             Value="True">
+                                        <Setter Property="Background"
+                                                Value="Transparent"/>
+                                        <Setter Property="BorderBrush"
+                                                Value="Transparent"/>
+                                        <Setter Property="Foreground"
+                                                Value="#111"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.CellStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Tên"
+                                                Binding="{Binding RuleType}"
+                                                Width="*"
+                                                FontWeight="SemiBold"/>
+                            <DataGridTextColumn Header="SP"
+                                                Binding="{Binding ProductCount}"
+                                                Width="70"
+                                                IsReadOnly="True"/>
+
+                            <DataGridTemplateColumn Header=""
+                                                    Width="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal"
+                                                    HorizontalAlignment="Right">
+                                            <Button Content="Xóa"
+                                                    Click="BtnDeleteRuleType_Click"
+                                                    Style="{StaticResource BtnDanger}"
+                                                    Padding="10"
+                                                    MinWidth="80"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <!-- Right: Details -->
+            <Border Grid.Column="2"
+                    Style="{StaticResource CardBorder}"
+                    Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Detail Header (2 rows toolbar) -->
+                    <Border Background="#F8F9FA"
+                            Padding="16"
+                            BorderThickness="0,0,0,1"
+                            BorderBrush="#DEE2E6">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Row="0"
+                                        Grid.Column="0"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="Chi tiết loại giá:"
+                                           FontWeight="SemiBold"
+                                           FontSize="16"
+                                           Foreground="#374151"/>
+                                <TextBlock x:Name="lblSelectedRuleType"
+                                           Text="(chưa chọn)"
+                                           Margin="6,0,0,0"
+                                           FontWeight="Bold"
+                                           FontSize="16"
+                                           Foreground="#007BFF"/>
+                                <TextBlock x:Name="txtDetailStats"
+                                           Text=""
+                                           Margin="12,0,0,0"
+                                           FontSize="16"
+                                           Foreground="#6B7280"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="0"
+                                        Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <Button x:Name="btnCloseDetail"
+                                        Content="Đóng"
+                                        Click="BtnBackToRuleList_Click"
+                                        Style="{StaticResource BtnSubtle}"
+                                        Margin="0,0,8,0"
+                                        Padding="18,8"
+                                        MinWidth="110"
+                                        FontWeight="Bold"
+                                        Background="#111827"
+                                        Foreground="White"/>
+                                <Button Content="💾 Lưu"
+                                        Click="BtnSaveRuleDetails_Click"
+                                        Style="{StaticResource BtnPrimary}"
+                                        Padding="20,8"
+                                        MinWidth="140"
+                                        FontSize="15"/>
+                            </StackPanel>
+
+                            <Grid Grid.Row="1"
+                                  Grid.ColumnSpan="2"
+                                  Margin="0,10,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ComboBox x:Name="cboDetailCategory"
+                                          Grid.Row="0"
+                                          Grid.Column="0"
+                                          SelectionChanged="CboDetailCategory_SelectionChanged"/>
+
+                                <Grid Grid.Row="0"
+                                      Grid.Column="2">
+                                    <TextBox x:Name="txtDetailSearch"
+                                             TextChanged="TxtDetailSearch_TextChanged"/>
+                                    <TextBlock Text="🔍 Tìm món..."
+                                               IsHitTestVisible="False"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0,0,0"
+                                               Foreground="#999">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility"
+                                                        Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Text, ElementName=txtDetailSearch}"
+                                                                 Value="">
+                                                        <Setter Property="Visibility"
+                                                                Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
                                             </Style>
-                                        </Button.Resources>
-                                    </Button>
-                                    <Button Content="🗑️ Xóa"
-                                            Click="BtnDeleteRuleType_Click"
-                                            Width="60" Height="30"
-                                            Background="#DC3545" Foreground="White" BorderThickness="0" Cursor="Hand">
-                                        <Button.Resources>
-                                            <Style TargetType="Border">
-                                                <Setter Property="CornerRadius" Value="3"/>
-                                            </Style>
-                                        </Button.Resources>
-                                    </Button>
-                                </StackPanel>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+
+                                <!-- Group +/- controls placed right next to Search (more discoverable) -->
+                                <Border Grid.Row="0"
+                                        Grid.Column="4"
+                                        Background="#FFFFFF"
+                                        BorderBrush="#DEE2E6"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="10,8"
+                                        VerticalAlignment="Center">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal"
+                                                    VerticalAlignment="Center">
+                                            <TextBlock Text="±"
+                                                       Foreground="#6B7280"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,8,0"
+                                                       FontWeight="SemiBold"/>
+                                            <TextBox x:Name="txtGroupDeltaK"
+                                                     Width="60"
+                                                     PreviewTextInput="NumberOnly_PreviewTextInput"
+                                                     Text="1"
+                                                     HorizontalContentAlignment="Right"/>
+                                            <TextBlock Text="nghìn"
+                                                       Foreground="#6B7280"
+                                                       VerticalAlignment="Center"
+                                                       Margin="8,0,12,0"/>
+                                            <Button Content="+"
+                                                    Click="BtnGroupIncrease_Click"
+                                                    Style="{StaticResource BtnSuccess}"
+                                                    Padding="14,6"
+                                                    MinWidth="44"
+                                                    Margin="0,0,8,0"/>
+                                            <Button Content="-"
+                                                    Click="BtnGroupDecrease_Click"
+                                                    Style="{StaticResource BtnDanger}"
+                                                    Padding="14,6"
+                                                    MinWidth="44"/>
+                                        </StackPanel>
+
+                                        <UniformGrid Columns="3"
+                                                     Margin="0,8,0,0">
+                                            <Button Content="+1k"
+                                                    Click="BtnQuickPlus1k_Click"
+                                                    Style="{StaticResource BtnSubtle}"
+                                                    Margin="0,0,6,0"
+                                                    Padding="10,4"/>
+                                            <Button Content="+5k"
+                                                    Click="BtnQuickPlus5k_Click"
+                                                    Style="{StaticResource BtnSubtle}"
+                                                    Margin="0,0,6,0"
+                                                    Padding="10,4"/>
+                                            <Button Content="+10k"
+                                                    Click="BtnQuickPlus10k_Click"
+                                                    Style="{StaticResource BtnSubtle}"
+                                                    Padding="10,4"/>
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Scope hint (always shown under filters/controls) -->
+                                <Border Grid.Row="1"
+                                        Grid.ColumnSpan="5"
+                                        Margin="0,8,0,0"
+                                        Background="#F1F5F9"
+                                        BorderBrush="#DEE2E6"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="10,6">
+                                    <TextBlock x:Name="txtApplyHint"
+                                               Foreground="#0F172A"
+                                               FontWeight="SemiBold"
+                                               Text="Áp dụng cho: danh sách đang hiển thị"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Detail List -->
+                    <Grid Grid.Row="1">
+                        <Grid x:Name="DetailPanel"
+                              Visibility="Collapsed"
+                              Background="White">
+                            <DataGrid x:Name="dgRuleDetails"
+                                      Margin="12"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      Background="White"
+                                      RowHeight="46"
+                                      FontSize="14"
+                                      Foreground="#111"
+                                      BorderThickness="1"
+                                      BorderBrush="#DEE2E6"
+                                      SelectionUnit="Cell">
+                                <DataGrid.ItemContainerStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Setter Property="Background"
+                                                Value="{Binding RowBackground}"/>
+                                        <Setter Property="BorderThickness"
+                                                Value="0"/>
+                                        <Setter Property="FocusVisualStyle"
+                                                Value="{x:Null}"/>
+                                        <!-- Don't change background when selecting/editing a row -->
+                                        <Style.Triggers>
+                                            <Trigger Property="IsSelected"
+                                                     Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{Binding RowBackground}"/>
+                                                <Setter Property="BorderBrush"
+                                                        Value="Transparent"/>
+                                            </Trigger>
+                                            <Trigger Property="IsKeyboardFocusWithin"
+                                                     Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{Binding RowBackground}"/>
+                                                <Setter Property="BorderBrush"
+                                                        Value="Transparent"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.ItemContainerStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Tên món"
+                                                        Binding="{Binding DishName}"
+                                                        Width="*"
+                                                        IsReadOnly="True"
+                                                        FontWeight="SemiBold"
+                                                        ElementStyle="{StaticResource RuleDetailsReadOnlyText}"/>
+                                    <DataGridTextColumn Header="Danh mục"
+                                                        Binding="{Binding CategoryName}"
+                                                        Width="140"
+                                                        IsReadOnly="True"
+                                                        ElementStyle="{StaticResource RuleDetailsReadOnlyText}"/>
+                                    <DataGridTextColumn Header="Đơn vị"
+                                                        Binding="{Binding Unit}"
+                                                        Width="90"
+                                                        IsReadOnly="True"
+                                                        ElementStyle="{StaticResource RuleDetailsReadOnlyText}"/>
+                                    <DataGridTextColumn Header="Giá gốc"
+                                                        Binding="{Binding BasePrice, StringFormat=N0}"
+                                                        Width="110"
+                                                        IsReadOnly="True"
+                                                        Foreground="#666"/>
+                                    <DataGridTemplateColumn Header="Giá mới"
+                                                            Width="140">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding NewPrice, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}"
+                                                         HorizontalContentAlignment="Right"
+                                                         PreviewTextInput="NumberOnly_PreviewTextInput"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+
+                        <StackPanel x:Name="pnlDetailPlaceholder"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="30">
+                            <TextBlock Text="Chọn một loại giá để xem và chỉnh chi tiết"
+                                       FontSize="18"
+                                       Foreground="#6B7280"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="Tip: dùng lọc danh mục hoặc tìm kiếm, rồi ± nghìn"
+                                       Margin="0,6,0,0"
+                                       FontSize="18"
+                                       Foreground="#9CA3AF"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
         </Grid>
 
         <!-- ADD MODAL OVERLAY -->
-        <Grid x:Name="modalAddRule" Grid.RowSpan="2" Visibility="Collapsed">
-            <Border Background="#99000000" MouseDown="BtnCancelAddForm_Click"/>
-            <Border Background="White" Width="400" VerticalAlignment="Center" HorizontalAlignment="Center"
-                    CornerRadius="8" Padding="25">
+        <Grid x:Name="modalAddRule"
+              Grid.RowSpan="2"
+              Visibility="Collapsed">
+            <Border Background="#99000000"
+                    MouseDown="BtnCancelAddForm_Click"/>
+            <Border Background="White"
+                    Width="400"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    CornerRadius="8"
+                    Padding="25">
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.3"/>
+                    <DropShadowEffect BlurRadius="30"
+                                      ShadowDepth="0"
+                                      Opacity="0.3"/>
                 </Border.Effect>
                 <StackPanel>
-                    <TextBlock Text="THÊM MỚI LOẠI GIÁ" FontSize="18" FontWeight="Bold" 
-                               HorizontalAlignment="Center" Margin="0,0,0,20" Foreground="#28A745"/>
+                    <TextBlock Text="THÊM MỚI LOẠI GIÁ"
+                               FontSize="18"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,20"
+                               Foreground="#28A745"/>
 
-                    <TextBlock Text="Tên Loại Giá (ví dụ: holiday, vip, event):" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                    <TextBox x:Name="txtRuleType" Height="35" Margin="0,0,0,15" Padding="5,0" VerticalContentAlignment="Center" BorderBrush="#CED4DA"/>
+                    <TextBlock Text="Tên Loại Giá (ví dụ: holiday, vip, event):"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,5"/>
+                    <TextBox x:Name="txtRuleType"
+                             Height="35"
+                             Margin="0,0,0,15"
+                             Padding="5,0"
+                             VerticalContentAlignment="Center"
+                             BorderBrush="#CED4DA"/>
 
-                    <CheckBox x:Name="chkRuleTypeActive" Content="Kích hoạt ngay" IsChecked="True" FontWeight="SemiBold" Margin="0,0,0,20"/>
+                    <CheckBox x:Name="chkRuleTypeActive"
+                              Content="Kích hoạt ngay"
+                              IsChecked="True"
+                              FontWeight="SemiBold"
+                              Margin="0,0,0,20"/>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Hủy bỏ" Click="BtnCancelAddForm_Click" Width="100" Height="35" Margin="0,0,10,0"
-                                Background="#F1F3F5" Foreground="Black" BorderThickness="0" FontWeight="SemiBold" Cursor="Hand">
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right">
+                        <Button Content="Hủy bỏ"
+                                Click="BtnCancelAddForm_Click"
+                                Width="100"
+                                Height="35"
+                                Margin="0,0,10,0"
+                                Background="#F1F3F5"
+                                Foreground="Black"
+                                BorderThickness="0"
+                                FontWeight="SemiBold"
+                                Cursor="Hand">
                             <Button.Resources>
                                 <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="4"/>
+                                    <Setter Property="CornerRadius"
+                                            Value="4"/>
                                 </Style>
                             </Button.Resources>
                         </Button>
-                        <Button Content="💾 Lưu lại" Click="BtnAddRuleType_Click" Width="120" Height="35"
-                                Background="#28A745" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
+                        <Button Content="💾 Lưu lại"
+                                Click="BtnAddRuleType_Click"
+                                Width="120"
+                                Height="35"
+                                Background="#28A745"
+                                Foreground="White"
+                                FontWeight="Bold"
+                                BorderThickness="0"
+                                Cursor="Hand">
                             <Button.Resources>
                                 <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="4"/>
+                                    <Setter Property="CornerRadius"
+                                            Value="4"/>
                                 </Style>
                             </Button.Resources>
                         </Button>
@@ -138,150 +675,18 @@
                 </StackPanel>
             </Border>
         </Grid>
-
-        <!-- DETAILS OVERLAY (FULL SCREEN) -->
-        <Grid x:Name="DetailPanel" Grid.RowSpan="2" Visibility="Collapsed" Background="White">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-
-            <!-- Detail Header -->
-            <Border Grid.Row="0" Background="#F8F9FA" Padding="15" BorderThickness="0,0,0,1" BorderBrush="#DEE2E6">
-                <!-- [MODIFIED] LastChildFill="False" to keep button right-aligned without stretching -->
-                <DockPanel LastChildFill="False">
-                    <Button DockPanel.Dock="Left" Content="⬅️ Quay lại" Click="BtnBackToRuleList_Click"
-                            Background="Transparent" Foreground="#6C757D" BorderThickness="0" FontWeight="Bold" Cursor="Hand" FontSize="14"/>
-                    
-                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="Chi tiết bảng giá:" FontWeight="SemiBold" Margin="0,0,5,0" FontSize="16"/>
-                        <TextBlock x:Name="lblSelectedRuleType" Text="VIP" FontWeight="Bold" Foreground="#007BFF" FontSize="16" Margin="0,0,20,0"/>
-
-                        <!-- FILTER CONTROLS -->
-                        <ComboBox x:Name="cboDetailCategory" Width="180" Height="30" Margin="0,0,10,0"
-                                  SelectionChanged="CboDetailCategory_SelectionChanged" VerticalContentAlignment="Center"/>
-                        
-                        <!-- [MODIFIED] Wider Search + Placeholder -->
-                        <Grid>
-                            <TextBox x:Name="txtDetailSearch" Width="300" Height="30" Padding="5,0"
-                                     VerticalContentAlignment="Center" BorderBrush="#CED4DA"
-                                     TextChanged="TxtDetailSearch_TextChanged"/>
-                            <TextBlock Text="🔍 Nhập để tìm kiếm..." IsHitTestVisible="False" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#999">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Text, ElementName=txtDetailSearch}" Value="">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </Grid>
-                    </StackPanel>
-
-                    <!-- Group adjust: +/- X nghìn cho toàn bộ món trong nhóm (theo danh mục đang chọn) -->
-                    <StackPanel DockPanel.Dock="Right"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Center"
-                                Margin="0,0,10,0">
-                        <TextBlock Text="Điều chỉnh nhóm:" FontWeight="SemiBold" Foreground="#374151" VerticalAlignment="Center" Margin="0,0,8,0"/>
-
-                        <TextBox x:Name="txtGroupDeltaK"
-                                 Width="70"
-                                 Height="30"
-                                 Padding="6,0"
-                                 VerticalContentAlignment="Center"
-                                 BorderBrush="#CED4DA"
-                                 PreviewTextInput="NumberOnly_PreviewTextInput"
-                                 Text="1"/>
-                        <TextBlock Text="nghìn" Foreground="#6B7280" VerticalAlignment="Center" Margin="6,0,10,0"/>
-
-                        <Button Content="+ Tăng"
-                                Height="30"
-                                Padding="10,0"
-                                Margin="0,0,6,0"
-                                Click="BtnGroupIncrease_Click"
-                                Background="#198754"
-                                Foreground="White"
-                                FontWeight="Bold"
-                                BorderThickness="0"
-                                Cursor="Hand">
-                            <Button.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="4"/>
-                                </Style>
-                            </Button.Resources>
-                        </Button>
-
-                        <Button Content="- Giảm"
-                                Height="30"
-                                Padding="10,0"
-                                Click="BtnGroupDecrease_Click"
-                                Background="#DC3545"
-                                Foreground="White"
-                                FontWeight="Bold"
-                                BorderThickness="0"
-                                Cursor="Hand">
-                            <Button.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="4"/>
-                                </Style>
-                            </Button.Resources>
-                        </Button>
-                    </StackPanel>
-
-                    <!-- [MODIFIED] Smaller button, right aligned -->
-                    <Button DockPanel.Dock="Right" Content="💾 Lưu lại" Click="BtnSaveRuleDetails_Click"
-                            Padding="15,5" Background="#007BFF" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand" FontSize="13">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="4"/>
-                            </Style>
-                        </Button.Resources>
-                    </Button>
-                </DockPanel>
-            </Border>
-
-            <!-- Detail List -->
-            <DataGrid x:Name="dgRuleDetails" Grid.Row="1" Margin="20"
-                      AutoGenerateColumns="False" CanUserAddRows="False"
-                      Background="White" RowHeight="40" BorderThickness="1" BorderBrush="#DEE2E6">
-                 <DataGrid.ItemContainerStyle>
-                     <Style TargetType="DataGridRow">
-                         <Setter Property="Background" Value="{Binding RowBackground}"/>
-                     </Style>
-                 </DataGrid.ItemContainerStyle>
-                 <DataGrid.ColumnHeaderStyle>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="#F8F9FA"/>
-                        <Setter Property="FontWeight" Value="Bold"/>
-                        <Setter Property="Padding" Value="10,12"/>
-                        <Setter Property="BorderBrush" Value="#DEE2E6"/>
-                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                    </Style>
-                </DataGrid.ColumnHeaderStyle>
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Tên Sản Phẩm" Binding="{Binding DishName}" Width="*" IsReadOnly="True" FontWeight="SemiBold"/>
-                    <DataGridTextColumn Header="Danh mục" Binding="{Binding CategoryName}" Width="150" IsReadOnly="True" FontWeight="SemiBold"/>
-                    <DataGridTextColumn Header="Đơn vị" Binding="{Binding Unit}" Width="100" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="Giá Gốc" Binding="{Binding BasePrice, StringFormat=N0}" Width="150" IsReadOnly="True" Foreground="#666"/>
-                    
-                    <!-- NEW PRICE EDITABLE -->
-                    <DataGridTemplateColumn Header="Giá Mới (Nhập giá)" Width="200">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBox Text="{Binding NewPrice, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}" 
-                                         Padding="5" VerticalContentAlignment="Center" BorderBrush="#CED4DA"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
-        </Grid>
-
+        <!-- Inline toast (less disruptive than MessageBox) -->
+        <Border Grid.Row="2"
+                x:Name="pnlToast"
+                Background="#111827"
+                CornerRadius="8"
+                Padding="10"
+                Margin="15,0,15,15"
+                Visibility="Collapsed">
+            <TextBlock x:Name="txtToast"
+                       Foreground="White"
+                       TextWrapping="Wrap"/>
+        </Border>
     </Grid>
 </UserControl>
 

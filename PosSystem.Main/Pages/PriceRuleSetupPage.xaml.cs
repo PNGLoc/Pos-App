@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 using PosSystem.Main.Services;
@@ -14,10 +15,17 @@ namespace PosSystem.Main.Pages
 {
     public partial class PriceRuleSetupPage : UserControl
     {
+        private sealed class CategoryFilterOption
+        {
+            public int CategoryID { get; set; }
+            public string CategoryName { get; set; } = "";
+        }
+
         private string? _editingRuleType = null;
-        private List<RuleTypeViewModel>? _originalRuleTypes = null;
         private List<RuleDetailViewModel>? _allRuleDetails = null; // [NEW] Cache for filtering
         private bool _isLoadingData = true;
+
+        private DispatcherTimer? _toastTimer;
 
         public PriceRuleSetupPage()
         {
@@ -74,19 +82,19 @@ namespace PosSystem.Main.Pages
             // [MODIFIED] Check if any table is occupied
             using (var db = new AppDbContext())
             {
-               if (db.Tables.Any(t => t.TableStatus == "Occupied")) // or != "Empty"
-               {
-                   MessageBox.Show("Không thể thay đổi bảng giá khi còn bàn đang phục vụ!\nVui lòng thanh toán tất cả các bàn trước.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                   
-                   // Revert selection logic
-                   _isLoadingData = true;
-                   string currentRule = db.GlobalSettings.FirstOrDefault(g => g.Key == "activePriceRule")?.Value ?? "";
-                   if (string.IsNullOrEmpty(currentRule)) cboActiveRule.SelectedIndex = 0; // (Giá gốc)
-                   else cboActiveRule.SelectedItem = currentRule;
-                   _isLoadingData = false;
-                   
-                   return;
-               }
+                if (db.Tables.Any(t => t.TableStatus == "Occupied")) // or != "Empty"
+                {
+                    MessageBox.Show("Không thể thay đổi bảng giá khi còn bàn đang phục vụ!\nVui lòng thanh toán tất cả các bàn trước.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                    // Revert selection logic
+                    _isLoadingData = true;
+                    string currentRule = db.GlobalSettings.FirstOrDefault(g => g.Key == "activePriceRule")?.Value ?? "";
+                    if (string.IsNullOrEmpty(currentRule)) cboActiveRule.SelectedIndex = 0; // (Giá gốc)
+                    else cboActiveRule.SelectedItem = currentRule;
+                    _isLoadingData = false;
+
+                    return;
+                }
             }
 
             string selectedRule = cboActiveRule.SelectedItem as string ?? "";
@@ -101,7 +109,14 @@ namespace PosSystem.Main.Pages
 
         private void dgRuleTypes_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Optional: Handle row selection
+            if (_isLoadingData) return;
+
+            if (dgRuleTypes.SelectedItem is RuleTypeViewModel vm)
+            {
+                if (string.IsNullOrWhiteSpace(vm.RuleType)) return;
+                if (vm.RuleType == _editingRuleType) return;
+                LoadRuleDetails(vm.RuleType);
+            }
         }
 
         // --- ADD MODAL HANDLERS ---
@@ -124,7 +139,8 @@ namespace PosSystem.Main.Pages
             string ruleName = txtRuleType.Text.Trim();
             if (string.IsNullOrEmpty(ruleName))
             {
-                MessageBox.Show("Vui lòng nhập tên loại giá!");
+                ShowNotification("Vui lòng nhập tên loại giá.");
+                txtRuleType.Focus();
                 return;
             }
 
@@ -133,7 +149,9 @@ namespace PosSystem.Main.Pages
                 // [MODIFIED] Case insensitive check
                 if (db.PriceRuleTypes.ToList().Any(p => p.RuleType.ToLower() == ruleName.ToLower()))
                 {
-                    MessageBox.Show("Loại giá này đã tồn tại!");
+                    ShowNotification("Loại giá này đã tồn tại.");
+                    txtRuleType.Focus();
+                    txtRuleType.SelectAll();
                     return;
                 }
 
@@ -210,10 +228,13 @@ namespace PosSystem.Main.Pages
                 }).ToList();
 
                 _allRuleDetails = detailsViewModels; // [NEW] Store full list
-                
+
                 // Load Categories for Filter
-                var cats = db.Categories.OrderBy(c => c.OrderIndex).Select(c => new { c.CategoryID, c.CategoryName }).ToList();
-                var catList = new List<dynamic> { new { CategoryID = 0, CategoryName = "Tất cả danh mục" } };
+                var cats = db.Categories
+                    .OrderBy(c => c.OrderIndex)
+                    .Select(c => new CategoryFilterOption { CategoryID = c.CategoryID, CategoryName = c.CategoryName })
+                    .ToList();
+                var catList = new List<CategoryFilterOption> { new CategoryFilterOption { CategoryID = 0, CategoryName = "Tất cả danh mục" } };
                 catList.AddRange(cats);
                 cboDetailCategory.ItemsSource = catList;
                 cboDetailCategory.SelectedValuePath = "CategoryID";
@@ -222,7 +243,12 @@ namespace PosSystem.Main.Pages
                 txtDetailSearch.Clear();
 
                 UpdateDetailFilter(); // Initial Load
-                DetailPanel.Visibility = Visibility.Visible;
+
+                // Split view: show details panel + hide placeholder
+                if (DetailPanel != null) DetailPanel.Visibility = Visibility.Visible;
+                if (pnlDetailPlaceholder != null) pnlDetailPlaceholder.Visibility = Visibility.Collapsed;
+
+                UpdateDetailStats();
             }
         }
 
@@ -230,15 +256,16 @@ namespace PosSystem.Main.Pages
         {
             if (_editingRuleType == null) return;
 
+            var allDetails = _allRuleDetails;
+            if (allDetails == null || allDetails.Count == 0) return;
+
             using (var db = new AppDbContext())
             {
-                var detailsData = dgRuleDetails.ItemsSource as List<RuleDetailViewModel>;
-                if (detailsData == null) return;
-
-                foreach (var detail in detailsData)
+                // Save should persist ALL items of this rule type, not only the currently filtered view.
+                foreach (var detail in allDetails)
                 {
                     // Chỉ lưu nếu giá KHÁC giá gốc (optional optimisation)
-                   
+
                     var existingRule = db.DishPriceRules
                         .FirstOrDefault(p => p.DishID == detail.DishID && p.RuleType == _editingRuleType);
 
@@ -263,24 +290,30 @@ namespace PosSystem.Main.Pages
                 }
 
                 db.SaveChanges();
-                ShowNotification("Lưu giá mới thành công!");
-                
-                // [MODIFIED] Update OriginalPrice to clear highlights
-                foreach (var detail in detailsData)
+
+                // Update OriginalPrice to clear highlights
+                foreach (var detail in allDetails)
                 {
                     detail.CommitChange();
                 }
 
-                // DetailPanel.Visibility = Visibility.Collapsed; // User wants to keep open
-                _allRuleDetails = null; // Clear cache
+                ShowNotification("Đã lưu giá mới thành công.");
+
+                UpdateDetailStats();
                 LoadData();
             }
         }
 
         private void BtnBackToRuleList_Click(object sender, RoutedEventArgs e)
         {
-            DetailPanel.Visibility = Visibility.Collapsed;
-            _allRuleDetails = null; // Clear memory
+            _editingRuleType = null;
+            _allRuleDetails = null;
+
+            if (lblSelectedRuleType != null) lblSelectedRuleType.Text = "(chưa chọn)";
+            if (dgRuleDetails != null) dgRuleDetails.ItemsSource = null;
+            if (DetailPanel != null) DetailPanel.Visibility = Visibility.Collapsed;
+            if (pnlDetailPlaceholder != null) pnlDetailPlaceholder.Visibility = Visibility.Visible;
+            if (txtDetailStats != null) txtDetailStats.Text = "";
         }
 
         // --- FILTER LOGIC ---
@@ -300,10 +333,51 @@ namespace PosSystem.Main.Pages
             string text = txtDetailSearch.Text.Trim().ToLower();
             if (!string.IsNullOrEmpty(text))
             {
-               filtered = filtered.Where(d => MatchDishSearch(d.DishName, text));
+                filtered = filtered.Where(d => MatchDishSearch(d.DishName, text));
             }
 
             dgRuleDetails.ItemsSource = filtered.ToList();
+
+            UpdateDetailStats();
+        }
+
+        private void UpdateDetailStats()
+        {
+            if (txtDetailStats == null) return;
+            if (_allRuleDetails == null)
+            {
+                txtDetailStats.Text = string.Empty;
+                return;
+            }
+
+            int changed = _allRuleDetails.Count(d => d.NewPrice != d.OriginalPrice);
+
+            int visible = 0;
+            if (dgRuleDetails?.ItemsSource is IEnumerable<RuleDetailViewModel> visibleItems)
+            {
+                // Avoid expensive Count() on some enumerables
+                visible = visibleItems is ICollection<RuleDetailViewModel> c ? c.Count : visibleItems.Count();
+            }
+
+            txtDetailStats.Text = $"• Hiển thị: {visible} • Đã chỉnh: {changed}";
+
+            // Update the "apply" hint to clarify scope for +/- adjustments
+            if (txtApplyHint != null)
+            {
+                var catName = "Tất cả";
+                if (cboDetailCategory?.SelectedItem is CategoryFilterOption cat && cat.CategoryID != 0)
+                {
+                    catName = cat.CategoryName;
+                }
+                else if (cboDetailCategory?.SelectedItem is CategoryFilterOption all)
+                {
+                    catName = all.CategoryName;
+                }
+
+                var hasSearch = !string.IsNullOrWhiteSpace(txtDetailSearch?.Text);
+                var searchPart = hasSearch ? " + tìm kiếm" : string.Empty;
+                txtApplyHint.Text = $"Áp dụng cho: {catName}{searchPart} ({visible} món đang hiển thị)";
+            }
         }
 
         private void CboDetailCategory_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateDetailFilter();
@@ -325,14 +399,24 @@ namespace PosSystem.Main.Pages
             ApplyGroupDelta(isIncrease: false);
         }
 
-        private void ApplyGroupDelta(bool isIncrease)
+        private void BtnQuickPlus1k_Click(object sender, RoutedEventArgs e) => ApplyGroupDelta(isIncrease: true, deltaKOverride: 1);
+        private void BtnQuickPlus5k_Click(object sender, RoutedEventArgs e) => ApplyGroupDelta(isIncrease: true, deltaKOverride: 5);
+        private void BtnQuickPlus10k_Click(object sender, RoutedEventArgs e) => ApplyGroupDelta(isIncrease: true, deltaKOverride: 10);
+
+        private void ApplyGroupDelta(bool isIncrease, int? deltaKOverride = null)
         {
             if (_editingRuleType == null) return;
             if (_allRuleDetails == null) return;
 
-            if (!int.TryParse((txtGroupDeltaK.Text ?? string.Empty).Trim(), out var deltaK) || deltaK <= 0)
+            int deltaK;
+            if (deltaKOverride.HasValue)
             {
-                MessageBox.Show("Vui lòng nhập số nghìn hợp lệ (ví dụ: 5 = 5.000đ).", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                deltaK = deltaKOverride.Value;
+                if (txtGroupDeltaK != null) txtGroupDeltaK.Text = deltaK.ToString();
+            }
+            else if (!int.TryParse((txtGroupDeltaK.Text ?? string.Empty).Trim(), out deltaK) || deltaK <= 0)
+            {
+                ShowNotification("Vui lòng nhập số nghìn hợp lệ (ví dụ: 5 = 5.000đ).");
                 txtGroupDeltaK.Focus();
                 txtGroupDeltaK.SelectAll();
                 return;
@@ -340,32 +424,24 @@ namespace PosSystem.Main.Pages
 
             decimal delta = deltaK * 1000m;
 
-            int selectedCategoryId = 0;
-            if (cboDetailCategory.SelectedValue is int catId)
-                selectedCategoryId = catId;
+            // Apply to the CURRENTLY VISIBLE list (after filter/search), which matches user expectation.
+            var list = (dgRuleDetails?.ItemsSource as IEnumerable<RuleDetailViewModel>)?.ToList()
+                       ?? _allRuleDetails.ToList();
 
-            IEnumerable<RuleDetailViewModel> targets = _allRuleDetails;
-
-            if (selectedCategoryId != 0)
-            {
-                targets = targets.Where(d => d.CategoryID == selectedCategoryId);
-            }
-            else
-            {
-                // Apply all dishes confirmation
-                var msg = isIncrease
-                    ? $"Bạn có chắc muốn TĂNG {deltaK:N0} nghìn cho TẤT CẢ món trong bảng giá này?"
-                    : $"Bạn có chắc muốn GIẢM {deltaK:N0} nghìn cho TẤT CẢ món trong bảng giá này?";
-
-                if (MessageBox.Show(msg, "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
-                    return;
-            }
-
-            var list = targets.ToList();
             if (list.Count == 0)
             {
-                MessageBox.Show("Không có món nào trong nhóm đang chọn.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                ShowNotification("Không có món nào trong danh sách đang hiển thị.");
                 return;
+            }
+
+            // Confirm if applying to many items (avoid accidental bulk edits)
+            if (list.Count >= 50)
+            {
+                var msg = isIncrease
+                    ? $"Tăng {deltaK:N0} nghìn cho {list.Count} món đang hiển thị?"
+                    : $"Giảm {deltaK:N0} nghìn cho {list.Count} món đang hiển thị?";
+                if (MessageBox.Show(msg, "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                    return;
             }
 
             foreach (var item in list)
@@ -378,7 +454,7 @@ namespace PosSystem.Main.Pages
             UpdateDetailFilter();
 
             var actionText = isIncrease ? "Tăng" : "Giảm";
-            ShowNotification($"{actionText} {deltaK:N0} nghìn cho {list.Count} món. (Nhớ bấm 'Lưu lại' để lưu) ");
+            ShowNotification($"{actionText} {deltaK:N0} nghìn cho {list.Count} món đang hiển thị. Nhớ bấm 'Lưu' để lưu.");
         }
 
         private bool MatchDishSearch(string dishName, string searchText)
@@ -395,11 +471,11 @@ namespace PosSystem.Main.Pages
             string firstLetters = string.Concat(words.Select(w => RemoveDiacritics(w.Substring(0, 1)).ToLower()));
             if (firstLetters.Contains(normalizedSearch))
                 return true;
-            
+
             // Partial first letter match (e.g., "tc" for "thập cẩm" in "mỳ cay thập cẩm")
             foreach (var word in words)
             {
-               if (RemoveDiacritics(word).ToLower().StartsWith(normalizedSearch)) return true;
+                if (RemoveDiacritics(word).ToLower().StartsWith(normalizedSearch)) return true;
             }
 
             return false;
@@ -423,17 +499,27 @@ namespace PosSystem.Main.Pages
 
         private void ShowNotification(string message)
         {
-            // Nếu MainWindow có hàm ShowToast thì gọi, không thì MessageBox
-            var window = Window.GetWindow(this);
-            if (window != null && window.GetType().Name == "MainWindow") // Hard check name because generic MainWindow cast might fail if namespace differs
+            // Inline toast in this page (non-blocking)
+            if (txtToast == null || pnlToast == null)
             {
-                // Reflection call if specific type is not accessible
-               // For now just MessageBox or try cast if namespace known
-               // Assuming logic from previous:
-               // MessageBox.Show(message); 
+                MessageBox.Show(message, "Thông báo");
+                return;
             }
-            
-             MessageBox.Show(message, "Thông báo");
+
+            txtToast.Text = message;
+            pnlToast.Visibility = Visibility.Visible;
+
+            _toastTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1800) };
+            _toastTimer.Stop();
+            _toastTimer.Tick -= ToastTimer_Tick;
+            _toastTimer.Tick += ToastTimer_Tick;
+            _toastTimer.Start();
+        }
+
+        private void ToastTimer_Tick(object? sender, EventArgs e)
+        {
+            _toastTimer?.Stop();
+            if (pnlToast != null) pnlToast.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -452,16 +538,16 @@ namespace PosSystem.Main.Pages
         public string Unit { get; set; } = "";
         public int CategoryID { get; set; }
         public decimal BasePrice { get; set; }
-        
+
         // [NEW] Logic for tracking changes
         public decimal OriginalPrice { get; set; }
 
         private decimal _newPrice;
-        public decimal NewPrice 
-        { 
+        public decimal NewPrice
+        {
             get => _newPrice;
-            set 
-            { 
+            set
+            {
                 if (_newPrice != value)
                 {
                     _newPrice = value;
