@@ -36,7 +36,7 @@ namespace PosSystem.Main.Templates
                     case "TableNumberBig":
                         // Dùng Helper để thay thế biến số {Table}, {Staff}...
                         string finalContent = PrintContentHelper.ReplacePlaceholders(el.Content, order);
-                        
+
                         // [NEW] Logic Tạm tính
                         if (isProvisional && finalContent.ToUpper().Contains("HÓA ĐƠN"))
                         {
@@ -122,7 +122,7 @@ namespace PosSystem.Main.Templates
 
             // 2. Định nghĩa cấu trúc cột (7 cột: Tên | Spacing | Kẻ | SL | Kẻ | Spacing | Tiền)
             // Tổng width khoảng 530px (trừ margin)
-            const int lineColumnWidth = 5; 
+            const int lineColumnWidth = 5;
             const int qtyColumnWidth = 45; // Tăng nhẹ để số lượng 2 chữ số thoải mái
             const int priceColumnWidth = 140; // Tăng lên 140 để hiển thị được 100.000.000
 
@@ -239,8 +239,10 @@ namespace PosSystem.Main.Templates
                 {
                     var line = new System.Windows.Shapes.Line
                     {
-                        X1 = 0, Y1 = 0,
-                        X2 = 1, Y2 = 0,
+                        X1 = 0,
+                        Y1 = 0,
+                        X2 = 1,
+                        Y2 = 0,
                         Stretch = Stretch.Fill,
                         Stroke = Brushes.Black,
                         StrokeThickness = 1,
@@ -253,7 +255,7 @@ namespace PosSystem.Main.Templates
                     {
                         line.StrokeDashArray = new DoubleCollection { 4, 2 };
                     }
-                    
+
                     RootPanel.Children.Add(line);
                 }
             }
@@ -356,8 +358,10 @@ namespace PosSystem.Main.Templates
         {
             var line = new System.Windows.Shapes.Line
             {
-                X1 = 0, Y1 = 0,
-                X2 = 1, Y2 = 0,
+                X1 = 0,
+                Y1 = 0,
+                X2 = 1,
+                Y2 = 0,
                 Stretch = Stretch.Fill,
                 Stroke = Brushes.Black,
                 StrokeThickness = 1,
@@ -382,7 +386,24 @@ namespace PosSystem.Main.Templates
                 // Nếu là tên file, tìm trong thư mục Images
                 else
                 {
-                    path = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Images", fileName);
+                    try
+                    {
+                        PosSystem.Main.Helpers.AppPaths.EnsureInitialized();
+                        var inData = System.IO.Path.Combine(PosSystem.Main.Helpers.AppPaths.ImagesDir, fileName);
+                        if (File.Exists(inData))
+                        {
+                            path = inData;
+                        }
+                        else
+                        {
+                            // legacy fallback
+                            path = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Images", fileName);
+                        }
+                    }
+                    catch
+                    {
+                        path = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Images", fileName);
+                    }
                 }
 
                 if (File.Exists(path))

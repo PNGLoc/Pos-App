@@ -12,6 +12,7 @@ using System.IO;
 using System.Windows.Media;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using PosSystem.Main.Helpers;
 
 namespace PosSystem.Main.Pages
 {
@@ -57,12 +58,12 @@ namespace PosSystem.Main.Pages
         }
 
         // [NEW] Props for QR
-        public new string QRTextTop { get => base.QRTextTop; set { if(base.QRTextTop != value) { base.QRTextTop = value; OnPropertyChanged(); } } }
-        public new string QRTextBottom { get => base.QRTextBottom; set { if(base.QRTextBottom != value) { base.QRTextBottom = value; OnPropertyChanged(); } } }
-        public new int QRTextTopFontSize { get => base.QRTextTopFontSize; set { if(base.QRTextTopFontSize != value) { base.QRTextTopFontSize = value; OnPropertyChanged(); } } }
-        public new int QRTextBottomFontSize { get => base.QRTextBottomFontSize; set { if(base.QRTextBottomFontSize != value) { base.QRTextBottomFontSize = value; OnPropertyChanged(); } } }
-        public new bool QRTextTopBold { get => base.QRTextTopBold; set { if(base.QRTextTopBold != value) { base.QRTextTopBold = value; OnPropertyChanged(); } } }
-        public new bool QRTextBottomBold { get => base.QRTextBottomBold; set { if(base.QRTextBottomBold != value) { base.QRTextBottomBold = value; OnPropertyChanged(); } } }
+        public new string QRTextTop { get => base.QRTextTop; set { if (base.QRTextTop != value) { base.QRTextTop = value; OnPropertyChanged(); } } }
+        public new string QRTextBottom { get => base.QRTextBottom; set { if (base.QRTextBottom != value) { base.QRTextBottom = value; OnPropertyChanged(); } } }
+        public new int QRTextTopFontSize { get => base.QRTextTopFontSize; set { if (base.QRTextTopFontSize != value) { base.QRTextTopFontSize = value; OnPropertyChanged(); } } }
+        public new int QRTextBottomFontSize { get => base.QRTextBottomFontSize; set { if (base.QRTextBottomFontSize != value) { base.QRTextBottomFontSize = value; OnPropertyChanged(); } } }
+        public new bool QRTextTopBold { get => base.QRTextTopBold; set { if (base.QRTextTopBold != value) { base.QRTextTopBold = value; OnPropertyChanged(); } } }
+        public new bool QRTextBottomBold { get => base.QRTextBottomBold; set { if (base.QRTextBottomBold != value) { base.QRTextBottomBold = value; OnPropertyChanged(); } } }
 
         public new bool IsBold
         {
@@ -191,7 +192,7 @@ namespace PosSystem.Main.Pages
             this.IsVisible = origin.IsVisible;
             this.ImageHeight = origin.ImageHeight;
             this.QRTextTop = origin.QRTextTop; // [FIX]
-            this.QRTextBottom = origin.QRTextBottom; 
+            this.QRTextBottom = origin.QRTextBottom;
             this.QRTextTopFontSize = origin.QRTextTopFontSize;
             this.QRTextBottomFontSize = origin.QRTextBottomFontSize;
             this.QRTextTopBold = origin.QRTextTopBold;
@@ -200,16 +201,16 @@ namespace PosSystem.Main.Pages
 
         public PrintElement ToModel()
         {
-            return new PrintElement 
-            { 
-                ElementType = this.ElementType, 
-                Content = this.Content, 
-                FontSize = this.FontSize, 
-                IsBold = this.IsBold, 
-                Align = this.Align, 
+            return new PrintElement
+            {
+                ElementType = this.ElementType,
+                Content = this.Content,
+                FontSize = this.FontSize,
+                IsBold = this.IsBold,
+                Align = this.Align,
                 IsVisible = this.IsVisible,
                 ImageHeight = this.ImageHeight,
-                QRTextTop = this.QRTextTop,     
+                QRTextTop = this.QRTextTop,
                 QRTextBottom = this.QRTextBottom,
                 QRTextTopFontSize = this.QRTextTopFontSize,
                 QRTextBottomFontSize = this.QRTextBottomFontSize,
@@ -317,7 +318,7 @@ namespace PosSystem.Main.Pages
             if (lstElements == null) return;
             lstElements.ItemsSource = null;
             lstElements.ItemsSource = _elements;
-            if (selectIndex >= 0 && selectIndex < _elements.Count) 
+            if (selectIndex >= 0 && selectIndex < _elements.Count)
             {
                 lstElements.SelectedIndex = selectIndex;
                 lstElements.ScrollIntoView(lstElements.SelectedItem);
@@ -388,7 +389,7 @@ namespace PosSystem.Main.Pages
 
                 if (el.ElementType == "Text")
                 {
-                    if (pnlAlignProp != null) 
+                    if (pnlAlignProp != null)
                     {
                         pnlAlignProp.Visibility = Visibility.Visible;
                         if (cboAlign != null) cboAlign.SelectedIndex = el.Align == "Left" ? 0 : (el.Align == "Right" ? 2 : 1);
@@ -403,8 +404,8 @@ namespace PosSystem.Main.Pages
                     if (pnlImageProp != null) pnlImageProp.Visibility = Visibility.Visible;
                     LoadImagePreview(el.Content);
                     if (txtImageHeight != null) txtImageHeight.Text = el.ImageHeight.ToString();
-                    
-                    if (pnlAlignProp != null) 
+
+                    if (pnlAlignProp != null)
                     {
                         pnlAlignProp.Visibility = Visibility.Visible;
                         if (cboAlign != null) cboAlign.SelectedIndex = el.Align == "Left" ? 0 : (el.Align == "Right" ? 2 : 1);
@@ -423,47 +424,47 @@ namespace PosSystem.Main.Pages
                     }
                     else
                     {
-                         if (pnlQrText != null) pnlQrText.Visibility = Visibility.Collapsed;
+                        if (pnlQrText != null) pnlQrText.Visibility = Visibility.Collapsed;
                     }
                 }
                 else if (el.ElementType == "Separator" || el.ElementType == "SeparatorDashed")
                 {
-                     // Separator ko có property gì mấy
+                    // Separator ko có property gì mấy
                 }
-                else 
+                else
                 {
                     // Các khối dữ liệu (List món, Total, Batch)
                     if (pnlOptionProp != null)
                     {
-                         pnlOptionProp.Visibility = Visibility.Visible;
+                        pnlOptionProp.Visibility = Visibility.Visible;
 
-                         if (el.ElementType == "OrderDetails" || el.ElementType == "KitchenOrderDetails")
-                         {
-                             if (optOrderDetails != null) optOrderDetails.Visibility = Visibility.Visible;
-                             if (optTotal != null) optTotal.Visibility = Visibility.Collapsed;
+                        if (el.ElementType == "OrderDetails" || el.ElementType == "KitchenOrderDetails")
+                        {
+                            if (optOrderDetails != null) optOrderDetails.Visibility = Visibility.Visible;
+                            if (optTotal != null) optTotal.Visibility = Visibility.Collapsed;
 
-                             if (txtHeaderSize != null) txtHeaderSize.Text = el.HeaderFontSize.ToString();
-                             if (txtItemSize != null) txtItemSize.Text = el.ItemFontSize.ToString();
-                             if (chkShowNote != null) chkShowNote.IsChecked = el.ShowNote;
-                             if (txtNoteSize != null) txtNoteSize.Text = el.NoteFontSize.ToString();
-                             if (txtColumnSpacing != null) txtColumnSpacing.Text = el.ColumnSpacing.ToString();
-                             if (chkOrderDetailsBold != null) chkOrderDetailsBold.IsChecked = el.IsBold;
-                             
-                             // [NEW] Bind Separator options
-                             if (chkItemSep != null) chkItemSep.IsChecked = el.ShowItemSeparator;
-                             if (cboItemSepStyle != null) cboItemSepStyle.SelectedIndex = (el.SeparatorStyle == "Dashed") ? 1 : 0;
-                         }
-                         else if (el.ElementType == "Total")
-                         {
-                             if (optOrderDetails != null) optOrderDetails.Visibility = Visibility.Collapsed;
-                             if (optTotal != null) optTotal.Visibility = Visibility.Visible;
+                            if (txtHeaderSize != null) txtHeaderSize.Text = el.HeaderFontSize.ToString();
+                            if (txtItemSize != null) txtItemSize.Text = el.ItemFontSize.ToString();
+                            if (chkShowNote != null) chkShowNote.IsChecked = el.ShowNote;
+                            if (txtNoteSize != null) txtNoteSize.Text = el.NoteFontSize.ToString();
+                            if (txtColumnSpacing != null) txtColumnSpacing.Text = el.ColumnSpacing.ToString();
+                            if (chkOrderDetailsBold != null) chkOrderDetailsBold.IsChecked = el.IsBold;
 
-                             if (chkShowSubTotal != null) chkShowSubTotal.IsChecked = el.ShowSubTotal;
-                             if (chkShowDiscount != null) chkShowDiscount.IsChecked = el.ShowDiscount;
-                             if (chkTotalBold != null) chkTotalBold.IsChecked = el.IsBold;
-                             if (txtTotalHeaderSize != null) txtTotalHeaderSize.Text = el.TotalHeaderFontSize.ToString();
-                             if (txtSubSize != null) txtSubSize.Text = el.SubFontSize.ToString();
-                         }
+                            // [NEW] Bind Separator options
+                            if (chkItemSep != null) chkItemSep.IsChecked = el.ShowItemSeparator;
+                            if (cboItemSepStyle != null) cboItemSepStyle.SelectedIndex = (el.SeparatorStyle == "Dashed") ? 1 : 0;
+                        }
+                        else if (el.ElementType == "Total")
+                        {
+                            if (optOrderDetails != null) optOrderDetails.Visibility = Visibility.Collapsed;
+                            if (optTotal != null) optTotal.Visibility = Visibility.Visible;
+
+                            if (chkShowSubTotal != null) chkShowSubTotal.IsChecked = el.ShowSubTotal;
+                            if (chkShowDiscount != null) chkShowDiscount.IsChecked = el.ShowDiscount;
+                            if (chkTotalBold != null) chkTotalBold.IsChecked = el.IsBold;
+                            if (txtTotalHeaderSize != null) txtTotalHeaderSize.Text = el.TotalHeaderFontSize.ToString();
+                            if (txtSubSize != null) txtSubSize.Text = el.SubFontSize.ToString();
+                        }
                     }
                 }
                 _isInternalUpdate = false;
@@ -482,7 +483,7 @@ namespace PosSystem.Main.Pages
 
             // Cập nhật các thuộc tính chung
             if (chkVisible != null) _selectedElement.IsVisible = chkVisible.IsChecked == true;
-            
+
             if (_selectedElement.ElementType == "Text")
             {
                 if (txtContent != null) _selectedElement.Content = txtContent.Text;
@@ -494,15 +495,15 @@ namespace PosSystem.Main.Pages
             {
                 if (cboAlign != null) _selectedElement.Align = cboAlign.SelectedIndex == 0 ? "Left" : (cboAlign.SelectedIndex == 2 ? "Right" : "Center");
                 if (txtImageHeight != null && int.TryParse(txtImageHeight.Text, out int h)) _selectedElement.ImageHeight = h;
-                
+
                 if (_selectedElement.ElementType == "QRCode")
                 {
-                     if (txtQrTop != null) _selectedElement.QRTextTop = txtQrTop.Text;
-                     if (txtQrBottom != null) _selectedElement.QRTextBottom = txtQrBottom.Text;
-                     if (txtQrTopSize != null && int.TryParse(txtQrTopSize.Text, out int tSize)) _selectedElement.QRTextTopFontSize = tSize;
-                     if (txtQrBottomSize != null && int.TryParse(txtQrBottomSize.Text, out int bSize)) _selectedElement.QRTextBottomFontSize = bSize;
-                     if (chkQrTopBold != null) _selectedElement.QRTextTopBold = chkQrTopBold.IsChecked == true;
-                     if (chkQrBottomBold != null) _selectedElement.QRTextBottomBold = chkQrBottomBold.IsChecked == true;
+                    if (txtQrTop != null) _selectedElement.QRTextTop = txtQrTop.Text;
+                    if (txtQrBottom != null) _selectedElement.QRTextBottom = txtQrBottom.Text;
+                    if (txtQrTopSize != null && int.TryParse(txtQrTopSize.Text, out int tSize)) _selectedElement.QRTextTopFontSize = tSize;
+                    if (txtQrBottomSize != null && int.TryParse(txtQrBottomSize.Text, out int bSize)) _selectedElement.QRTextBottomFontSize = bSize;
+                    if (chkQrTopBold != null) _selectedElement.QRTextTopBold = chkQrTopBold.IsChecked == true;
+                    if (chkQrBottomBold != null) _selectedElement.QRTextBottomBold = chkQrBottomBold.IsChecked == true;
                 }
             }
             else if (_selectedElement.ElementType == "OrderDetails" || _selectedElement.ElementType == "KitchenOrderDetails")
@@ -513,7 +514,7 @@ namespace PosSystem.Main.Pages
                 if (chkShowNote != null && chkShowNote.IsChecked == false) configs.Add("ShowNote=False");
                 if (txtNoteSize != null && int.TryParse(txtNoteSize.Text, out int nSize)) configs.Add($"NoteSize={nSize}");
                 if (txtColumnSpacing != null && int.TryParse(txtColumnSpacing.Text, out int cSpacing)) configs.Add($"ColumnSpacing={cSpacing}");
-                
+
                 // [NEW] Save Separator options
                 if (chkItemSep != null && chkItemSep.IsChecked == true) configs.Add("ItemSep=True");
                 if (cboItemSepStyle != null && cboItemSepStyle.SelectedIndex == 1) configs.Add("SepStyle=Dashed");
@@ -528,7 +529,7 @@ namespace PosSystem.Main.Pages
                 if (chkShowDiscount != null && chkShowDiscount.IsChecked == true) configs.Add("ShowDisc=True");
                 if (txtTotalHeaderSize != null && int.TryParse(txtTotalHeaderSize.Text, out int tHSize)) configs.Add($"TotalHeaderSize={tHSize}");
                 if (txtSubSize != null && int.TryParse(txtSubSize.Text, out int sSize)) configs.Add($"SubSize={sSize}");
-                
+
                 _selectedElement.Content = string.Join(";", configs);
                 if (chkTotalBold != null) _selectedElement.IsBold = chkTotalBold.IsChecked == true;
             }
@@ -544,38 +545,38 @@ namespace PosSystem.Main.Pages
             e.Handled = regex.IsMatch(e.Text);
         }
 
-        private void BtnDelete_Click(object sender, RoutedEventArgs e) 
-        { 
-            if (_selectedElement != null) 
-            { 
-                int idx = lstElements.SelectedIndex; 
-                _elements.Remove(_selectedElement); 
-                RefreshList(idx >= _elements.Count ? _elements.Count - 1 : idx); 
-            } 
+        private void BtnDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedElement != null)
+            {
+                int idx = lstElements.SelectedIndex;
+                _elements.Remove(_selectedElement);
+                RefreshList(idx >= _elements.Count ? _elements.Count - 1 : idx);
+            }
         }
 
-        private void BtnUp_Click(object sender, RoutedEventArgs e) 
-        { 
-            int idx = lstElements.SelectedIndex; 
-            if (idx > 0) 
-            { 
-                var item = _elements[idx]; 
-                _elements.RemoveAt(idx); 
-                _elements.Insert(idx - 1, item); 
-                RefreshList(idx - 1); 
-            } 
+        private void BtnUp_Click(object sender, RoutedEventArgs e)
+        {
+            int idx = lstElements.SelectedIndex;
+            if (idx > 0)
+            {
+                var item = _elements[idx];
+                _elements.RemoveAt(idx);
+                _elements.Insert(idx - 1, item);
+                RefreshList(idx - 1);
+            }
         }
 
-        private void BtnDown_Click(object sender, RoutedEventArgs e) 
-        { 
-            int idx = lstElements.SelectedIndex; 
-            if (idx >= 0 && idx < _elements.Count - 1) 
-            { 
-                var item = _elements[idx]; 
-                _elements.RemoveAt(idx); 
-                _elements.Insert(idx + 1, item); 
-                RefreshList(idx + 1); 
-            } 
+        private void BtnDown_Click(object sender, RoutedEventArgs e)
+        {
+            int idx = lstElements.SelectedIndex;
+            if (idx >= 0 && idx < _elements.Count - 1)
+            {
+                var item = _elements[idx];
+                _elements.RemoveAt(idx);
+                _elements.Insert(idx + 1, item);
+                RefreshList(idx + 1);
+            }
         }
 
         private void BtnUploadImage_Click(object sender, RoutedEventArgs e)
@@ -604,7 +605,21 @@ namespace PosSystem.Main.Pages
                 string path = filePath;
                 if (!Path.IsPathRooted(filePath))
                 {
-                    path = Path.Combine(AppContext.BaseDirectory, "Images", filePath);
+                    try
+                    {
+                        AppPaths.EnsureInitialized();
+                        path = Path.Combine(AppPaths.ImagesDir, filePath);
+                    }
+                    catch
+                    {
+                        path = Path.Combine(AppContext.BaseDirectory, "Images", filePath);
+                    }
+
+                    // legacy fallback
+                    if (!File.Exists(path))
+                    {
+                        path = Path.Combine(AppContext.BaseDirectory, "Images", filePath);
+                    }
                 }
 
                 if (File.Exists(path))
@@ -618,22 +633,22 @@ namespace PosSystem.Main.Pages
             }
         }
 
-        private void BtnSave_Click(object sender, RoutedEventArgs e) 
-        { 
-            string templateType = TemplateType ?? "Bill"; 
-            using (var db = new AppDbContext()) 
-            { 
-                var template = db.PrintTemplates.FirstOrDefault(t => t.TemplateType == templateType && t.IsActive); 
-                if (template == null) 
-                { 
-                    template = new PrintTemplate { TemplateName = templateType, TemplateType = templateType, IsActive = true }; 
-                    db.PrintTemplates.Add(template); 
-                } 
-                var rawList = _elements.Select(vm => vm.ToModel()).ToList(); 
-                template.TemplateContentJson = JsonSerializer.Serialize(rawList); 
-                db.SaveChanges(); 
-                MessageBox.Show("✅ Đã lưu cấu trúc thành công!"); 
-            } 
+        private void BtnSave_Click(object sender, RoutedEventArgs e)
+        {
+            string templateType = TemplateType ?? "Bill";
+            using (var db = new AppDbContext())
+            {
+                var template = db.PrintTemplates.FirstOrDefault(t => t.TemplateType == templateType && t.IsActive);
+                if (template == null)
+                {
+                    template = new PrintTemplate { TemplateName = templateType, TemplateType = templateType, IsActive = true };
+                    db.PrintTemplates.Add(template);
+                }
+                var rawList = _elements.Select(vm => vm.ToModel()).ToList();
+                template.TemplateContentJson = JsonSerializer.Serialize(rawList);
+                db.SaveChanges();
+                MessageBox.Show("✅ Đã lưu cấu trúc thành công!");
+            }
         }
     }
 }

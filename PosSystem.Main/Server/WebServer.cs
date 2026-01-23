@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection; // Cần cái này
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PosSystem.Main.Database; // <--- QUAN TRỌNG: Phải using thư mục Database
+using PosSystem.Main.Helpers;
 using PosSystem.Main.Server.Hubs;
 using System;
 
@@ -49,8 +51,23 @@ namespace PosSystem.Main.Server
                     {
                         app.UseDeveloperExceptionPage();
 
+                        // Ensure data folders exist early
+                        try { AppPaths.EnsureInitialized(); } catch { }
+
                         // Cho phép phục vụ file index.html, css, js
                         app.UseDefaultFiles();
+
+                        // Serve dish images from <appRoot>/data/image at /images
+                        try
+                        {
+                            app.UseStaticFiles(new StaticFileOptions
+                            {
+                                FileProvider = new PhysicalFileProvider(AppPaths.ImagesDir),
+                                RequestPath = "/images"
+                            });
+                        }
+                        catch { }
+
                         app.UseStaticFiles();
 
                         // Enable WebSockets (SignalR will use this transport)

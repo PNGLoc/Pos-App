@@ -43,8 +43,25 @@ namespace PosSystem.Main
         }
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            // Ensure data folders (ProgramData by default) exist before DB usage
+            // Ensure required deploy layout exists: <appRoot>/data (DB + images)
             try { AppPaths.EnsureInitialized(); } catch { }
+
+            // Fail fast with a clear message if the install folder is not writable
+            try
+            {
+                var probePath = System.IO.Path.Combine(AppPaths.DataRoot, ".write_test");
+                System.IO.File.WriteAllText(probePath, "ok");
+                System.IO.File.Delete(probePath);
+            }
+            catch
+            {
+                MessageBox.Show(
+                    "Không thể ghi dữ liệu vào thư mục cài đặt.\n\n" +
+                    "Yêu cầu: Database và hình ảnh lưu trong thư mục 'data' nằm cùng thư mục với file .exe.\n\n" +
+                    "Vui lòng cài ứng dụng vào thư mục có quyền ghi (khuyến nghị: C:\\PosSystem), hoặc chạy bằng quyền Administrator.");
+                Shutdown();
+                return;
+            }
 
             // Mẹo: Đảm bảo DB được tạo ngay khi mở app để tránh lỗi thiếu bảng
             using (var db = new AppDbContext())

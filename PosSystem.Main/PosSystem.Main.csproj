@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- Optional app icon (place file at: PosSystem.Main\Assets\app.ico) -->
+    <ApplicationIcon Condition="Exists('Assets\\app.ico')">Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 <!-- QUAN TRỌNG: Nạp thư viện ASP.NET Core vào WPF App -->
   <ItemGroup>
@@ -29,5 +31,11 @@
     <Content Include="wwwroot\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Assets\app.ico" Condition="Exists('Assets\\app.ico')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
