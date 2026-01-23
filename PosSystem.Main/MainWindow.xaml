@@ -709,8 +709,8 @@
                                  ScrollViewer.IsDeferredScrollingEnabled="True">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <helpers:VirtualizingWrapPanel ItemWidth="144"
-                                                                   ItemHeight="124"/>
+                                    <helpers:VirtualizingWrapPanel ItemWidth="190"
+                                                                   ItemHeight="165"/>
                                 </ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
                             <ListBox.ItemContainerStyle>
@@ -733,12 +733,12 @@
                             </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Width="132"
-                                            Height="112"
-                                            Margin="6"
+                                    <Border Width="178"
+                                            Height="150"
+                                            Margin="8"
                                             CornerRadius="10"
-                                            BorderThickness="1"
-                                            BorderBrush="#E0E0E0"
+                                            BorderThickness="2"
+                                            BorderBrush="#BFE3FF"
                                             Cursor="Hand"
                                             Background="White"
                                             Tag="{Binding DishID}"
@@ -747,6 +747,10 @@
                                             <Style TargetType="Border">
                                                 <Setter Property="Effect"
                                                         Value="{x:Null}"/>
+                                                <Setter Property="BorderThickness"
+                                                        Value="2"/>
+                                                <Setter Property="BorderBrush"
+                                                        Value="#BFE3FF"/>
                                                 <Style.Triggers>
                                                     <Trigger Property="IsMouseOver"
                                                              Value="True">
@@ -758,6 +762,8 @@
                                                                                   Opacity="0.4"/>
                                                             </Setter.Value>
                                                         </Setter>
+                                                        <Setter Property="BorderBrush"
+                                                                Value="#7EC3FF"/>
                                                     </Trigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -767,7 +773,7 @@
                                             <Border CornerRadius="10"
                                                     Visibility="{Binding ImagePath, Converter={StaticResource DishImagePathToVisibilityConverter}}">
                                                 <Border.Background>
-                                                    <ImageBrush ImageSource="{Binding ImagePath, Converter={StaticResource DishImagePathToImageSourceConverter}, ConverterParameter=160}"
+                                                    <ImageBrush ImageSource="{Binding ImagePath, Converter={StaticResource DishImagePathToImageSourceConverter}, ConverterParameter=240}"
                                                                 Stretch="UniformToFill"
                                                                 Opacity="0.95"/>
                                                 </Border.Background>
@@ -796,23 +802,23 @@
                                                 <Border Grid.Row="0"
                                                         HorizontalAlignment="Center"
                                                         VerticalAlignment="Center"
-                                                        Margin="8"
-                                                        Padding="8,6"
-                                                        CornerRadius="8"
+                                                        Margin="10"
+                                                        Padding="10,8"
+                                                        CornerRadius="10"
                                                         Background="#CCFFFFFF">
                                                     <TextBlock Text="{Binding DishName}"
                                                                TextWrapping="Wrap"
                                                                TextAlignment="Center"
                                                                FontWeight="SemiBold"
-                                                               FontSize="14"
+                                                               FontSize="16"
                                                                Foreground="#222"/>
                                                 </Border>
 
                                                 <Border x:Name="pricePill"
                                                         Grid.Row="1"
                                                         HorizontalAlignment="Center"
-                                                        Margin="0,0,0,8"
-                                                        Padding="10,4"
+                                                        Margin="0,0,0,10"
+                                                        Padding="14,6"
                                                         CornerRadius="999"
                                                         Background="#DFFFFFFF"
                                                         BorderThickness="1"
@@ -821,7 +827,7 @@
                                                                TextAlignment="Center"
                                                                Foreground="#F44336"
                                                                FontWeight="Bold"
-                                                               FontSize="13"/>
+                                                               FontSize="15"/>
                                                 </Border>
                                             </Grid>
                                         </Grid>
