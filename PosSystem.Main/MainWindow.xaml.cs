@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Collections.ObjectModel; // [NEW]
@@ -252,85 +253,113 @@ namespace PosSystem.Main
         {
             if (lstTables.SelectedItem is TableViewModel selected)
             {
-                // [NEW] Prevent selecting grayed-out tables (Source table in split mode)
-                if (selected.IsGrayedOut)
-                {
-                    lstTables.SelectedItem = null;
-                    return;
-                }
+                OpenTableFromSelection(selected);
+            }
+        }
 
-                // If waiting for target table in split mode, transfer items instead of opening menu
-                if (_isWaitingForTargetTable && _pendingSplitItems.Count > 0)
-                {
-                    int targetTableId = selected.TableID;
-                    lstTables.SelectedItem = null;  // Deselect to reset
-                    ExecuteSplitTransfer(targetTableId);
-                    return;
-                }
-                // [FIX] Clear "Request Payment" flag in DB when selecting table
-                if (selected.IsRequestingPayment)
-                {
-                    using (var db = new AppDbContext())
-                    {
-                        var order = db.Orders.FirstOrDefault(o => o.TableID == selected.TableID && o.OrderStatus == "Pending");
-                        if (order != null && order.IsRequestingPayment)
-                        {
-                            order.IsRequestingPayment = false;
-                            db.SaveChanges();
+        private void lstTables_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not ListBox listBox)
+                return;
 
-                            // Send SignalR to update other clients
-                            if (_connection.State == HubConnectionState.Connected)
-                            {
-                                _connection.SendAsync("NotifyTableUpdated", selected.TableID);
-                            }
-                        }
-                    }
-                    // Refresh UI immediately
-                    LoadTables();
-                }
+            if (e.OriginalSource is not DependencyObject dep)
+                return;
 
-                // If waiting for target table in move mode, move entire order instead of opening menu
-                if (_isWaitingForMoveTargetTable)
-                {
-                    int targetTableId = selected.TableID;
-                    lstTables.SelectedItem = null;  // Deselect to reset
-                    ExecuteMoveTable(targetTableId);
-                    return;
-                }
+            var container = ItemsControl.ContainerFromElement(listBox, dep) as ListBoxItem;
+            if (container?.DataContext is not TableViewModel selected)
+                return;
 
-                _selectedTableId = selected.TableID;
-                lblSelectedTable.Text = selected.TableName;
+            // With virtualization, SelectedItem can stay the same, so SelectionChanged won't fire.
+            // Force open behavior on click.
+            if (!Equals(listBox.SelectedItem, selected))
+                listBox.SelectedItem = selected;
 
-                pnlTableList.Visibility = Visibility.Collapsed;
-                pnlMenu.Visibility = Visibility.Visible;
+            OpenTableFromSelection(selected);
+            e.Handled = true;
+        }
 
-                // Show split and move buttons when selecting a table
-                btnSplitTable.Visibility = Visibility.Visible;
-                btnMoveTable.Visibility = Visibility.Visible;
-                btnSplitTable.Visibility = Visibility.Visible;
-                btnMoveTable.Visibility = Visibility.Visible;
-                btnReprintKitchen.Visibility = Visibility.Visible;
-                btnDiscountBill.Visibility = Visibility.Visible; // [FIX] Show when table selected
+        private void OpenTableFromSelection(TableViewModel selected)
+        {
+            // [NEW] Prevent selecting grayed-out tables (Source table in split mode)
+            if (selected.IsGrayedOut)
+            {
+                lstTables.SelectedItem = null;
+                return;
+            }
 
-                // Stop timer when entering a table (will start only when sending kitchen)
-                _tableTimeTimer.Stop();
-                _currentOrderTime = null;
-                lblTableTime.Text = "";
+            // If waiting for target table in split mode, transfer items instead of opening menu
+            if (_isWaitingForTargetTable && _pendingSplitItems.Count > 0)
+            {
+                int targetTableId = selected.TableID;
+                lstTables.SelectedItem = null;  // Deselect to reset
+                ExecuteSplitTransfer(targetTableId);
+                return;
+            }
 
-                // Get order time (but don't start timer - wait for first kitchen send)
+            // [FIX] Clear "Request Payment" flag in DB when selecting table
+            if (selected.IsRequestingPayment)
+            {
                 using (var db = new AppDbContext())
                 {
                     var order = db.Orders.FirstOrDefault(o => o.TableID == selected.TableID && o.OrderStatus == "Pending");
-                    if (order != null)
+                    if (order != null && order.IsRequestingPayment)
                     {
-                        // [MODIFIED] Use OrderTime (Creation Time) immediately
-                        _currentOrderTime = order.OrderTime;
-                        _tableTimeTimer.Start();
+                        order.IsRequestingPayment = false;
+                        db.SaveChanges();
+
+                        // Send SignalR to update other clients
+                        if (_connection.State == HubConnectionState.Connected)
+                        {
+                            _connection.SendAsync("NotifyTableUpdated", selected.TableID);
+                        }
                     }
                 }
 
-                LoadOrderDetails(selected.TableID);
+                // Refresh UI immediately
+                LoadTables();
             }
+
+            // If waiting for target table in move mode, move entire order instead of opening menu
+            if (_isWaitingForMoveTargetTable)
+            {
+                int targetTableId = selected.TableID;
+                lstTables.SelectedItem = null;  // Deselect to reset
+                ExecuteMoveTable(targetTableId);
+                return;
+            }
+
+            _selectedTableId = selected.TableID;
+            lblSelectedTable.Text = selected.TableName;
+
+            pnlTableList.Visibility = Visibility.Collapsed;
+            pnlMenu.Visibility = Visibility.Visible;
+
+            // Show split and move buttons when selecting a table
+            btnSplitTable.Visibility = Visibility.Visible;
+            btnMoveTable.Visibility = Visibility.Visible;
+            btnSplitTable.Visibility = Visibility.Visible;
+            btnMoveTable.Visibility = Visibility.Visible;
+            btnReprintKitchen.Visibility = Visibility.Visible;
+            btnDiscountBill.Visibility = Visibility.Visible; // [FIX] Show when table selected
+
+            // Stop timer when entering a table (will start only when sending kitchen)
+            _tableTimeTimer.Stop();
+            _currentOrderTime = null;
+            lblTableTime.Text = "";
+
+            // Get order time (but don't start timer - wait for first kitchen send)
+            using (var db = new AppDbContext())
+            {
+                var order = db.Orders.FirstOrDefault(o => o.TableID == selected.TableID && o.OrderStatus == "Pending");
+                if (order != null)
+                {
+                    // [MODIFIED] Use OrderTime (Creation Time) immediately
+                    _currentOrderTime = order.OrderTime;
+                    _tableTimeTimer.Start();
+                }
+            }
+
+            LoadOrderDetails(selected.TableID);
         }
 
         private void BtnBackToTables_Click(object sender, RoutedEventArgs e)
@@ -1497,14 +1526,14 @@ namespace PosSystem.Main
                     // Start timer on first send
                     if (isFirstSend)
                     {
-                        Dispatcher.Invoke(() =>
+                        Dispatcher.BeginInvoke(new Action(() =>
                         {
                             _currentOrderTime = order.OrderTime;
                             if (!_tableTimeTimer.IsEnabled)
                             {
                                 _tableTimeTimer.Start();
                             }
-                        });
+                        }));
                     }
                     if (itemsToPrint.Any())
                     {
@@ -1515,7 +1544,7 @@ namespace PosSystem.Main
                     }
 
                     // ⭐ Notify mobile via SignalR
-                    Dispatcher.Invoke(() => NotifyTableUpdated(_selectedTableId));
+                    NotifyTableUpdated(_selectedTableId);
 
                     // --- 4. KIỂM TRA ĐƠN RỖNG ---
                     bool isOrderEmpty = !db.OrderDetails.Any(d => d.OrderID == order.OrderID);
@@ -1526,20 +1555,20 @@ namespace PosSystem.Main
                         if (table != null) table.TableStatus = "Empty";
                         db.SaveChanges();
 
-                        Dispatcher.Invoke(() =>
+                        Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            LoadTables();
-                            LoadOrderDetails(_selectedTableId);
+                            _ = LoadTablesAsync();
+                            _ = LoadOrderDetailsAsync(_selectedTableId);
                             ShowToast("✅ Đã hủy món & Trả bàn trống");
-                        });
+                        }));
                     }
                     else
                     {
-                        Dispatcher.Invoke(() =>
+                        Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            LoadOrderDetails(_selectedTableId);
+                            _ = LoadOrderDetailsAsync(_selectedTableId);
                             ShowToast($"✅ Đã gửi Đợt {nextBatch}!");
-                        });
+                        }));
                     }
                 }
             });

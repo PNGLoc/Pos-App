@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Windows;
@@ -9,6 +10,8 @@ namespace PosSystem.Main.Helpers
 {
     public sealed class DishImagePathToVisibilityConverter : IValueConverter
     {
+        private static readonly ConcurrentDictionary<string, bool> _existsCache = new(StringComparer.OrdinalIgnoreCase);
+
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is not string raw)
@@ -36,11 +39,11 @@ namespace PosSystem.Main.Helpers
                     {
                         AppPaths.EnsureInitialized();
                         var dataImagesPath = Path.Combine(AppPaths.ImagesDir, path);
-                        if (File.Exists(dataImagesPath))
+                        if (ExistsCached(dataImagesPath))
                             return Visibility.Visible;
 
                         var dataImagesLegacyPluralPath = Path.Combine(AppPaths.ImagesDirLegacyPlural, path);
-                        if (File.Exists(dataImagesLegacyPluralPath))
+                        if (ExistsCached(dataImagesLegacyPluralPath))
                             return Visibility.Visible;
                     }
                     catch { }
@@ -50,7 +53,7 @@ namespace PosSystem.Main.Helpers
                 if (!path.Contains("/", StringComparison.Ordinal) && !path.Contains("\\", StringComparison.Ordinal))
                 {
                     var runtimeUploadPath = Path.Combine(AppContext.BaseDirectory, "Images", path);
-                    if (File.Exists(runtimeUploadPath))
+                    if (ExistsCached(runtimeUploadPath))
                         return Visibility.Visible;
                 }
 
@@ -61,7 +64,7 @@ namespace PosSystem.Main.Helpers
                     path = Path.Combine("wwwroot", "images", path);
 
                 var fullPath = Path.Combine(AppContext.BaseDirectory, path);
-                return File.Exists(fullPath) ? Visibility.Visible : Visibility.Collapsed;
+                return ExistsCached(fullPath) ? Visibility.Visible : Visibility.Collapsed;
             }
             catch
             {
@@ -71,5 +74,13 @@ namespace PosSystem.Main.Helpers
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => Binding.DoNothing;
+
+        private static bool ExistsCached(string fullPath)
+        {
+            if (string.IsNullOrWhiteSpace(fullPath))
+                return false;
+
+            return _existsCache.GetOrAdd(fullPath, static p => File.Exists(p));
+        }
     }
 }

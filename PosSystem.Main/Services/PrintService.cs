@@ -183,6 +183,7 @@ namespace PosSystem.Main.Services
                     }
                 }
 
+                System.Drawing.Bitmap? rendered = null;
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     try
@@ -191,20 +192,31 @@ namespace PosSystem.Main.Services
                         template.SetData(order, elements, order.PaymentMethod, isProvisional);
 
                         int width = printer.PaperSize == 58 ? 380 : 550;
-                        using (var bmp = EscPosImageHelper.RenderVisualToBitmap(template, width))
-                        {
-                            byte[] imgBytes = EscPosImageHelper.ConvertBitmapToEscPosBytes(bmp);
-                            List<byte> cmd = new List<byte>();
-                            cmd.AddRange(EscPos.Init);
-                            cmd.AddRange(EscPos.AlignCenter);
-                            cmd.AddRange(imgBytes);
-                            cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
-                            cmd.AddRange(EscPos.CutPaper);
-                            SendBytesToPrinter(printer, cmd);
-                        }
+                        rendered = EscPosImageHelper.RenderVisualToBitmap(template, width);
                     }
-                    catch (Exception ex) { MessageBox.Show("Lỗi in bill: " + ex.Message); }
+                    catch (Exception ex) { Console.WriteLine("Lỗi render bill: " + ex.Message); }
                 });
+
+                if (rendered == null) return;
+
+                try
+                {
+                    using (rendered)
+                    {
+                        byte[] imgBytes = EscPosImageHelper.ConvertBitmapToEscPosBytes(rendered);
+                        List<byte> cmd = new List<byte>();
+                        cmd.AddRange(EscPos.Init);
+                        cmd.AddRange(EscPos.AlignCenter);
+                        cmd.AddRange(imgBytes);
+                        cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
+                        cmd.AddRange(EscPos.CutPaper);
+                        SendBytesToPrinter(printer, cmd);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Lỗi in bill: " + ex.Message);
+                }
             }
         }
 
@@ -266,6 +278,7 @@ namespace PosSystem.Main.Services
                         OrderDetails = group.ToList() // Danh sách món CẦN IN (Đã gộp)
                     };
 
+                    System.Drawing.Bitmap? rendered = null;
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         try
@@ -274,20 +287,31 @@ namespace PosSystem.Main.Services
                             template.SetData(filteredOrder, batchNumber, elements, senderName);
 
                             int width = printer.PaperSize == 58 ? 380 : 550;
-                            using (var bmp = EscPosImageHelper.RenderVisualToBitmap(template, width))
-                            {
-                                byte[] imgBytes = EscPosImageHelper.ConvertBitmapToEscPosBytes(bmp);
-                                List<byte> cmd = new List<byte>();
-                                cmd.AddRange(EscPos.Init);
-                                cmd.AddRange(EscPos.AlignCenter);
-                                cmd.AddRange(imgBytes);
-                                cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
-                                cmd.AddRange(EscPos.CutPaper);
-                                SendBytesToPrinter(printer, cmd);
-                            }
+                            rendered = EscPosImageHelper.RenderVisualToBitmap(template, width);
                         }
-                        catch (Exception ex) { MessageBox.Show("Lỗi in bếp: " + ex.Message); }
+                        catch (Exception ex) { Console.WriteLine("Lỗi render bếp: " + ex.Message); }
                     });
+
+                    if (rendered == null) continue;
+
+                    try
+                    {
+                        using (rendered)
+                        {
+                            byte[] imgBytes = EscPosImageHelper.ConvertBitmapToEscPosBytes(rendered);
+                            List<byte> cmd = new List<byte>();
+                            cmd.AddRange(EscPos.Init);
+                            cmd.AddRange(EscPos.AlignCenter);
+                            cmd.AddRange(imgBytes);
+                            cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
+                            cmd.AddRange(EscPos.CutPaper);
+                            SendBytesToPrinter(printer, cmd);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Lỗi in bếp: " + ex.Message);
+                    }
                 }
             }
         }
@@ -341,6 +365,7 @@ namespace PosSystem.Main.Services
         {
             try
             {
+                System.Drawing.Bitmap? rendered = null;
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     try
@@ -349,20 +374,31 @@ namespace PosSystem.Main.Services
                         template.SetData(oldTableName, newTableName);
 
                         int width = printer.PaperSize == 58 ? 380 : 550;
-                        using (var bmp = EscPosImageHelper.RenderVisualToBitmap(template, width))
-                        {
-                            byte[] imgBytes = EscPosImageHelper.ConvertBitmapToEscPosBytes(bmp);
-                            List<byte> cmd = new List<byte>();
-                            cmd.AddRange(EscPos.Init);
-                            cmd.AddRange(EscPos.AlignCenter);
-                            cmd.AddRange(imgBytes);
-                            cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
-                            cmd.AddRange(EscPos.CutPaper);
-                            SendBytesToPrinter(printer, cmd);
-                        }
+                        rendered = EscPosImageHelper.RenderVisualToBitmap(template, width);
                     }
-                    catch (Exception ex) { Console.WriteLine($"Lỗi in thông báo chuyển bàn: {ex.Message}"); }
+                    catch (Exception ex) { Console.WriteLine($"Lỗi render thông báo chuyển bàn: {ex.Message}"); }
                 });
+
+                if (rendered == null) return;
+
+                try
+                {
+                    using (rendered)
+                    {
+                        byte[] imgBytes = EscPosImageHelper.ConvertBitmapToEscPosBytes(rendered);
+                        List<byte> cmd = new List<byte>();
+                        cmd.AddRange(EscPos.Init);
+                        cmd.AddRange(EscPos.AlignCenter);
+                        cmd.AddRange(imgBytes);
+                        cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
+                        cmd.AddRange(EscPos.CutPaper);
+                        SendBytesToPrinter(printer, cmd);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Lỗi in thông báo chuyển bàn: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {

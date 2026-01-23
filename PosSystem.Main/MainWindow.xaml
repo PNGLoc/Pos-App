@@ -416,127 +416,154 @@
                             </Grid>
                         </Border>
 
-                        <ScrollViewer Grid.Row="1"
-                                      VerticalScrollBarVisibility="Auto">
-                            <ListBox x:Name="lstTables"
-                                     SelectionChanged="lstTables_SelectionChanged"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                <ListBox.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal"
-                                                   IsItemsHost="True"/>
-                                    </ItemsPanelTemplate>
-                                </ListBox.ItemsPanel>
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Width="135"
-                                                Height="105"
-                                                Margin="10"
-                                                CornerRadius="12"
-                                                Cursor="Hand">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Background"
-                                                            Value="{Binding ColorBrush}"/>
-                                                    <Setter Property="BorderThickness"
-                                                            Value="0"/>
+                        <ListBox Grid.Row="1"
+                                 x:Name="lstTables"
+                                 SelectionChanged="lstTables_SelectionChanged"
+                                 PreviewMouseLeftButtonUp="lstTables_PreviewMouseLeftButtonUp"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.CanContentScroll="True"
+                                 ScrollViewer.IsDeferredScrollingEnabled="True">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <helpers:VirtualizingWrapPanel ItemWidth="155"
+                                                                   ItemHeight="125"/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding"
+                                            Value="0"/>
+                                    <Setter Property="Margin"
+                                            Value="0"/>
+                                    <Setter Property="BorderThickness"
+                                            Value="0"/>
+                                    <Setter Property="Background"
+                                            Value="Transparent"/>
+                                    <Setter Property="HorizontalContentAlignment"
+                                            Value="Stretch"/>
+                                    <Setter Property="VerticalContentAlignment"
+                                            Value="Stretch"/>
+                                    <Setter Property="Focusable"
+                                            Value="False"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="135"
+                                            Height="105"
+                                            Margin="10"
+                                            CornerRadius="12"
+                                            Cursor="Hand">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background"
+                                                        Value="{Binding ColorBrush}"/>
+                                                <Setter Property="BorderThickness"
+                                                        Value="0"/>
+                                                <Setter Property="Effect"
+                                                        Value="{x:Null}"/>
 
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsRequestingPayment}"
-                                                                     Value="True">
-                                                            <Setter Property="BorderBrush"
-                                                                    Value="#FFC107"/>
-                                                            <Setter Property="BorderThickness"
-                                                                    Value="5"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver"
+                                                             Value="True">
+                                                        <Setter Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="Gray"
+                                                                                  BlurRadius="5"
+                                                                                  ShadowDepth="2"
+                                                                                  Opacity="0.3"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
 
-                                                            <DataTrigger.EnterActions>
-                                                                <BeginStoryboard>
-                                                                    <Storyboard RepeatBehavior="Forever"
-                                                                                AutoReverse="True">
-                                                                        <ColorAnimation Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                                                        To="#FF5722"
-                                                                                        Duration="0:0:0.4"/>
-                                                                    </Storyboard>
-                                                                </BeginStoryboard>
-                                                            </DataTrigger.EnterActions>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
+                                                    <DataTrigger Binding="{Binding IsRequestingPayment}"
+                                                                 Value="True">
+                                                        <Setter Property="BorderBrush"
+                                                                Value="#FFC107"/>
+                                                        <Setter Property="BorderThickness"
+                                                                Value="5"/>
 
-                                            <Border.Effect>
-                                                <DropShadowEffect Color="Gray"
-                                                                  BlurRadius="5"
-                                                                  ShadowDepth="2"
-                                                                  Opacity="0.3"/>
-                                            </Border.Effect>
+                                                        <DataTrigger.EnterActions>
+                                                            <BeginStoryboard>
+                                                                <Storyboard RepeatBehavior="Forever"
+                                                                            AutoReverse="True">
+                                                                    <ColorAnimation Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                                                    To="#FF5722"
+                                                                                    Duration="0:0:0.4"/>
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </DataTrigger.EnterActions>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
 
-                                            <Grid>
-                                                <StackPanel VerticalAlignment="Center"
-                                                            HorizontalAlignment="Center"
-                                                            Margin="0,0,0,0">
-                                                    <TextBlock Text="{Binding TableName}"
-                                                               Foreground="White"
-                                                               FontWeight="Bold"
-                                                               FontSize="19"
-                                                               TextAlignment="Center"
-                                                               TextWrapping="NoWrap"
-                                                               TextTrimming="CharacterEllipsis"
-                                                               MaxWidth="110"/>
-                                                    <TextBlock Text="{Binding TimeDisplay}"
-                                                               Foreground="White"
-                                                               FontSize="12"
-                                                               TextAlignment="Center"
-                                                               Margin="0,4,0,0"/>
-                                                    <Border Background="White"
-                                                            CornerRadius="10"
-                                                            Padding="7,2"
-                                                            Margin="0,6,0,0"
-                                                            HorizontalAlignment="Center">
-                                                        <TextBlock Text="{Binding StatusDisplay}"
-                                                                   Foreground="Black"
-                                                                   FontSize="10"
-                                                                   FontWeight="Bold"/>
-                                                    </Border>
-                                                </StackPanel>
+                                        <Grid>
+                                            <StackPanel VerticalAlignment="Center"
+                                                        HorizontalAlignment="Center"
+                                                        Margin="0,0,0,0">
+                                                <TextBlock Text="{Binding TableName}"
+                                                           Foreground="White"
+                                                           FontWeight="Bold"
+                                                           FontSize="19"
+                                                           TextAlignment="Center"
+                                                           TextWrapping="NoWrap"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           MaxWidth="110"/>
+                                                <TextBlock Text="{Binding TimeDisplay}"
+                                                           Foreground="White"
+                                                           FontSize="12"
+                                                           TextAlignment="Center"
+                                                           Margin="0,4,0,0"/>
+                                                <Border Background="White"
+                                                        CornerRadius="10"
+                                                        Padding="7,2"
+                                                        Margin="0,6,0,0"
+                                                        HorizontalAlignment="Center">
+                                                    <TextBlock Text="{Binding StatusDisplay}"
+                                                               Foreground="Black"
+                                                               FontSize="10"
+                                                               FontWeight="Bold"/>
+                                                </Border>
+                                            </StackPanel>
 
-                                                <!-- Icon Provisional Bill (LEFT) -->
-                                                <TextBlock Text="🧾"
-                                                           FontSize="20"
-                                                           HorizontalAlignment="Left"
-                                                           VerticalAlignment="Top"
-                                                           Margin="5,5,0,0"
-                                                           Visibility="{Binding HasProvisionalBill, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <TextBlock.Effect>
-                                                        <DropShadowEffect Color="Black"
-                                                                          BlurRadius="2"
-                                                                          ShadowDepth="1"
-                                                                          Opacity="0.5"/>
-                                                    </TextBlock.Effect>
-                                                </TextBlock>
+                                            <!-- Icon Provisional Bill (LEFT) -->
+                                            <TextBlock Text="🧾"
+                                                       FontSize="20"
+                                                       HorizontalAlignment="Left"
+                                                       VerticalAlignment="Top"
+                                                       Margin="5,5,0,0"
+                                                       Visibility="{Binding HasProvisionalBill, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock.Effect>
+                                                    <DropShadowEffect Color="Black"
+                                                                      BlurRadius="2"
+                                                                      ShadowDepth="1"
+                                                                      Opacity="0.5"/>
+                                                </TextBlock.Effect>
+                                            </TextBlock>
 
-                                                <!-- Icon Request Payment (RIGHT) -->
-                                                <TextBlock Text="🔔"
-                                                           FontSize="20"
-                                                           HorizontalAlignment="Right"
-                                                           VerticalAlignment="Top"
-                                                           Margin="0,5,5,0"
-                                                           Visibility="{Binding IsRequestingPayment, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <TextBlock.Effect>
-                                                        <DropShadowEffect Color="Black"
-                                                                          BlurRadius="2"
-                                                                          ShadowDepth="1"
-                                                                          Opacity="0.5"/>
-                                                    </TextBlock.Effect>
-                                                </TextBlock>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </ScrollViewer>
+                                            <!-- Icon Request Payment (RIGHT) -->
+                                            <TextBlock Text="🔔"
+                                                       FontSize="20"
+                                                       HorizontalAlignment="Right"
+                                                       VerticalAlignment="Top"
+                                                       Margin="0,5,5,0"
+                                                       Visibility="{Binding IsRequestingPayment, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock.Effect>
+                                                    <DropShadowEffect Color="Black"
+                                                                      BlurRadius="2"
+                                                                      ShadowDepth="1"
+                                                                      Opacity="0.5"/>
+                                                </TextBlock.Effect>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </Grid>
 
                     <Grid x:Name="pnlMenu"
@@ -671,101 +698,137 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
 
-                        <ScrollViewer Grid.Row="2"
-                                      VerticalScrollBarVisibility="Auto"
-                                      Padding="10">
-                            <ItemsControl x:Name="lstDishes">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel HorizontalAlignment="Center"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Width="132"
-                                                Height="112"
-                                                Margin="6"
-                                                CornerRadius="10"
-                                                BorderThickness="1"
-                                                BorderBrush="#E0E0E0"
-                                                Cursor="Hand"
-                                                Background="White"
-                                                Tag="{Binding DishID}"
-                                                MouseLeftButtonDown="Dish_MouseLeftButtonDown">
-                                            <Border.Effect>
-                                                <DropShadowEffect Color="#DDD"
-                                                                  BlurRadius="5"
-                                                                  ShadowDepth="2"
-                                                                  Opacity="0.4"/>
-                                            </Border.Effect>
+                        <ListBox Grid.Row="2"
+                                 x:Name="lstDishes"
+                                 Padding="10"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.CanContentScroll="True"
+                                 ScrollViewer.IsDeferredScrollingEnabled="True">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <helpers:VirtualizingWrapPanel ItemWidth="144"
+                                                                   ItemHeight="124"/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding"
+                                            Value="0"/>
+                                    <Setter Property="Margin"
+                                            Value="0"/>
+                                    <Setter Property="BorderThickness"
+                                            Value="0"/>
+                                    <Setter Property="Background"
+                                            Value="Transparent"/>
+                                    <Setter Property="HorizontalContentAlignment"
+                                            Value="Stretch"/>
+                                    <Setter Property="VerticalContentAlignment"
+                                            Value="Stretch"/>
+                                    <Setter Property="Focusable"
+                                            Value="False"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="132"
+                                            Height="112"
+                                            Margin="6"
+                                            CornerRadius="10"
+                                            BorderThickness="1"
+                                            BorderBrush="#E0E0E0"
+                                            Cursor="Hand"
+                                            Background="White"
+                                            Tag="{Binding DishID}"
+                                            MouseLeftButtonDown="Dish_MouseLeftButtonDown">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Effect"
+                                                        Value="{x:Null}"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver"
+                                                             Value="True">
+                                                        <Setter Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#DDD"
+                                                                                  BlurRadius="5"
+                                                                                  ShadowDepth="2"
+                                                                                  Opacity="0.4"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <!-- Photo background with rounded corners -->
+                                            <Border CornerRadius="10"
+                                                    Visibility="{Binding ImagePath, Converter={StaticResource DishImagePathToVisibilityConverter}}">
+                                                <Border.Background>
+                                                    <ImageBrush ImageSource="{Binding ImagePath, Converter={StaticResource DishImagePathToImageSourceConverter}, ConverterParameter=160}"
+                                                                Stretch="UniformToFill"
+                                                                Opacity="0.95"/>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <!-- Dark overlay (same rounded corners) -->
+                                            <Border CornerRadius="10"
+                                                    Visibility="{Binding ImagePath, Converter={StaticResource DishImagePathToVisibilityConverter}}">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0"
+                                                                         EndPoint="0,1">
+                                                        <GradientStop Color="#20000000"
+                                                                      Offset="0"/>
+                                                        <GradientStop Color="#A0000000"
+                                                                      Offset="1"/>
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+
                                             <Grid>
-                                                <!-- Photo background with rounded corners -->
-                                                <Border CornerRadius="10"
-                                                        Visibility="{Binding ImagePath, Converter={StaticResource DishImagePathToVisibilityConverter}}">
-                                                    <Border.Background>
-                                                        <ImageBrush ImageSource="{Binding ImagePath, Converter={StaticResource DishImagePathToImageSourceConverter}}"
-                                                                    Stretch="UniformToFill"
-                                                                    Opacity="0.95"/>
-                                                    </Border.Background>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <Border Grid.Row="0"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Margin="8"
+                                                        Padding="8,6"
+                                                        CornerRadius="8"
+                                                        Background="#CCFFFFFF">
+                                                    <TextBlock Text="{Binding DishName}"
+                                                               TextWrapping="Wrap"
+                                                               TextAlignment="Center"
+                                                               FontWeight="SemiBold"
+                                                               FontSize="14"
+                                                               Foreground="#222"/>
                                                 </Border>
 
-                                                <!-- Dark overlay (same rounded corners) -->
-                                                <Border CornerRadius="10"
-                                                        Visibility="{Binding ImagePath, Converter={StaticResource DishImagePathToVisibilityConverter}}">
-                                                    <Border.Background>
-                                                        <LinearGradientBrush StartPoint="0,0"
-                                                                             EndPoint="0,1">
-                                                            <GradientStop Color="#20000000"
-                                                                          Offset="0"/>
-                                                            <GradientStop Color="#A0000000"
-                                                                          Offset="1"/>
-                                                        </LinearGradientBrush>
-                                                    </Border.Background>
+                                                <Border x:Name="pricePill"
+                                                        Grid.Row="1"
+                                                        HorizontalAlignment="Center"
+                                                        Margin="0,0,0,8"
+                                                        Padding="10,4"
+                                                        CornerRadius="999"
+                                                        Background="#DFFFFFFF"
+                                                        BorderThickness="1"
+                                                        BorderBrush="#E6E6E6">
+                                                    <TextBlock Text="{Binding Price, StringFormat={}{0:N0} đ}"
+                                                               TextAlignment="Center"
+                                                               Foreground="#F44336"
+                                                               FontWeight="Bold"
+                                                               FontSize="13"/>
                                                 </Border>
-
-                                                <Grid>
-                                                    <Grid.RowDefinitions>
-                                                        <RowDefinition Height="*"/>
-                                                        <RowDefinition Height="Auto"/>
-                                                    </Grid.RowDefinitions>
-
-                                                    <Border Grid.Row="0"
-                                                            HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"
-                                                            Margin="8"
-                                                            Padding="8,6"
-                                                            CornerRadius="8"
-                                                            Background="#CCFFFFFF">
-                                                        <TextBlock Text="{Binding DishName}"
-                                                                   TextWrapping="Wrap"
-                                                                   TextAlignment="Center"
-                                                                   FontWeight="SemiBold"
-                                                                   FontSize="14"
-                                                                   Foreground="#222"/>
-                                                    </Border>
-
-                                                    <Border x:Name="pricePill"
-                                                            Grid.Row="1"
-                                                            HorizontalAlignment="Center"
-                                                            Margin="0,0,0,8"
-                                                            Padding="10,4"
-                                                            CornerRadius="999"
-                                                            Background="#DFFFFFFF"
-                                                            BorderThickness="1"
-                                                            BorderBrush="#E6E6E6">
-                                                        <TextBlock Text="{Binding Price, StringFormat={}{0:N0} đ}"
-                                                                   TextAlignment="Center"
-                                                                   Foreground="#F44336"
-                                                                   FontWeight="Bold"
-                                                                   FontSize="13"/>
-                                                    </Border>
-                                                </Grid>
                                             </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </Grid>
                 </Grid>
             </Border>
