@@ -13,13 +13,30 @@
     <Border Background="White"
             CornerRadius="20"
             BorderBrush="#DDD"
-            BorderThickness="1">
+        BorderThickness="1"
+        MouseDown="Card_MouseDown">
         <Border.Effect>
             <DropShadowEffect BlurRadius="20"
                               ShadowDepth="5"
                               Opacity="0.3"/>
         </Border.Effect>
         <Grid Margin="30">
+            <!-- Close (X) -->
+            <Button x:Name="btnClose"
+                    Content="✕"
+                    Width="32"
+                    Height="32"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,-5,-5,0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Foreground="#666"
+                    FontSize="16"
+                    FontWeight="Bold"
+                    Cursor="Hand"
+                    Click="BtnClose_Click" />
+
             <StackPanel VerticalAlignment="Center">
                 <!-- Logo / Tiêu đề -->
                 <TextBlock Text="POS SYSTEM"
@@ -37,17 +54,86 @@
                          Height="40"
                          FontSize="16"
                          Padding="5"
-                         VerticalContentAlignment="Center"/>
+                         VerticalContentAlignment="Center"
+                         TextChanged="TxtUser_TextChanged"/>
 
                 <!-- Password -->
                 <TextBlock Text="Mật khẩu"
                            Foreground="#666"
                            Margin="0,15,0,5"/>
-                <PasswordBox x:Name="txtPass"
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <PasswordBox x:Name="txtPass"
+                                 Grid.Column="0"
+                                 Height="40"
+                                 FontSize="16"
+                                 Padding="5"
+                                 VerticalContentAlignment="Center"
+                                 PasswordChanged="TxtPass_PasswordChanged"/>
+
+                    <TextBox x:Name="txtPassVisible"
+                             Grid.Column="0"
                              Height="40"
                              FontSize="16"
                              Padding="5"
-                             VerticalContentAlignment="Center"/>
+                             VerticalContentAlignment="Center"
+                             Visibility="Collapsed"
+                             TextChanged="TxtUser_TextChanged"/>
+
+                    <Button x:Name="btnTogglePassword"
+                            Grid.Column="1"
+                            Width="44"
+                            Height="40"
+                            Margin="8,0,0,0"
+                            Background="#F1F3F5"
+                            BorderBrush="#CED4DA"
+                            Foreground="#333"
+                            FontWeight="SemiBold"
+                            Cursor="Hand"
+                            Click="BtnTogglePassword_Click"
+                            ToolTip="Hiện mật khẩu">
+                        <Grid Width="20" Height="20">
+                            <!-- Eye (open) -->
+                            <Path x:Name="iconEyeOpen"
+                                Stroke="#333"
+                                StrokeThickness="1.6"
+                                StrokeLineJoin="Round"
+                                StrokeStartLineCap="Round"
+                                StrokeEndLineCap="Round"
+                                Data="M1,10 C4,3 16,3 19,10 C16,17 4,17 1,10 Z"/>
+                            <Path x:Name="iconEyePupil"
+                                Stroke="#333"
+                                StrokeThickness="1.6"
+                                StrokeLineJoin="Round"
+                                StrokeStartLineCap="Round"
+                                StrokeEndLineCap="Round"
+                                Data="M10,7.2 A2.8,2.8 0 1 1 9.999,7.2"/>
+
+                            <!-- Eye (closed / slashed) -->
+                            <Path x:Name="iconEyeSlash"
+                                Visibility="Collapsed"
+                                Stroke="#333"
+                                StrokeThickness="1.6"
+                                StrokeLineJoin="Round"
+                                StrokeStartLineCap="Round"
+                                StrokeEndLineCap="Round"
+                                Data="M2,18 L18,2"/>
+                        </Grid>
+                      </Button>
+                </Grid>
+
+                <!-- Inline error -->
+                <TextBlock x:Name="txtLoginError"
+                           Visibility="Collapsed"
+                           Foreground="#DC3545"
+                           FontWeight="SemiBold"
+                           TextAlignment="Center"
+                           Margin="0,12,0,0"
+                           TextWrapping="Wrap" />
 
                 <!-- Button Login -->
                 <Button Content="ĐĂNG NHẬP"
@@ -59,15 +145,6 @@
                         FontWeight="Bold"
                         Click="BtnLogin_Click"
                         IsDefault="True"/>
-
-                <!-- Button Thoát -->
-                <Button Content="Thoát"
-                        Height="30"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        Foreground="#888"
-                        FontSize="16"
-                        Click="BtnExit_Click"/>
             </StackPanel>
         </Grid>
     </Border>
