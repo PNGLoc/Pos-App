@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using PosSystem.Main.Database;
@@ -20,11 +21,16 @@ namespace PosSystem.Main.Pages
         private string _currentImgPath = "default.png";
         private System.Collections.Generic.List<Dish> _allDishes = new();
 
+        private static readonly CultureInfo PriceCulture = CultureInfo.GetCultureInfo("vi-VN");
+        private bool _isFormattingPrice;
+
         public MenuSetupPage()
         {
             InitializeComponent();
             LoadCats();
             LoadDishes();
+
+            DataObject.AddPastingHandler(txtPrice, TxtPrice_Pasting);
         }
 
         // ==========================================
@@ -257,7 +263,7 @@ namespace PosSystem.Main.Pages
             {
                 _selectedDish = d;
                 txtDishName.Text = d.DishName;
-                txtPrice.Text = d.Price.ToString("0");
+                txtPrice.Text = d.Price.ToString("N0", PriceCulture);
                 txtUnit.Text = d.Unit;
                 cboDishCat.SelectedValue = d.CategoryID;
                 chkActive.IsChecked = d.DishStatus == "Active";
@@ -297,6 +303,8 @@ namespace PosSystem.Main.Pages
                 return;
             }
 
+            var parsedPrice = ParsePriceFromText(txtPrice.Text);
+
             using (var db = new AppDbContext())
             {
                 if (_selectedDish == null)
@@ -312,7 +320,7 @@ namespace PosSystem.Main.Pages
                     var dish = new Dish
                     {
                         DishName = txtDishName.Text,
-                        Price = decimal.TryParse(txtPrice.Text, out decimal p) ? p : 0,
+                        Price = parsedPrice,
                         Unit = txtUnit.Text,
                         CategoryID = (int)cboDishCat.SelectedValue,
                         DishStatus = chkActive.IsChecked == true ? "Active" : "Inactive",
@@ -337,7 +345,7 @@ namespace PosSystem.Main.Pages
                         }
 
                         item.DishName = txtDishName.Text;
-                        item.Price = decimal.TryParse(txtPrice.Text, out decimal p) ? p : 0;
+                        item.Price = parsedPrice;
                         item.Unit = txtUnit.Text;
                         item.CategoryID = (int)cboDishCat.SelectedValue;
                         item.DishStatus = chkActive.IsChecked == true ? "Active" : "Inactive";
@@ -406,6 +414,109 @@ namespace PosSystem.Main.Pages
                     MessageBox.Show("Lỗi upload: " + ex.Message);
                 }
             }
+        }
+
+        private void TxtPrice_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            e.Handled = e.Text.Any(ch => !char.IsDigit(ch));
+        }
+
+        private void TxtPrice_Pasting(object sender, DataObjectPastingEventArgs e)
+        {
+            if (!e.SourceDataObject.GetDataPresent(DataFormats.Text, true))
+            {
+                e.CancelCommand();
+                return;
+            }
+
+            var pasteText = e.SourceDataObject.GetData(DataFormats.Text, true) as string;
+            if (string.IsNullOrEmpty(pasteText)) return;
+
+            // Allow pasting formatted text like "1.000"; it will be normalized by TextChanged.
+            if (pasteText.Any(ch => !char.IsDigit(ch) && ch != '.' && ch != ',' && !char.IsWhiteSpace(ch)))
+            {
+                e.CancelCommand();
+            }
+        }
+
+        private void TxtPrice_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isFormattingPrice) return;
+            if (sender is not TextBox tb) return;
+
+            var oldText = tb.Text ?? string.Empty;
+            var caretIndex = tb.CaretIndex;
+
+            var digitsBeforeCaret = oldText.Take(Math.Max(0, Math.Min(caretIndex, oldText.Length))).Count(char.IsDigit);
+            var digits = new string(oldText.Where(char.IsDigit).ToArray());
+
+            if (digits.Length == 0)
+            {
+                return;
+            }
+
+            if (!decimal.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var value))
+            {
+                return;
+            }
+
+            var formatted = value.ToString("N0", PriceCulture);
+            if (string.Equals(formatted, oldText, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _isFormattingPrice = true;
+            tb.Text = formatted;
+
+            tb.CaretIndex = GetCaretIndexByDigitCount(formatted, digitsBeforeCaret);
+            _isFormattingPrice = false;
+        }
+
+        private void TxtPrice_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is not TextBox tb) return;
+
+            var digits = new string((tb.Text ?? string.Empty).Where(char.IsDigit).ToArray());
+            if (digits.Length == 0)
+            {
+                tb.Text = "0";
+                return;
+            }
+
+            if (decimal.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var value))
+            {
+                tb.Text = value.ToString("N0", PriceCulture);
+            }
+        }
+
+        private static int GetCaretIndexByDigitCount(string formattedText, int digitsBeforeCaret)
+        {
+            if (digitsBeforeCaret <= 0) return 0;
+
+            var digitsSeen = 0;
+            for (var i = 0; i < formattedText.Length; i++)
+            {
+                if (char.IsDigit(formattedText[i]))
+                {
+                    digitsSeen++;
+                    if (digitsSeen >= digitsBeforeCaret)
+                    {
+                        return i + 1;
+                    }
+                }
+            }
+
+            return formattedText.Length;
+        }
+
+        private static decimal ParsePriceFromText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return 0;
+            var digits = new string(text.Where(char.IsDigit).ToArray());
+            if (digits.Length == 0) return 0;
+
+            return decimal.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : 0;
         }
 
         void LoadImageToPreview(string fileName)

@@ -331,6 +331,10 @@
                              Margin="0,5,0,15"
                              Padding="5,0"
                              VerticalContentAlignment="Center"
+                             HorizontalContentAlignment="Left"
+                             PreviewTextInput="TxtWage_PreviewTextInput"
+                             TextChanged="TxtWage_TextChanged"
+                             LostFocus="TxtWage_LostFocus"
                              ToolTip="Ví dụ: 25000"/>
 
                     <CheckBox x:Name="chkActive"

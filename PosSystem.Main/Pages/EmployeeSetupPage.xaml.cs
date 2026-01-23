@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using PosSystem.Main.Database;
@@ -17,9 +18,14 @@ namespace PosSystem.Main.Pages
         private bool _isLoaded = false;
         private Employee? _editingEmp = null; // null = Thêm mới, có object = Sửa
 
+        private static readonly CultureInfo WageCulture = CultureInfo.GetCultureInfo("vi-VN");
+        private bool _isFormattingWage;
+
         public EmployeeSetupPage()
         {
             InitializeComponent();
+
+            DataObject.AddPastingHandler(txtWage, TxtWage_Pasting);
 
             var now = DateTime.Now;
 
@@ -81,7 +87,7 @@ namespace PosSystem.Main.Pages
                 // Đổ dữ liệu cũ vào form
                 txtName.Text = emp.FullName;
                 txtPos.Text = emp.Position;
-                txtWage.Text = emp.HourlyWage.ToString("0");
+                txtWage.Text = emp.HourlyWage.ToString("N0", WageCulture);
                 txtCard.Text = emp.CardNumber;
                 chkActive.IsChecked = emp.IsActive;
 
@@ -111,8 +117,7 @@ namespace PosSystem.Main.Pages
             {
                 string card = txtCard.Text.Trim();
                 // --- XỬ LÝ LƯƠNG ---
-                double wage = 0;
-                double.TryParse(txtWage.Text, out wage);
+                double wage = ParseWageFromText(txtWage.Text);
                 // Check trùng mã thẻ (Trừ chính mình nếu đang sửa)
                 int currentId = _editingEmp?.EmpID ?? 0;
                 if (!string.IsNullOrEmpty(card) && db.Employees.Any(x => x.CardNumber == card && x.EmpID != currentId))
@@ -160,6 +165,108 @@ namespace PosSystem.Main.Pages
 
             // Thông báo nhỏ (tùy chọn)
             // ShowToast("Đã lưu thành công"); 
+        }
+
+        private void TxtWage_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            e.Handled = e.Text.Any(ch => !char.IsDigit(ch));
+        }
+
+        private void TxtWage_Pasting(object sender, DataObjectPastingEventArgs e)
+        {
+            if (!e.SourceDataObject.GetDataPresent(DataFormats.Text, true))
+            {
+                e.CancelCommand();
+                return;
+            }
+
+            var pasteText = e.SourceDataObject.GetData(DataFormats.Text, true) as string;
+            if (string.IsNullOrEmpty(pasteText)) return;
+
+            // Allow pasting formatted text like "25.000"; it will be normalized by TextChanged.
+            if (pasteText.Any(ch => !char.IsDigit(ch) && ch != '.' && ch != ',' && !char.IsWhiteSpace(ch)))
+            {
+                e.CancelCommand();
+            }
+        }
+
+        private void TxtWage_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isFormattingWage) return;
+            if (sender is not TextBox tb) return;
+
+            var oldText = tb.Text ?? string.Empty;
+            var caretIndex = tb.CaretIndex;
+
+            var digitsBeforeCaret = oldText.Take(Math.Max(0, Math.Min(caretIndex, oldText.Length))).Count(char.IsDigit);
+            var digits = new string(oldText.Where(char.IsDigit).ToArray());
+
+            if (digits.Length == 0)
+            {
+                return;
+            }
+
+            if (!long.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var value))
+            {
+                return;
+            }
+
+            var formatted = value.ToString("N0", WageCulture);
+            if (string.Equals(formatted, oldText, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _isFormattingWage = true;
+            tb.Text = formatted;
+            tb.CaretIndex = GetCaretIndexByDigitCount(formatted, digitsBeforeCaret);
+            _isFormattingWage = false;
+        }
+
+        private void TxtWage_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is not TextBox tb) return;
+
+            var digits = new string((tb.Text ?? string.Empty).Where(char.IsDigit).ToArray());
+            if (digits.Length == 0)
+            {
+                tb.Text = "0";
+                return;
+            }
+
+            if (long.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var value))
+            {
+                tb.Text = value.ToString("N0", WageCulture);
+            }
+        }
+
+        private static int GetCaretIndexByDigitCount(string formattedText, int digitsBeforeCaret)
+        {
+            if (digitsBeforeCaret <= 0) return 0;
+
+            var digitsSeen = 0;
+            for (var i = 0; i < formattedText.Length; i++)
+            {
+                if (char.IsDigit(formattedText[i]))
+                {
+                    digitsSeen++;
+                    if (digitsSeen >= digitsBeforeCaret)
+                    {
+                        return i + 1;
+                    }
+                }
+            }
+
+            return formattedText.Length;
+        }
+
+        private static double ParseWageFromText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return 0;
+            var digits = new string(text.Where(char.IsDigit).ToArray());
+            if (digits.Length == 0) return 0;
+
+            return long.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : 0;
         }
 
         // 5. XÓA CỨNG

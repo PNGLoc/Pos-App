@@ -20,33 +20,84 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <DockPanel Grid.Row="0" Margin="0,0,0,15">
-                        <TextBlock Text="📂 QUẢN LÝ DANH MỤC" FontSize="18" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                        <Button Content="➕ THÊM DANH MỤC" Click="BtnAddCat_Click" DockPanel.Dock="Right" Padding="15,8" Height="32" Background="#28A745" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Right" Width="Auto">
+                    <DockPanel Grid.Row="0"
+                            Margin="0,0,0,15">
+                        <TextBlock Text="📂 QUẢN LÝ DANH MỤC"
+                                FontSize="18"
+                                FontWeight="Bold"
+                                Foreground="#333"
+                                VerticalAlignment="Center"
+                                DockPanel.Dock="Left"/>
+                        <Button Content="➕ THÊM DANH MỤC"
+                                Click="BtnAddCat_Click"
+                                DockPanel.Dock="Right"
+                                Padding="15,8"
+                                Height="32"
+                                Background="#28A745"
+                                Foreground="White"
+                                FontWeight="Bold"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                HorizontalAlignment="Right"
+                                Width="Auto">
                             <Button.Resources>
-                                <Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius"
+                                            Value="4"/>
+                                </Style>
                             </Button.Resources>
                         </Button>
                     </DockPanel>
 
-                    <DataGrid x:Name="dgCats" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" BorderThickness="1" BorderBrush="#DEE2E6" RowHeight="40" GridLinesVisibility="Horizontal" HeadersVisibility="Column" Background="White">
-                         <DataGrid.ColumnHeaderStyle>
+                    <DataGrid x:Name="dgCats"
+                            Grid.Row="1"
+                            AutoGenerateColumns="False"
+                            IsReadOnly="True"
+                            CanUserAddRows="False"
+                            BorderThickness="1"
+                            BorderBrush="#DEE2E6"
+                            RowHeight="40"
+                            GridLinesVisibility="Horizontal"
+                            HeadersVisibility="Column"
+                            Background="White">
+                        <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="#F8F9FA"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
-                                <Setter Property="Padding" Value="10,12"/>
-                                <Setter Property="BorderBrush" Value="#DEE2E6"/>
-                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                <Setter Property="Background"
+                                        Value="#F8F9FA"/>
+                                <Setter Property="FontWeight"
+                                        Value="Bold"/>
+                                <Setter Property="Padding"
+                                        Value="10,12"/>
+                                <Setter Property="BorderBrush"
+                                        Value="#DEE2E6"/>
+                                <Setter Property="BorderThickness"
+                                        Value="0,0,0,1"/>
                             </Style>
                         </DataGrid.ColumnHeaderStyle>
                         <DataGrid.CellStyle>
-                            <Style TargetType="DataGridCell"><Setter Property="Padding" Value="10,0"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="BorderThickness" Value="0"/></Style>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Padding"
+                                        Value="10,0"/>
+                                <Setter Property="VerticalContentAlignment"
+                                        Value="Center"/>
+                                <Setter Property="BorderThickness"
+                                        Value="0"/>
+                            </Style>
                         </DataGrid.CellStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Tên danh mục" Binding="{Binding CategoryName}" Width="*" FontWeight="SemiBold"/>
-                            <DataGridTextColumn Header="Thứ tự hiển thị" Binding="{Binding OrderIndex}" Width="150"/>
-                            <DataGridTextColumn Header="Máy in (Bếp)" Binding="{Binding Printer.PrinterName}" Width="150" Foreground="#007BFF"/>
-                             <DataGridTemplateColumn Header="Hành động" Width="180">
+                            <DataGridTextColumn Header="Tên danh mục"
+                                    Binding="{Binding CategoryName}"
+                                    Width="*"
+                                    FontWeight="SemiBold"/>
+                            <DataGridTextColumn Header="Thứ tự hiển thị"
+                                    Binding="{Binding OrderIndex}"
+                                    Width="150"/>
+                            <DataGridTextColumn Header="Máy in (Bếp)"
+                                    Binding="{Binding Printer.PrinterName}"
+                                    Width="150"
+                                    Foreground="#007BFF"/>
+                            <DataGridTemplateColumn Header="Hành động"
+                                    Width="180">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
@@ -58,8 +109,14 @@
                                                     Margin="0,0,8,0"
                                                     Background="#FFC107"
                                                     Foreground="#333"
-                                                    BorderThickness="0" Cursor="Hand">
-                                                 <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="3"/></Style></Button.Resources>
+                                                    BorderThickness="0"
+                                                    Cursor="Hand">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="CornerRadius"
+                                                                Value="3"/>
+                                                    </Style>
+                                                </Button.Resources>
                                             </Button>
                                             <Button Content="🗑️ Xóa"
                                                     Click="BtnDeleteCatRow_Click"
@@ -68,8 +125,14 @@
                                                     Height="30"
                                                     Background="#DC3545"
                                                     Foreground="White"
-                                                    BorderThickness="0" Cursor="Hand">
-                                                 <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="3"/></Style></Button.Resources>
+                                                    BorderThickness="0"
+                                                    Cursor="Hand">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="CornerRadius"
+                                                                Value="3"/>
+                                                    </Style>
+                                                </Button.Resources>
                                             </Button>
                                         </StackPanel>
                                     </DataTemplate>
@@ -92,63 +155,162 @@
                     </Grid.RowDefinitions>
 
                     <!-- TOOLBAR -->
-                    <DockPanel Grid.Row="0" Margin="0,0,0,15">
-                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                            <TextBlock Text="🍔 QUẢN LÝ MÓN ĂN" FontSize="18" FontWeight="Bold" Foreground="#333" VerticalAlignment="Center" Margin="0,0,20,0"/>
-                            
-                            <Button Content="📥 Nhập Excel" Click="BtnImportExcel_Click" Padding="15,0" Height="32" Background="#17A2B8" Foreground="White" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
-                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
+                    <DockPanel Grid.Row="0"
+                            Margin="0,0,0,15">
+                        <StackPanel Orientation="Horizontal"
+                                DockPanel.Dock="Left">
+                            <TextBlock Text="🍔 QUẢN LÝ MÓN ĂN"
+                                    FontSize="18"
+                                    FontWeight="Bold"
+                                    Foreground="#333"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,20,0"/>
+
+                            <Button Content="📥 Nhập Excel"
+                                    Click="BtnImportExcel_Click"
+                                    Padding="15,0"
+                                    Height="32"
+                                    Background="#17A2B8"
+                                    Foreground="White"
+                                    Margin="0,0,10,0"
+                                    BorderThickness="0"
+                                    Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius"
+                                                Value="4"/>
+                                    </Style>
+                                </Button.Resources>
                             </Button>
-                            <Button Content="📤 Xuất Excel" Click="BtnExportExcel_Click" Padding="15,0" Height="32" Background="#85A728" Foreground="White" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
-                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
+                            <Button Content="📤 Xuất Excel"
+                                    Click="BtnExportExcel_Click"
+                                    Padding="15,0"
+                                    Height="32"
+                                    Background="#85A728"
+                                    Foreground="White"
+                                    Margin="0,0,10,0"
+                                    BorderThickness="0"
+                                    Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius"
+                                                Value="4"/>
+                                    </Style>
+                                </Button.Resources>
                             </Button>
 
                             <!-- Search Box -->
-                            <Border BorderBrush="#CED4DA" BorderThickness="1" CornerRadius="4" Height="32" Margin="10,0,0,0" Background="White" Width="250">
+                            <Border BorderBrush="#CED4DA"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Height="32"
+                                    Margin="10,0,0,0"
+                                    Background="White"
+                                    Width="250">
                                 <Grid>
-                                    <TextBlock Text="🔍 Tìm kiếm món..." Foreground="#999" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False">
+                                    <TextBlock Text="🔍 Tìm kiếm món..."
+                                            Foreground="#999"
+                                            VerticalAlignment="Center"
+                                            Margin="10,0,0,0"
+                                            IsHitTestVisible="False">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Setter Property="Visibility"
+                                                        Value="Collapsed"/>
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Text, ElementName=txtSearchDish}" Value="">
-                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    <DataTrigger Binding="{Binding Text, ElementName=txtSearchDish}"
+                                                            Value="">
+                                                        <Setter Property="Visibility"
+                                                                Value="Visible"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <TextBox x:Name="txtSearchDish" Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center" Padding="10,0" TextChanged="TxtSearchDish_TextChanged"/>
+                                    <TextBox x:Name="txtSearchDish"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            VerticalContentAlignment="Center"
+                                            Padding="10,0"
+                                            TextChanged="TxtSearchDish_TextChanged"/>
                                 </Grid>
                             </Border>
-                           
+
                         </StackPanel>
-                          <Button Content="➕ THÊM MÓN ĂN" Click="BtnAddDish_Click" Padding="15,0" Height="32" Background="#28A745" Foreground="White" BorderThickness="0" Cursor="Hand"  HorizontalAlignment="Right" Width="Auto">
-                            <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
+                        <Button Content="➕ THÊM MÓN ĂN"
+                                Click="BtnAddDish_Click"
+                                Padding="15,0"
+                                Height="32"
+                                Background="#28A745"
+                                Foreground="White"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                HorizontalAlignment="Right"
+                                Width="Auto">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius"
+                                            Value="4"/>
+                                </Style>
+                            </Button.Resources>
                         </Button>
                     </DockPanel>
 
-                    <DataGrid x:Name="dgDishes" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" BorderThickness="1" BorderBrush="#DEE2E6" RowHeight="50" GridLinesVisibility="Horizontal" HeadersVisibility="Column" Background="White">
-                         <DataGrid.ColumnHeaderStyle>
+                    <DataGrid x:Name="dgDishes"
+                            Grid.Row="1"
+                            AutoGenerateColumns="False"
+                            IsReadOnly="True"
+                            CanUserAddRows="False"
+                            BorderThickness="1"
+                            BorderBrush="#DEE2E6"
+                            RowHeight="50"
+                            GridLinesVisibility="Horizontal"
+                            HeadersVisibility="Column"
+                            Background="White">
+                        <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="#F8F9FA"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
-                                <Setter Property="Padding" Value="10,12"/>
-                                <Setter Property="BorderBrush" Value="#DEE2E6"/>
-                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                <Setter Property="Background"
+                                        Value="#F8F9FA"/>
+                                <Setter Property="FontWeight"
+                                        Value="Bold"/>
+                                <Setter Property="Padding"
+                                        Value="10,12"/>
+                                <Setter Property="BorderBrush"
+                                        Value="#DEE2E6"/>
+                                <Setter Property="BorderThickness"
+                                        Value="0,0,0,1"/>
                             </Style>
                         </DataGrid.ColumnHeaderStyle>
-                         <DataGrid.CellStyle>
-                            <Style TargetType="DataGridCell"><Setter Property="Padding" Value="10,0"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="BorderThickness" Value="0"/></Style>
+                        <DataGrid.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="Padding"
+                                        Value="10,0"/>
+                                <Setter Property="VerticalContentAlignment"
+                                        Value="Center"/>
+                                <Setter Property="BorderThickness"
+                                        Value="0"/>
+                            </Style>
                         </DataGrid.CellStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Tên món" Binding="{Binding DishName}" Width="*" FontWeight="SemiBold"/>
-                            <DataGridTextColumn Header="Giá bán" Binding="{Binding Price, StringFormat={}{0:N0}}" Width="100"/>
-                            <DataGridTextColumn Header="Đơn vị" Binding="{Binding Unit}" Width="80"/>
-                            <DataGridTextColumn Header="Nhóm" Binding="{Binding Category.CategoryName}" Width="150"/>
-                            <DataGridTextColumn Header="Trạng thái" Binding="{Binding DishStatus}" Width="100"/>
-                            
-                             <DataGridTemplateColumn Header="Hành động" Width="180">
+                            <DataGridTextColumn Header="Tên món"
+                                    Binding="{Binding DishName}"
+                                    Width="*"
+                                    FontWeight="SemiBold"/>
+                            <DataGridTextColumn Header="Giá bán"
+                                    Binding="{Binding Price, StringFormat={}{0:N0}}"
+                                    Width="100"/>
+                            <DataGridTextColumn Header="Đơn vị"
+                                    Binding="{Binding Unit}"
+                                    Width="80"/>
+                            <DataGridTextColumn Header="Nhóm"
+                                    Binding="{Binding Category.CategoryName}"
+                                    Width="150"/>
+                            <DataGridTextColumn Header="Trạng thái"
+                                    Binding="{Binding DishStatus}"
+                                    Width="100"/>
+
+                            <DataGridTemplateColumn Header="Hành động"
+                                    Width="180">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
@@ -160,8 +322,14 @@
                                                     Margin="0,0,8,0"
                                                     Background="#FFC107"
                                                     Foreground="#333"
-                                                    BorderThickness="0" Cursor="Hand">
-                                                 <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="3"/></Style></Button.Resources>
+                                                    BorderThickness="0"
+                                                    Cursor="Hand">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="CornerRadius"
+                                                                Value="3"/>
+                                                    </Style>
+                                                </Button.Resources>
                                             </Button>
                                             <Button Content="🗑️ Xóa"
                                                     Click="BtnDeleteDishRow_Click"
@@ -170,8 +338,14 @@
                                                     Height="30"
                                                     Background="#DC3545"
                                                     Foreground="White"
-                                                    BorderThickness="0" Cursor="Hand">
-                                                 <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="3"/></Style></Button.Resources>
+                                                    BorderThickness="0"
+                                                    Cursor="Hand">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="CornerRadius"
+                                                                Value="3"/>
+                                                    </Style>
+                                                </Button.Resources>
                                             </Button>
                                         </StackPanel>
                                     </DataTemplate>
@@ -184,76 +358,209 @@
         </TabControl>
 
         <!-- MODAL OVERLAY (Used for both Categories and Dishes) -->
-        <Grid x:Name="modalOverlay" Visibility="Collapsed">
-            <Border Background="#99000000" MouseDown="BtnCloseModal_Click"/>
+        <Grid x:Name="modalOverlay"
+                Visibility="Collapsed">
+            <Border Background="#99000000"
+                    MouseDown="BtnCloseModal_Click"/>
 
-            <Border Background="White" Width="450" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="8" Padding="25">
-                 <Border.Effect><DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.3"/></Border.Effect>
-                 <Grid>
+            <Border Background="White"
+                    Width="450"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    CornerRadius="8"
+                    Padding="25">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="30"
+                            ShadowDepth="0"
+                            Opacity="0.3"/>
+                </Border.Effect>
+                <Grid>
                     <!-- PANEL CATEGORY -->
-                    <StackPanel x:Name="panelCategoryForm" Visibility="Collapsed">
-                         <TextBlock Text="THÊM/SỬA DANH MỤC" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,20" Foreground="#28A745"/>
-                         
-                         <TextBlock Text="Tên danh mục:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                         <TextBox x:Name="txtCatName" Height="38" Margin="0,0,0,15" Padding="5,0" VerticalContentAlignment="Center" BorderBrush="#CED4DA"/>
-                         
-                         <TextBlock Text="Thứ tự hiển thị:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                         <TextBox x:Name="txtCatIndex" Height="38" Margin="0,0,0,15" Padding="5,0" VerticalContentAlignment="Center" BorderBrush="#CED4DA"/>
-                         
-                         <TextBlock Text="Máy in bếp phụ trách:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                         <ComboBox x:Name="cboPrinters" Height="38" Margin="0,0,0,25" DisplayMemberPath="PrinterName" SelectedValuePath="PrinterID" Padding="5,5" BorderBrush="#CED4DA"/>
+                    <StackPanel x:Name="panelCategoryForm"
+                            Visibility="Collapsed">
+                        <TextBlock Text="THÊM/SỬA DANH MỤC"
+                                FontSize="18"
+                                FontWeight="Bold"
+                                HorizontalAlignment="Center"
+                                Margin="0,0,0,20"
+                                Foreground="#28A745"/>
 
-                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Content="Hủy bỏ" Click="BtnCloseModal_Click" Width="100" Height="38" Margin="0,0,10,0" Background="#F1F3F5" Foreground="Black" BorderThickness="0" FontWeight="SemiBold"/>
-                            <Button Content="💾 LƯU LẠI" Click="BtnSaveCategory_Click" Width="120" Height="38" Background="#28A745" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+                        <TextBlock Text="Tên danh mục:"
+                                FontWeight="SemiBold"
+                                Margin="0,0,0,5"/>
+                        <TextBox x:Name="txtCatName"
+                                Height="38"
+                                Margin="0,0,0,15"
+                                Padding="5,0"
+                                VerticalContentAlignment="Center"
+                                BorderBrush="#CED4DA"/>
+
+                        <TextBlock Text="Thứ tự hiển thị:"
+                                FontWeight="SemiBold"
+                                Margin="0,0,0,5"/>
+                        <TextBox x:Name="txtCatIndex"
+                                Height="38"
+                                Margin="0,0,0,15"
+                                Padding="5,0"
+                                VerticalContentAlignment="Center"
+                                BorderBrush="#CED4DA"/>
+
+                        <TextBlock Text="Máy in bếp phụ trách:"
+                                FontWeight="SemiBold"
+                                Margin="0,0,0,5"/>
+                        <ComboBox x:Name="cboPrinters"
+                                Height="38"
+                                Margin="0,0,0,25"
+                                DisplayMemberPath="PrinterName"
+                                SelectedValuePath="PrinterID"
+                                Padding="5,5"
+                                BorderBrush="#CED4DA"/>
+
+                        <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right">
+                            <Button Content="Hủy bỏ"
+                                    Click="BtnCloseModal_Click"
+                                    Width="100"
+                                    Height="38"
+                                    Margin="0,0,10,0"
+                                    Background="#F1F3F5"
+                                    Foreground="Black"
+                                    BorderThickness="0"
+                                    FontWeight="SemiBold"/>
+                            <Button Content="💾 LƯU LẠI"
+                                    Click="BtnSaveCategory_Click"
+                                    Width="120"
+                                    Height="38"
+                                    Background="#28A745"
+                                    Foreground="White"
+                                    FontWeight="Bold"
+                                    BorderThickness="0"/>
                         </StackPanel>
                     </StackPanel>
 
                     <!-- PANEL DISH -->
-                    <ScrollViewer x:Name="panelDishForm" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" MaxHeight="550">
+                    <ScrollViewer x:Name="panelDishForm"
+                            Visibility="Collapsed"
+                            VerticalScrollBarVisibility="Auto"
+                            MaxHeight="550">
                         <StackPanel>
-                            <TextBlock Text="THÊM/SỬA MÓN ĂN" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,20" Foreground="#007BFF"/>
-                            
-                            <TextBlock Text="Tên món ăn:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                            <TextBox x:Name="txtDishName" Height="38" Margin="0,0,0,15" Padding="5,0" VerticalContentAlignment="Center" BorderBrush="#CED4DA"/>
+                            <TextBlock Text="THÊM/SỬA MÓN ĂN"
+                                    FontSize="18"
+                                    FontWeight="Bold"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,0,0,20"
+                                    Foreground="#007BFF"/>
+
+                            <TextBlock Text="Tên món ăn:"
+                                    FontWeight="SemiBold"
+                                    Margin="0,0,0,5"/>
+                            <TextBox x:Name="txtDishName"
+                                    Height="38"
+                                    Margin="0,0,0,15"
+                                    Padding="5,0"
+                                    VerticalContentAlignment="Center"
+                                    BorderBrush="#CED4DA"/>
 
                             <Grid Margin="0,0,0,15">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock Text="Giá bán:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                                    <TextBox x:Name="txtPrice" Height="38" Padding="5,0" VerticalContentAlignment="Center" BorderBrush="#CED4DA"/>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0"
+                                        Margin="0,0,8,0">
+                                    <TextBlock Text="Giá bán:"
+                                            FontWeight="SemiBold"
+                                            Margin="0,0,0,5"/>
+                                    <TextBox x:Name="txtPrice"
+                                             Height="38"
+                                             Padding="5,0"
+                                             VerticalContentAlignment="Center"
+                                             BorderBrush="#CED4DA"
+                                             HorizontalContentAlignment="Right"
+                                             PreviewTextInput="TxtPrice_PreviewTextInput"
+                                             TextChanged="TxtPrice_TextChanged"
+                                             LostFocus="TxtPrice_LostFocus"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                    <TextBlock Text="Đơn vị tính:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                                    <TextBox x:Name="txtUnit" Height="38" Padding="5,0" VerticalContentAlignment="Center" BorderBrush="#CED4DA"/>
+                                <StackPanel Grid.Column="1"
+                                        Margin="8,0,0,0">
+                                    <TextBlock Text="Đơn vị tính:"
+                                            FontWeight="SemiBold"
+                                            Margin="0,0,0,5"/>
+                                    <TextBox x:Name="txtUnit"
+                                            Height="38"
+                                            Padding="5,0"
+                                            VerticalContentAlignment="Center"
+                                            BorderBrush="#CED4DA"/>
                                 </StackPanel>
                             </Grid>
 
-                            <TextBlock Text="Thuộc danh mục:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                            <ComboBox x:Name="cboDishCat" Height="38" Margin="0,0,0,15" DisplayMemberPath="CategoryName" SelectedValuePath="CategoryID" Padding="5,5" BorderBrush="#CED4DA"/>
+                            <TextBlock Text="Thuộc danh mục:"
+                                    FontWeight="SemiBold"
+                                    Margin="0,0,0,5"/>
+                            <ComboBox x:Name="cboDishCat"
+                                    Height="38"
+                                    Margin="0,0,0,15"
+                                    DisplayMemberPath="CategoryName"
+                                    SelectedValuePath="CategoryID"
+                                    Padding="5,5"
+                                    BorderBrush="#CED4DA"/>
 
-                            <CheckBox x:Name="chkActive" Content="Đang kinh doanh (Active)" IsChecked="True" FontSize="14" Margin="0,5,0,20"/>
+                            <CheckBox x:Name="chkActive"
+                                    Content="Đang kinh doanh (Active)"
+                                    IsChecked="True"
+                                    FontSize="14"
+                                    Margin="0,5,0,20"/>
 
-                             <!-- Upload Ảnh -->
-                            <TextBlock Text="Hình ảnh món ăn:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                            <!-- Upload Ảnh -->
+                            <TextBlock Text="Hình ảnh món ăn:"
+                                    FontWeight="SemiBold"
+                                    Margin="0,0,0,5"/>
                             <Grid Margin="0,0,0,25">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="80"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border BorderBrush="#DDD" BorderThickness="1" CornerRadius="4" Height="80">
-                                    <Image x:Name="imgPreview" Stretch="Uniform" Margin="2"/>
+                                <Border BorderBrush="#DDD"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Height="80">
+                                    <Image x:Name="imgPreview"
+                                            Stretch="Uniform"
+                                            Margin="2"/>
                                 </Border>
-                                <Button Grid.Column="1" Content="📁 Chọn ảnh..." Margin="15,0,0,0" Height="35" Click="BtnUploadImg_Click" Background="#F1F3F5" Foreground="Black" BorderThickness="0"/>
+                                <Button Grid.Column="1"
+                                        Content="📁 Chọn ảnh..."
+                                        Margin="15,0,0,0"
+                                        Height="35"
+                                        Click="BtnUploadImg_Click"
+                                        Background="#F1F3F5"
+                                        Foreground="Black"
+                                        BorderThickness="0"/>
                             </Grid>
 
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Content="Hủy bỏ" Click="BtnCloseModal_Click" Width="100" Height="38" Margin="0,0,10,0" Background="#F1F3F5" Foreground="Black" BorderThickness="0" FontWeight="SemiBold"/>
-                                <Button Content="💾 LƯU LẠI" Click="BtnSaveDish_Click" Width="120" Height="38" Background="#007BFF" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+                            <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                                <Button Content="Hủy bỏ"
+                                        Click="BtnCloseModal_Click"
+                                        Width="100"
+                                        Height="38"
+                                        Margin="0,0,10,0"
+                                        Background="#F1F3F5"
+                                        Foreground="Black"
+                                        BorderThickness="0"
+                                        FontWeight="SemiBold"/>
+                                <Button Content="💾 LƯU LẠI"
+                                        Click="BtnSaveDish_Click"
+                                        Width="120"
+                                        Height="38"
+                                        Background="#007BFF"
+                                        Foreground="White"
+                                        FontWeight="Bold"
+                                        BorderThickness="0"/>
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
-                 </Grid>
+                </Grid>
             </Border>
         </Grid>
     </Grid>
