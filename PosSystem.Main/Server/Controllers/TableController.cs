@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Database;
 using System.Linq;
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR; // Thêm
 using PosSystem.Main.Server.Hubs;   // Thêm
@@ -26,8 +27,12 @@ namespace PosSystem.Main.Server.Controllers
         public async Task<IActionResult> GetTables()
         {
             var tables = await _context.Tables
-                .OrderBy(t => t.TableID)
-                .Select(t => new 
+                // Match WPF ordering: Category.DisplayOrder -> CategoryID -> TableName
+                // (so "Tất cả" shows tables grouped by category, not by creation)
+                .OrderBy(t => t.Category != null ? t.Category.DisplayOrder : int.MaxValue)
+                .ThenBy(t => t.CategoryID ?? int.MaxValue)
+                .ThenBy(t => t.TableName)
+                .Select(t => new
                 {
                     t.TableID,
                     t.TableName,
