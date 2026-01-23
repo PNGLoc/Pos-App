@@ -527,7 +527,7 @@ function renderCartTab() {
                 </div>
                 <div class="d-flex gap-2">
                     <button class="btn btn-sm btn-outline-warning" onclick="openNoteModal(${item.orderDetailID}, 'cart', '${item.note || ''}')"><i class="fas fa-comment-dots"></i></button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="updateCartItem(${item.orderDetailID}, 0, '')"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteCartItem(${item.orderDetailID})"><i class="fas fa-trash"></i></button>
                 </div>
             </div>`;
         container.appendChild(div);
@@ -545,6 +545,26 @@ async function updateCartItem(detailId, newQty, note) {
         if (res.ok) loadOrderData(appState.currentTableId);
         else showToast(await res.text(), 'danger');
     } catch (e) { showToast("Lỗi kết nối", 'danger'); }
+}
+
+// --- CART: CONFIRM DELETE ---
+let pendingCartDeleteDetailId = 0;
+
+function confirmDeleteCartItem(detailId) {
+    pendingCartDeleteDetailId = detailId;
+
+    const item = appState.orderDetails.find(d => d.orderDetailID === detailId);
+    const payload = item ? { dishName: item.dishName, qty: item.quantity } : null;
+    openConfirmModal('deleteCart', payload);
+}
+
+async function executeDeleteCartItem() {
+    const id = pendingCartDeleteDetailId;
+    pendingCartDeleteDetailId = 0;
+    closeModal('confirmModal');
+    if (!id) return;
+
+    await updateCartItem(id, 0, '');
 }
 
 // --- TAB CONFIRMED ---
@@ -945,8 +965,11 @@ function updateMenuPermissions() {
 }
 
 // --- 2. XỬ LÝ POPUP XÁC NHẬN (IN & THANH TOÁN) ---
-function openConfirmModal(type) {
-    if (type !== 'move') toggleActionMenu(); // Đóng menu nếu không phải luồng chuyển bàn
+function openConfirmModal(type, payload = null) {
+    // Chỉ đóng action sheet cho các action được mở từ menu action sheet
+    if (type === 'request' || type === 'payment' || type === 'provisional') {
+        toggleActionMenu();
+    }
     currentActionType = type;
 
     const title = document.getElementById('confirmTitle');
@@ -981,6 +1004,15 @@ function openConfirmModal(type) {
         btn.className = "btn btn-info text-dark";
         icon.className = "fas fa-file-invoice-dollar fa-3x text-info";
         btn.onclick = executePrintProvisional;
+    }
+    else if (type === 'deleteCart') {
+        title.innerText = "Xóa món";
+        const dishName = payload && payload.dishName ? payload.dishName : "món này";
+        const qtyText = payload && payload.qty ? ` (SL: ${payload.qty})` : "";
+        msg.innerHTML = `Bạn có chắc muốn xóa <b>${dishName}</b>${qtyText} khỏi giỏ?`;
+        btn.className = "btn btn-danger";
+        icon.className = "fas fa-trash fa-3x text-danger";
+        btn.onclick = executeDeleteCartItem;
     }
 
     document.getElementById('confirmModal').style.display = 'flex';
