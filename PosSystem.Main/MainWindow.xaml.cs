@@ -435,7 +435,7 @@ namespace PosSystem.Main
 
             // 2. Calculate Actual Total (After Item Discount/Surcharge)
             decimal actualTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.TotalAmount);
-            
+
             order.SubTotal = actualTotal;
 
             // 3. Display Adjustment (Difference)
@@ -1386,43 +1386,34 @@ namespace PosSystem.Main
                     var detail = db.OrderDetails.Find(detailId);
                     if (detail == null) return;
 
-                    // Xác định xem đang giảm theo % hay tiền để hiển thị lên Dialog
-                    bool isPercent = detail.DiscountRate > 0;
-                    decimal currentVal = 0;
+                    // New flow: show original price + allow entering a new price directly.
+                    // Increase/decrease is inferred by comparing New Price vs Original Price.
+                    decimal originalPrice = detail.UnitPrice;
+                    decimal currentEffectivePrice = originalPrice * (1 - detail.DiscountRate / 100m);
 
-                    if (isPercent)
-                        currentVal = detail.DiscountRate;
-                    else
-                        // Nếu giảm theo tiền, ta phải tính ngược lại: Giá gốc - Giá thực bán cho 1 đơn vị
-                        // (Ở đây ta giả định DiscountWindow sẽ trả về Giá Mới hoặc % Giảm)
-                        currentVal = detail.UnitPrice;
-
-                    // Mở Dialog Discount (Mode: isEditItem = true)
-                    // [MODIFIED] Pass maxLimit = UnitPrice to clamp discount amount
-                    var dialog = new DiscountWindow(currentVal, isPercentMode: isPercent, isEditItem: true, maxLimit: detail.UnitPrice);
+                    var dialog = new EditItemPriceWindow(originalPrice, currentEffectivePrice)
+                    {
+                        Owner = this
+                    };
 
                     if (dialog.ShowDialog() == true)
                     {
-                        if (dialog.IsPercentage)
+                        decimal newPrice = dialog.NewPrice;
+
+                        // Derive DiscountRate from new price (positive = decrease, negative = increase)
+                        if (originalPrice > 0)
                         {
-                            // GIẢM THEO %
-                            detail.DiscountRate = dialog.ResultValue; 
+                            var newRate = ((originalPrice - newPrice) / originalPrice) * 100m;
+                            // Avoid tiny rounding noise
+                            if (Math.Abs(newRate) < 0.0001m) newRate = 0;
+                            detail.DiscountRate = newRate;
                         }
                         else
                         {
-                            // GIẢM THEO TIỀN
-                            // Dialog logic has been updated to return the NEW PRICE directly (adjusting for Increase/Decrease)
-                            decimal newPrice = dialog.ResultValue; 
-
-                            // Update DiscountRate based on New Price vs Unit Price
-                            if (detail.UnitPrice > 0)
-                                detail.DiscountRate = ((detail.UnitPrice - newPrice) / detail.UnitPrice) * 100;
-                            else
-                                detail.DiscountRate = 0;
+                            detail.DiscountRate = 0;
                         }
 
-                        // Tính lại Thành tiền
-                        detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100);
+                        detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100m);
 
                         db.SaveChanges();
                         RecalculateOrder(db, detail.OrderID);
