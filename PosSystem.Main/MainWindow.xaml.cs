@@ -24,14 +24,48 @@ using System.Threading;
 namespace PosSystem.Main
 {
     // ViewModels
-    public class TableViewModel
+    public class TableViewModel : System.ComponentModel.INotifyPropertyChanged
     {
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(name));
+
         public int TableID { get; set; }
         public required string TableName { get; set; }
         public required string TableStatus { get; set; }
-        public string TimeDisplay { get; set; } = "";
+
+        public DateTime? PendingOrderTime { get; set; }
+
+        private string _timeDisplay = "";
+        public string TimeDisplay
+        {
+            get => _timeDisplay;
+            set
+            {
+                if (_timeDisplay != value)
+                {
+                    _timeDisplay = value;
+                    OnPropertyChanged(nameof(TimeDisplay));
+                }
+            }
+        }
+
         public string StatusDisplay => TableStatus == "Occupied" ? "Có khách" : "Trống";
-        public bool IsGrayedOut { get; set; } = false; // [NEW] Gray out source table
+
+        private bool _isGrayedOut;
+        public bool IsGrayedOut
+        {
+            get => _isGrayedOut;
+            set
+            {
+                if (_isGrayedOut != value)
+                {
+                    _isGrayedOut = value;
+                    OnPropertyChanged(nameof(IsGrayedOut));
+                    OnPropertyChanged(nameof(ColorBrush));
+                }
+            }
+        }
+
         public SolidColorBrush ColorBrush => IsGrayedOut ? new SolidColorBrush(Colors.Gray) : (TableStatus == "Occupied" ? new SolidColorBrush(Color.FromRgb(220, 53, 69)) : new SolidColorBrush(Color.FromRgb(40, 167, 69)));
         public bool IsRequestingPayment { get; set; } = false;
         public bool HasProvisionalBill { get; set; } = false; // [NEW]
@@ -132,6 +166,9 @@ namespace PosSystem.Main
         {
             InitializeComponent();
 
+            // Defer heavy work until the window is rendered at least once.
+            Loaded += MainWindow_Loaded;
+
             // Load Categories for Filter
             using (var db = new AppDbContext())
             {
@@ -144,7 +181,6 @@ namespace PosSystem.Main
 
             LoadActivityLogFromDb();
 
-            LoadTables();
             if (UserSession.IsLoggedIn) lblStaffName.Text = UserSession.AccName;
             if (UserSession.IsLoggedIn && UserSession.AccRole == "Admin") btnBackToAdmin.Visibility = Visibility.Visible;
 
@@ -154,7 +190,7 @@ namespace PosSystem.Main
 
             // Setup timer to refresh table list every second (for displaying elapsed times)
             _tableListUpdateTimer.Interval = TimeSpan.FromSeconds(1);
-            _tableListUpdateTimer.Tick += (s, e) => LoadTables();
+            _tableListUpdateTimer.Tick += (s, e) => UpdateTableTimeDisplays();
             _tableListUpdateTimer.Start();
 
             // Reset buttons on startup
@@ -169,9 +205,25 @@ namespace PosSystem.Main
             pnlDiscount.Visibility = Visibility.Collapsed;
             btnDiscountBill.Visibility = Visibility.Collapsed; // [FIX] Hide initially
 
-            LoadTables();
-            LoadMenu();
-            SetupRealtime();
+            // LoadTables/LoadMenu/SetupRealtime are started in MainWindow_Loaded
+        }
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            Loaded -= MainWindow_Loaded;
+
+            // Let layout/render happen first, then populate data.
+            await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ContextIdle);
+
+            _ = LoadTablesAsync();
+
+            // LoadMenu is UI-bound; keep it deferred so table grid appears ASAP.
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try { LoadMenu(); } catch { }
+            }), DispatcherPriority.Background);
+
+            try { SetupRealtime(); } catch { }
         }
 
         private void LoadActivityLogFromDb()
@@ -496,76 +548,93 @@ namespace PosSystem.Main
         }
 
         // --- 2. LOAD DATA ---
+        private static string FormatElapsedTime(DateTime start)
+        {
+            var elapsed = DateTime.Now - start;
+            if (elapsed.TotalMinutes < 1) return $"{(int)elapsed.TotalSeconds}s";
+            if (elapsed.TotalHours < 1) return $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
+            return $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
+        }
+
+        private void UpdateTableTimeDisplays()
+        {
+            if (lstTables.ItemsSource is not IEnumerable<TableViewModel> items)
+                return;
+
+            foreach (var vm in items)
+            {
+                if (vm.TableStatus == "Occupied" && vm.PendingOrderTime.HasValue)
+                {
+                    vm.TimeDisplay = FormatElapsedTime(vm.PendingOrderTime.Value);
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(vm.TimeDisplay))
+                        vm.TimeDisplay = "";
+                }
+            }
+        }
+
         private void LoadTables()
         {
             using (var db = new AppDbContext())
             {
-                var query = db.Tables
-                    .Include(t => t.Category)
-                    .Include(t => t.Orders)
-                        .ThenInclude(o => o.OrderDetails)
-                    .AsQueryable();
+                int? catId = _selectedCategoryId;
+                string typeFilter = _tableTypeFilter;
 
-                // Apply filter
-                if (_selectedCategoryId.HasValue)
+                var query = db.Tables
+                    .AsNoTracking()
+                    .Select(t => new
+                    {
+                        t.TableID,
+                        t.TableName,
+                        t.TableStatus,
+                        t.CategoryID,
+                        t.TableType,
+                        CategoryDisplayOrder = t.Category != null ? t.Category.DisplayOrder : int.MaxValue,
+                        PendingOrder = t.Orders
+                            .Where(o => o.OrderStatus == "Pending")
+                            .OrderByDescending(o => o.OrderTime)
+                            .Select(o => new { o.OrderTime, o.IsPreCalculated, o.IsRequestingPayment })
+                            .FirstOrDefault()
+                    });
+
+                if (catId.HasValue)
                 {
-                    query = query.Where(t => t.CategoryID == _selectedCategoryId.Value)
+                    query = query.Where(t => t.CategoryID == catId.Value)
                                  .OrderBy(t => t.TableName);
                 }
-                else if (_tableTypeFilter != "All") // Backwards compatibility for old buttons if any exist
+                else if (typeFilter != "All")
                 {
-                    query = query.Where(t => t.TableType == _tableTypeFilter)
+                    query = query.Where(t => t.TableType == typeFilter)
                                  .OrderBy(t => t.TableName);
                 }
                 else
                 {
-                    // "Tất cả": sắp xếp theo thứ tự Category (DisplayOrder) thay vì theo TableID
                     query = query
-                        .OrderBy(t => t.Category != null ? t.Category.DisplayOrder : int.MaxValue)
+                        .OrderBy(t => t.CategoryDisplayOrder)
                         .ThenBy(t => t.CategoryID ?? int.MaxValue)
                         .ThenBy(t => t.TableName);
                 }
 
-                var tables = query.ToList();
-
-                lstTables.ItemsSource = tables.Select(t =>
+                var rows = query.ToList();
+                var viewModels = rows.Select(t =>
                 {
-                    var vm = new TableViewModel
+                    var pendingTime = (t.TableStatus == "Occupied") ? t.PendingOrder?.OrderTime : (DateTime?)null;
+                    return new TableViewModel
                     {
                         TableID = t.TableID,
                         TableName = t.TableName,
                         TableStatus = t.TableStatus,
-                        TimeDisplay = "",
-                        // [NEW] Gray out if this is the source table and we are waiting for target (Split or Move)
+                        PendingOrderTime = pendingTime,
+                        TimeDisplay = pendingTime.HasValue ? FormatElapsedTime(pendingTime.Value) : "",
+                        HasProvisionalBill = t.PendingOrder?.IsPreCalculated ?? false,
+                        IsRequestingPayment = t.PendingOrder?.IsRequestingPayment ?? false,
                         IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId)
                     };
-
-                    // Calculate time for occupied tables with pending orders that have been sent to kitchen
-                    if (t.TableStatus == "Occupied" && t.Orders.Any())
-                    {
-                        var order = t.Orders.FirstOrDefault(o => o.OrderStatus == "Pending");
-                        // Only show time if FirstSentTime has value (order has been sent to kitchen)
-                        if (order != null)
-                        {
-                            if (order != null)
-                            {
-                                var elapsed = DateTime.Now - order.OrderTime;
-                                if (elapsed.TotalMinutes < 1)
-                                    vm.TimeDisplay = $"{(int)elapsed.TotalSeconds}s";
-                                else if (elapsed.TotalHours < 1)
-                                    vm.TimeDisplay = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
-                                else
-                                    vm.TimeDisplay = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
-                            }
-                            // [NEW] Check provisional bill
-                            if (order.IsPreCalculated) vm.HasProvisionalBill = true;
-                            // [NEW] Check request payment (Persisted)
-                            if (order.IsRequestingPayment) vm.IsRequestingPayment = true;
-                        }
-                    }
-
-                    return vm;
                 }).ToList();
+
+                lstTables.ItemsSource = viewModels;
             }
         }
 
@@ -794,72 +863,65 @@ namespace PosSystem.Main
         {
             try
             {
-                // 1. Fetch Data in Background
-                var viewModels = await Task.Run(() =>
-                {
-                    using (var db = new AppDbContext())
+                // Use local copies of filters to avoid threading issues
+                int? catId = _selectedCategoryId;
+                string typeFilter = _tableTypeFilter;
+
+                using var db = new AppDbContext();
+
+                var query = db.Tables
+                    .AsNoTracking()
+                    .Select(t => new
                     {
-                        var tables = db.Tables.Include(t => t.Orders).ThenInclude(o => o.OrderDetails).ToList();
+                        t.TableID,
+                        t.TableName,
+                        t.TableStatus,
+                        t.CategoryID,
+                        t.TableType,
+                        CategoryDisplayOrder = t.Category != null ? t.Category.DisplayOrder : int.MaxValue,
+                        PendingOrder = t.Orders
+                            .Where(o => o.OrderStatus == "Pending")
+                            .OrderByDescending(o => o.OrderTime)
+                            .Select(o => new { o.OrderTime, o.IsPreCalculated, o.IsRequestingPayment })
+                            .FirstOrDefault()
+                    });
 
-                        // Use local copies of filters to avoid threading issues
-                        // Note: If you have dynamic filters, capture them before Task.Run or use Dispatcher if they are UI elements (but here they are simple fields)
-                        int? catId = _selectedCategoryId;
-                        string typeFilter = _tableTypeFilter;
-
-                        // Apply filter
-                        if (catId.HasValue)
-                        {
-                            tables = tables.Where(t => t.CategoryID == catId.Value).ToList();
-                        }
-                        else if (typeFilter != "All")
-                        {
-                            tables = tables.Where(t => t.TableType == typeFilter).ToList();
-                        }
-
-                        return tables.Select(t =>
-                        {
-                            var vm = new TableViewModel
-                            {
-                                TableID = t.TableID,
-                                TableName = t.TableName,
-                                TableStatus = t.TableStatus,
-                                TimeDisplay = "",
-                                IsGrayedOut = false // Simplified safely
-                            };
-
-                            // Calculate time
-                            if (t.TableStatus == "Occupied" && t.Orders.Any())
-                            {
-                                var order = t.Orders.FirstOrDefault(o => o.OrderStatus == "Pending");
-                                if (order != null)
-                                {
-                                    if (order != null)
-                                    {
-                                        var elapsed = DateTime.Now - order.OrderTime;
-                                        if (elapsed.TotalMinutes < 1) vm.TimeDisplay = $"{(int)elapsed.TotalSeconds}s";
-                                        else if (elapsed.TotalHours < 1) vm.TimeDisplay = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
-                                        else vm.TimeDisplay = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
-                                    }
-                                    if (order.IsPreCalculated) vm.HasProvisionalBill = true;
-                                    if (order.IsRequestingPayment) vm.IsRequestingPayment = true;
-                                }
-                            }
-                            return vm;
-                        }).ToList();
-                    }
-                });
-
-                // 2. Update UI on Dispatcher
-                if (viewModels != null)
+                if (catId.HasValue)
                 {
-                    // Re-apply any UI-specific state like selection gray-out
-                    if (_isWaitingForTargetTable || _isWaitingForMoveTargetTable)
-                    {
-                        var selected = viewModels.FirstOrDefault(t => t.TableID == _selectedTableId);
-                        if (selected != null) selected.IsGrayedOut = true;
-                    }
-                    lstTables.ItemsSource = viewModels;
+                    query = query.Where(t => t.CategoryID == catId.Value)
+                                 .OrderBy(t => t.TableName);
                 }
+                else if (typeFilter != "All")
+                {
+                    query = query.Where(t => t.TableType == typeFilter)
+                                 .OrderBy(t => t.TableName);
+                }
+                else
+                {
+                    query = query
+                        .OrderBy(t => t.CategoryDisplayOrder)
+                        .ThenBy(t => t.CategoryID ?? int.MaxValue)
+                        .ThenBy(t => t.TableName);
+                }
+
+                var rows = await query.ToListAsync();
+                var viewModels = rows.Select(t =>
+                {
+                    var pendingTime = (t.TableStatus == "Occupied") ? t.PendingOrder?.OrderTime : (DateTime?)null;
+                    return new TableViewModel
+                    {
+                        TableID = t.TableID,
+                        TableName = t.TableName,
+                        TableStatus = t.TableStatus,
+                        PendingOrderTime = pendingTime,
+                        TimeDisplay = pendingTime.HasValue ? FormatElapsedTime(pendingTime.Value) : "",
+                        HasProvisionalBill = t.PendingOrder?.IsPreCalculated ?? false,
+                        IsRequestingPayment = t.PendingOrder?.IsRequestingPayment ?? false,
+                        IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId)
+                    };
+                }).ToList();
+
+                lstTables.ItemsSource = viewModels;
             }
             catch (Exception ex)
             {
