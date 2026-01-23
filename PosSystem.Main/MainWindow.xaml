@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:PosSystem.Main"
         xmlns:helpers="clr-namespace:PosSystem.Main.Helpers"
-        Title="POS SYSTEM - QUẢN LÝ BÀN"
+        Title="LP_Pos - QUẢN LÝ BÀN"
         WindowState="Maximized"
         Background="#F0F2F5">
 

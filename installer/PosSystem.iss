@@ -1,10 +1,10 @@
-; Inno Setup script for PosSystem
+; Inno Setup script for LP_Pos
 ; Requires Inno Setup 6+
 
-#define MyAppName "PosSystem"
-#define MyAppPublisher "PosSystem"
+#define MyAppName "LP_Pos"
+#define MyAppPublisher "LP_Pos"
 #define MyAppURL ""
-#define MyAppExeName "PosSystem.Main.exe"
+#define MyAppExeName "LP_Pos.exe"
 
 ; Optional icon (create this file to enable): ..\PosSystem.Main\Assets\app.ico
 #define IconFile "..\\PosSystem.Main\\Assets\\app.ico"
@@ -22,7 +22,7 @@ DefaultDirName={sd}\\PosSystem
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=.
-OutputBaseFilename=PosSystem-Setup
+OutputBaseFilename=LP_Pos-Setup
 Compression=lzma
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64

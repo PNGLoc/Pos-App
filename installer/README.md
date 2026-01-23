@@ -21,7 +21,7 @@ Ghi chú:
 2. Mở file: `installer\\PosSystem.iss`
 3. Bấm **Compile**.
 
-File output mặc định: `installer\\PosSystem-Setup.exe`
+File output mặc định: `installer\\LP_Pos-Setup.exe`
 
 ## 3) Cấu trúc dữ liệu runtime
 Ứng dụng sẽ tự tạo và sử dụng:

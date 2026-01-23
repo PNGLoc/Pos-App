@@ -39,7 +39,7 @@
 
             <StackPanel VerticalAlignment="Center">
                 <!-- Logo / Tiêu đề -->
-                <TextBlock Text="POS SYSTEM"
+                <TextBlock Text="LP_Pos"
                            FontSize="28"
                            FontWeight="Bold"
                            HorizontalAlignment="Center"
@@ -97,7 +97,7 @@
                             Click="BtnTogglePassword_Click"
                             ToolTip="Hiện mật khẩu">
                         <Grid Width="20"
-                                Height="20">
+                              Height="20">
                             <!-- Eye (open) -->
                             <Path x:Name="iconEyeOpen"
                                   Stroke="#333"
