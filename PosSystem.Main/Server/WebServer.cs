@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection; // Cần cái này
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.StaticFiles;
 using PosSystem.Main.Database; // <--- QUAN TRỌNG: Phải using thư mục Database
 using PosSystem.Main.Helpers;
 using PosSystem.Main.Server.Hubs;
@@ -57,6 +58,21 @@ namespace PosSystem.Main.Server
                         // Cho phép phục vụ file index.html, css, js
                         app.UseDefaultFiles();
 
+                        // Serve app icon from <appRoot>/Assets at /assets (used by manifest + iOS A2HS)
+                        try
+                        {
+                            var assetsDir = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets");
+                            if (System.IO.Directory.Exists(assetsDir))
+                            {
+                                app.UseStaticFiles(new StaticFileOptions
+                                {
+                                    FileProvider = new PhysicalFileProvider(assetsDir),
+                                    RequestPath = "/assets"
+                                });
+                            }
+                        }
+                        catch { }
+
                         // Serve dish images from <appRoot>/data/image at /images
                         try
                         {
@@ -68,7 +84,14 @@ namespace PosSystem.Main.Server
                         }
                         catch { }
 
-                        app.UseStaticFiles();
+                        // Ensure correct MIME type for manifest.webmanifest (Android/Chrome)
+                        var contentTypeProvider = new FileExtensionContentTypeProvider();
+                        contentTypeProvider.Mappings[".webmanifest"] = "application/manifest+json";
+
+                        app.UseStaticFiles(new StaticFileOptions
+                        {
+                            ContentTypeProvider = contentTypeProvider
+                        });
 
                         // Enable WebSockets (SignalR will use this transport)
                         app.UseWebSockets();

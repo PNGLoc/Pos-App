@@ -58,7 +58,7 @@ namespace PosSystem.Main
                 MessageBox.Show(
                     "Không thể ghi dữ liệu vào thư mục cài đặt.\n\n" +
                     "Yêu cầu: Database và hình ảnh lưu trong thư mục 'data' nằm cùng thư mục với file .exe.\n\n" +
-                    "Vui lòng cài ứng dụng vào thư mục có quyền ghi (khuyến nghị: C:\\PosSystem), hoặc chạy bằng quyền Administrator.");
+                    "Vui lòng cài ứng dụng vào thư mục có quyền ghi (khuyến nghị: C:\\LP_Pos), hoặc chạy bằng quyền Administrator.");
                 Shutdown();
                 return;
             }

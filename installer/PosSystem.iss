@@ -18,14 +18,14 @@ AppId={{7B3D76D0-6A2D-4C80-AF8A-7B0B8B2F4F8A}
 AppName={#MyAppName}
 AppVersion=1.0.0
 AppPublisher={#MyAppPublisher}
-DefaultDirName={sd}\\PosSystem
+DefaultDirName={sd}\\LP_Pos
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=.
 OutputBaseFilename=LP_Pos-Setup
 Compression=lzma
 SolidCompression=yes
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 ; allow customer to pick a different install path
 DisableDirPage=no
@@ -36,7 +36,13 @@ UninstallDisplayIcon={app}\\{#MyAppExeName}
 #endif
 
 [Languages]
+; Some Inno Setup installations may not include Vietnamese.isl.
+; Use it when available, otherwise fall back to the default (English).
+#ifexist "compiler:Languages\\Vietnamese.isl"
 Name: "vietnamese"; MessagesFile: "compiler:Languages\\Vietnamese.isl"
+#else
+Name: "english"; MessagesFile: "compiler:Default.isl"
+#endif
 
 [Tasks]
 Name: "desktopicon"; Description: "Tạo biểu tượng ngoài Desktop"; GroupDescription: "Tùy chọn:"; Flags: unchecked

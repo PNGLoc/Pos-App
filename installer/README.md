@@ -1,7 +1,8 @@
-# PosSystem Installer (Inno Setup)
+# LP_Pos Installer (Inno Setup)
 
 Mục tiêu:
 - Cho khách chọn thư mục cài (default: `C:\\PosSystem`).
+- Cho khách chọn thư mục cài (default: `C:\\LP_Pos`).
 - Database + hình ảnh lưu trong `data` nằm ngay dưới thư mục cài đặt.
 
 ## 1) Publish trước khi đóng gói

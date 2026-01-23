@@ -1,0 +1,19 @@
+{
+    "name": "LP_Pos",
+    "short_name": "LP_Pos",
+    "description": "LP_Pos Mobile POS",
+    "start_url": "/mobile.html",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#ffffff",
+    "theme_color": "#0d6efd",
+    "icons": [
+        {
+            "src": "/assets/app.ico",
+            "sizes": "256x256",
+            "type": "image/x-icon",
+            "purpose": "any"
+        }
+    ]
+}
