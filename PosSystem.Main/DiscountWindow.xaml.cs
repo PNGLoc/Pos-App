@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -11,73 +12,44 @@ namespace PosSystem.Main
         public bool IsPercentage { get; private set; } = true;
         public decimal ResultValue { get; private set; } = 0;
 
-        // Mode: 0 = Discount (như cũ), 1 = Edit Quantity
+        // Mode: 0 = Discount, 1 = Edit Quantity
         private bool _isQuantityMode = false;
-        private decimal _maxLimit = -1; // [NEW] Max limit for validation
+        private decimal _maxLimit = -1; // Max limit for validation (used for bill discount amount)
+
+        private readonly CultureInfo _vi = new CultureInfo("vi-VN");
 
         // Constructor cũ (giữ nguyên để không lỗi code cũ)
         public DiscountWindow(decimal currentVal, bool isPercentMode, bool isEditItem = false, decimal maxLimit = -1)
         {
             InitializeComponent();
             _maxLimit = maxLimit; // [NEW]
-            // Code cũ xử lý giảm giá/giá món...
-            if (isEditItem) // Đây là sửa giá món
-            {
-                lblCashTitle.Text = "Nhập giá bán mới (đ):";
-            }
-            else
-            {
-                // [NEW] Bill Discount -> Disable Increase Option (Hide Toggle)
-                pnlToggleMode.Visibility = Visibility.Collapsed;
-            }
+            // Bill discount: always decrease (no increase mode)
+            lblCashTitle.Text = "Nhập số tiền giảm (đ):";
+
+            // Show preview only if we know the bill total
+            if (pnlBillPreview != null)
+                pnlBillPreview.Visibility = (_maxLimit > 0) ? Visibility.Visible : Visibility.Collapsed;
+
+            if (pnlAfterPercent != null)
+                pnlAfterPercent.Visibility = (_maxLimit > 0) ? Visibility.Visible : Visibility.Collapsed;
+            if (pnlAfterAmount != null)
+                pnlAfterAmount.Visibility = (_maxLimit > 0) ? Visibility.Visible : Visibility.Collapsed;
 
             if (isPercentMode)
             {
                 tabMain.SelectedIndex = 0;
-                // [MODIFIED] Check sign to set Toggle
-                if (currentVal >= 0)
-                {
-                    optDecrease.IsChecked = true;
-                    txtPercent.Text = currentVal.ToString("0");
-                }
-                else
-                {
-                    optIncrease.IsChecked = true;
-                    txtPercent.Text = (-currentVal).ToString("0"); // Show positive number
-                }
+                if (currentVal < 0) currentVal = 0;
+                txtPercent.Text = currentVal.ToString("0");
             }
             else
             {
                 tabMain.SelectedIndex = 1;
-                // Does logic support negative cash discount? usually yes.
-                if (currentVal >= 0)
-                {
-                    optDecrease.IsChecked = true;
-                    txtAmount.Text = currentVal.ToString("0");
-                }
-                else
-                {
-                    optIncrease.IsChecked = true;
-                    txtAmount.Text = (-currentVal).ToString("0");
-                }
+                if (currentVal < 0) currentVal = 0;
+                if (_maxLimit >= 0 && currentVal > _maxLimit) currentVal = _maxLimit;
+                txtAmount.Text = currentVal.ToString("0");
             }
-            
-            // Set initial label text
-            OptMode_Click(null, null);
-        }
 
-        // Event for toggle click
-        private void OptMode_Click(object sender, RoutedEventArgs e)
-        {
-            // [NEW] Update Title for Item Price Mode
-            bool isItemPriceMode = (tabMain.SelectedIndex == 1 && _maxLimit >= 0); // Hacky check but works for now (passed UnitPrice as limit)
-            if (isItemPriceMode)
-            {
-                if (optDecrease.IsChecked == true)
-                    lblCashTitle.Text = "Nhập số tiền giảm (đ):";
-                else
-                    lblCashTitle.Text = "Nhập giá bán mới (đ):";
-            }
+            UpdateBillPreview();
         }
 
         // Constructor mới chuyên dùng để nhập Số lượng
@@ -85,6 +57,14 @@ namespace PosSystem.Main
         {
             InitializeComponent();
             _isQuantityMode = true;
+
+            // Quantity mode doesn't need Undo (avoid accidental 0 quantity)
+            if (btnUndo != null) btnUndo.Visibility = Visibility.Collapsed;
+
+            // Quantity mode doesn't need bill preview
+            if (pnlBillPreview != null) pnlBillPreview.Visibility = Visibility.Collapsed;
+            if (pnlAfterPercent != null) pnlAfterPercent.Visibility = Visibility.Collapsed;
+            if (pnlAfterAmount != null) pnlAfterAmount.Visibility = Visibility.Collapsed;
 
             // Ẩn tab control đi, chỉ hiện 1 ô nhập đơn giản
             // (Hack giao diện nhanh: Ẩn tab 0, force tab 1 và đổi title)
@@ -95,6 +75,37 @@ namespace PosSystem.Main
             tabItem.Header = "Số lượng";
             lblCashTitle.Text = "Nhập số lượng mới:";
             txtAmount.Text = currentQuantity.ToString();
+        }
+
+        private void TabMain_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isQuantityMode) return;
+            UpdateBillPreview();
+        }
+
+        private void BtnUndo_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isQuantityMode) return;
+
+            // Undo bill discount => apply 0 immediately and close
+            if (tabMain.SelectedIndex == 0)
+            {
+                IsPercentage = true;
+                ResultValue = 0;
+            }
+            else
+            {
+                IsPercentage = false;
+                ResultValue = 0;
+            }
+
+            DialogResult = true;
+        }
+
+        private void TxtPercent_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isQuantityMode) return;
+            UpdateBillPreview();
         }
 
         private void BtnOK_Click(object sender, RoutedEventArgs e)
@@ -115,6 +126,7 @@ namespace PosSystem.Main
             {
                 IsPercentage = true;
                 decimal.TryParse(txtPercent.Text, out decimal val);
+                if (val < 0) val = 0;
                 if (val > 100) val = 100;
                 ResultValue = val;
             }
@@ -124,31 +136,9 @@ namespace PosSystem.Main
                 string rawText = txtAmount.Text.Replace(".", ""); // Remove separators
                 decimal.TryParse(rawText, out decimal val);
 
-                bool isItemPriceMode = (_maxLimit >= 0); // Assuming Limit is passed only for Item Edit (and Bill which uses Decrease only)
-
-                if (isItemPriceMode && optDecrease.IsChecked == true)
-                {
-                    // MODE DECREASE: Input is DISCOUNT AMOUNT
-                    // Cap at Max Limit (Price)
-                    if (val > _maxLimit) val = _maxLimit;
-
-                    // Result = New Price = Price - Discount
-                    ResultValue = _maxLimit - val;
-                }
-                else if (isItemPriceMode && optIncrease.IsChecked == true)
-                {
-                    // MODE INCREASE: Input is NEW PRICE
-                    // [NEW] Validate: New Price MUST be >= Original Price (_maxLimit)
-                    if (val < _maxLimit) val = _maxLimit;
-                    ResultValue = val;
-                }
-                else
-                {
-                    // Fallback / Bill Discount Mode (Decrease only)
-                    if (_maxLimit >= 0 && val > _maxLimit) val = _maxLimit;
-                    ResultValue = val;
-                    if (optIncrease.IsChecked == true) ResultValue = -ResultValue;
-                }
+                if (val < 0) val = 0;
+                if (_maxLimit >= 0 && val > _maxLimit) val = _maxLimit;
+                ResultValue = val;
             }
 
             this.DialogResult = true;
@@ -173,12 +163,11 @@ namespace PosSystem.Main
             {
                 // Remove existing separators
                 string rawText = txt.Text.Replace(".", "").Trim();
-                
+
                 if (long.TryParse(rawText, out long value))
                 {
-                    // [NEW] Immediate Clamp ONLY if Decrease Mode
-                    bool isDecrease = (optDecrease.IsChecked == true);
-                    if (_maxLimit >= 0 && isDecrease && value > _maxLimit)
+                    // Immediate clamp for bill discount amount
+                    if (_maxLimit >= 0 && value > _maxLimit)
                     {
                         value = (long)_maxLimit;
                     }
@@ -191,9 +180,55 @@ namespace PosSystem.Main
                 }
                 else if (string.IsNullOrEmpty(rawText))
                 {
-                     // Handle empty case
+                    // Handle empty case
                 }
             }
+
+            if (!_isQuantityMode)
+                UpdateBillPreview();
+        }
+
+        private void UpdateBillPreview()
+        {
+            if (_isQuantityMode) return;
+            if (_maxLimit <= 0) return;
+            if (txtBillTotal == null || txtBillDiscount == null) return;
+
+            decimal billTotal = _maxLimit;
+            txtBillTotal.Text = FormatMoney(billTotal);
+
+            decimal discountValue = 0;
+            if (tabMain.SelectedIndex == 0)
+            {
+                // % discount
+                decimal.TryParse(txtPercent.Text, out decimal percent);
+                if (percent < 0) percent = 0;
+                if (percent > 100) percent = 100;
+                discountValue = billTotal * (percent / 100m);
+            }
+            else
+            {
+                // amount discount
+                string raw = (txtAmount.Text ?? string.Empty).Replace(".", "").Trim();
+                decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal amount);
+                if (amount < 0) amount = 0;
+                if (amount > billTotal) amount = billTotal;
+                discountValue = amount;
+            }
+
+            var after = billTotal - discountValue;
+            if (after < 0) after = 0;
+
+            txtBillDiscount.Text = FormatMoney(discountValue);
+
+            if (txtAfterPercent != null) txtAfterPercent.Text = FormatMoney(after);
+            if (txtAfterAmount != null) txtAfterAmount.Text = FormatMoney(after);
+        }
+
+        private string FormatMoney(decimal value)
+        {
+            var v = (long)decimal.Round(value, 0, MidpointRounding.AwayFromZero);
+            return v.ToString("#,##0", _vi);
         }
     }
 }

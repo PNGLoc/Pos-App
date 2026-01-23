@@ -221,11 +221,11 @@
                                 </Style>
                             </Button.Resources>
                         </Button>
-                        
+
                         <Button Content="💸 NHẬP CHI"
                                 Click="BtnExpense_Click"
                                 Height="35"
-                                Background="#E74C3C" 
+                                Background="#E74C3C"
                                 Foreground="White"
                                 Padding="15,0"
                                 BorderThickness="0"
@@ -1388,7 +1388,7 @@
                                                     Background="Transparent"
                                                     BorderThickness="0"
                                                     Foreground="#AAA"
-                                                    ToolTip="Ghi chú / Hủy món / Giảm giá"/>
+                                                    ToolTip="Thay đổi giá món"/>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -1421,13 +1421,13 @@
                                                    Text="0đ"
                                                    FontWeight="Bold"/>
                                     </StackPanel>
-                                    
+
                                     <!-- [NEW] Item Adjustments Display -->
                                     <StackPanel x:Name="pnlAdjustment"
                                                 Orientation="Horizontal"
                                                 HorizontalAlignment="Right"
                                                 Visibility="Collapsed">
-                                        <TextBlock x:Name="lblAdjustmentTitle" 
+                                        <TextBlock x:Name="lblAdjustmentTitle"
                                                    Text="Chênh lệch món: "
                                                    Foreground="#FD7E14"/>
                                         <TextBlock x:Name="lblAdjustment"

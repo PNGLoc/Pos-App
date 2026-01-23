@@ -1589,7 +1589,10 @@ namespace PosSystem.Main
                 bool isPercent = order.DiscountPercent > 0;
                 decimal currentVal = isPercent ? order.DiscountPercent : order.DiscountAmount;
                 // [MODIFIED] Pass MaxLimit = SubTotal
-                var dialog = new DiscountWindow(currentVal, isPercentMode: isPercent, isEditItem: false, maxLimit: order.SubTotal);
+                var dialog = new DiscountWindow(currentVal, isPercentMode: isPercent, isEditItem: false, maxLimit: order.SubTotal)
+                {
+                    Owner = this
+                };
 
                 if (dialog.ShowDialog() == true)
                 {

@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Điều chỉnh giá"
-        Height="300"
+        Height="340"
         Width="350"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -11,142 +11,319 @@
         BorderBrush="#007BFF"
         BorderThickness="1">
 
-    <Window.Resources>
-        <!-- Style cho TabItem để trông to và dễ bấm -->
-        <Style TargetType="TabItem">
-            <Setter Property="FontSize"
-                    Value="16"/>
-            <Setter Property="FontWeight"
-                    Value="Bold"/>
-            <Setter Property="Padding"
-                    Value="10"/>
-            <Setter Property="Height"
-                    Value="40"/>
-        </Style>
+        <Window.Resources>
+                <!-- Làm đẹp phần chọn tab: pill, dễ bấm, rõ trạng thái chọn -->
 
-        <!-- Toggle Button Style for RadioButton -->
-        <Style x:Key="ToggleButtonStyle" TargetType="RadioButton">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#666"/>
-            <Setter Property="Height" Value="35"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter Property="Background" TargetName="border" Value="#007BFF"/>
-                                <Setter Property="Foreground" Value="White"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </Window.Resources>
+                <Style x:Key="CloseIconButton"
+                       TargetType="Button">
+                        <Setter Property="Width"
+                                Value="28"/>
+                        <Setter Property="Height"
+                                Value="28"/>
+                        <Setter Property="FontSize"
+                                Value="14"/>
+                        <Setter Property="FontWeight"
+                                Value="Bold"/>
+                        <Setter Property="Foreground"
+                                Value="#374151"/>
+                        <Setter Property="Background"
+                                Value="Transparent"/>
+                        <Setter Property="BorderThickness"
+                                Value="0"/>
+                        <Setter Property="Cursor"
+                                Value="Hand"/>
+                        <Setter Property="FocusVisualStyle"
+                                Value="{x:Null}"/>
+                        <Setter Property="Template">
+                                <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                                <Border x:Name="Bd"
+                                                        Background="{TemplateBinding Background}"
+                                                        CornerRadius="6">
+                                                        <ContentPresenter HorizontalAlignment="Center"
+                                                                          VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver"
+                                                                 Value="True">
+                                                                <Setter TargetName="Bd"
+                                                                        Property="Background"
+                                                                        Value="#F3F4F6"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsPressed"
+                                                                 Value="True">
+                                                                <Setter TargetName="Bd"
+                                                                        Property="Background"
+                                                                        Value="#E5E7EB"/>
+                                                        </Trigger>
+                                                </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                </Setter.Value>
+                        </Setter>
+                </Style>
 
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+                <Style TargetType="TabControl">
+                        <Setter Property="Background"
+                                Value="Transparent"/>
+                        <Setter Property="BorderThickness"
+                                Value="0"/>
+                        <Setter Property="Padding"
+                                Value="0"/>
+                </Style>
 
-        <!-- Toggle Mode: GIẢM GIÁ vs TĂNG GIÁ -->
-        <Border x:Name="pnlToggleMode" Grid.Row="0" Margin="0,0,0,10" BorderBrush="#EEE" BorderThickness="1" CornerRadius="5" Padding="2">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+                <Style TargetType="TabPanel">
+                        <Setter Property="HorizontalAlignment"
+                                Value="Center"/>
+                        <Setter Property="VerticalAlignment"
+                                Value="Top"/>
+                        <Setter Property="Margin"
+                                Value="0,0,0,8"/>
+                </Style>
 
-                <RadioButton x:Name="optDecrease" Content="📉 GIẢM GIÁ" 
-                             Grid.Column="0" IsChecked="True"
-                             Style="{StaticResource ToggleButtonStyle}"
-                             Click="OptMode_Click"/>
+                <Style TargetType="TabItem">
+                        <Setter Property="FontSize"
+                                Value="14"/>
+                        <Setter Property="FontWeight"
+                                Value="SemiBold"/>
+                        <Setter Property="Foreground"
+                                Value="#6B7280"/>
+                        <Setter Property="MinWidth"
+                                Value="145"/>
+                        <Setter Property="Margin"
+                                Value="4,0"/>
+                        <Setter Property="Padding"
+                                Value="14,8"/>
+                        <Setter Property="Height"
+                                Value="40"/>
+                        <Setter Property="Cursor"
+                                Value="Hand"/>
+                        <Setter Property="FocusVisualStyle"
+                                Value="{x:Null}"/>
+                        <Setter Property="Template">
+                                <Setter.Value>
+                                        <ControlTemplate TargetType="TabItem">
+                                                <Border x:Name="Bd"
+                                                        Background="#F3F4F6"
+                                                        BorderBrush="#E5E7EB"
+                                                        BorderThickness="1"
+                                                        CornerRadius="10"
+                                                        SnapsToDevicePixels="True">
+                                                        <ContentPresenter ContentSource="Header"
+                                                                          Margin="0"
+                                                                          HorizontalAlignment="Center"
+                                                                          VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsSelected"
+                                                                 Value="True">
+                                                                <Setter TargetName="Bd"
+                                                                        Property="Background"
+                                                                        Value="#007BFF"/>
+                                                                <Setter TargetName="Bd"
+                                                                        Property="BorderBrush"
+                                                                        Value="#007BFF"/>
+                                                                <Setter Property="Foreground"
+                                                                        Value="White"/>
+                                                        </Trigger>
+                                                        <MultiTrigger>
+                                                                <MultiTrigger.Conditions>
+                                                                        <Condition Property="IsMouseOver"
+                                                                                   Value="True"/>
+                                                                        <Condition Property="IsSelected"
+                                                                                   Value="False"/>
+                                                                </MultiTrigger.Conditions>
+                                                                <Setter TargetName="Bd"
+                                                                        Property="Background"
+                                                                        Value="#E5E7EB"/>
+                                                        </MultiTrigger>
+                                                        <Trigger Property="IsEnabled"
+                                                                 Value="False">
+                                                                <Setter TargetName="Bd"
+                                                                        Property="Opacity"
+                                                                        Value="0.55"/>
+                                                        </Trigger>
+                                                </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                </Setter.Value>
+                        </Setter>
+                </Style>
+        </Window.Resources>
 
-                <RadioButton x:Name="optIncrease" Content="📈 TĂNG GIÁ" 
-                             Grid.Column="1"
-                             Style="{StaticResource ToggleButtonStyle}"
-                             Click="OptMode_Click"/>
-            </Grid>
-        </Border>
+        <Grid Margin="10">
+                <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-        <!-- Tab chuyển đổi -->
-        <TabControl Grid.Row="1"
-                x:Name="tabMain">
-            <!-- TAB 1: THEO PHẦN TRĂM -->
-            <TabItem Header="Theo %">
-                <StackPanel VerticalAlignment="Center"
-                        Margin="10">
-                    <TextBlock Text="Nhập % giảm:"
-                            Foreground="#666"
-                            Margin="0,0,0,5"/>
-                    <TextBox x:Name="txtPercent"
-                            Height="40"
-                            FontSize="20"
-                            FontWeight="Bold"
-                             HorizontalContentAlignment="Center"
-                            Text="0"
-                             PreviewTextInput="NumberValidationTextBox"
-                            GotFocus="Txt_GotFocus"/>
-                    <TextBlock Text="(Nhập số dương để giảm, số âm để tăng giá)"
-                            FontSize="11"
-                            Foreground="#999"
+                <!-- Close (Cancel) button -->
+                <Button x:Name="btnClose"
+                        Content="✕"
+                        Style="{StaticResource CloseIconButton}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,0,0,0"
+                        Panel.ZIndex="10"
+                        Click="BtnCancel_Click"
+                        IsCancel="True"/>
+
+                <!-- Bill preview (only shown in bill-discount mode) -->
+                <Border x:Name="pnlBillPreview"
+                        Grid.Row="0"
+                        BorderBrush="#EEE"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="10"
+                        Margin="0,0,0,10">
+                        <Grid>
+                                <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Center">
+                                        <TextBlock Text="Tổng tiền: "
+                                                   Foreground="#666"/>
+                                        <TextBlock x:Name="txtBillTotal"
+                                                   Text="0"
+                                                   FontWeight="Bold"
+                                                   Foreground="#111"/>
+                                        <TextBlock Text=" đ"
+                                                   Foreground="#666"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Center">
+                                        <TextBlock Text="Giảm: "
+                                                   Foreground="#666"/>
+                                        <TextBlock x:Name="txtBillDiscount"
+                                                   Text="0"
+                                                   FontWeight="Bold"
+                                                   Foreground="#DC3545"/>
+                                        <TextBlock Text=" đ"
+                                                   Foreground="#666"/>
+                                </StackPanel>
+                        </Grid>
+                </Border>
+
+                <!-- Tab chuyển đổi -->
+                <TabControl Grid.Row="1"
+                            x:Name="tabMain"
+                            SelectionChanged="TabMain_SelectionChanged">
+                        <!-- TAB 1: THEO PHẦN TRĂM -->
+                        <TabItem Header="Theo %">
+                                <StackPanel VerticalAlignment="Center"
+                                            Margin="10">
+                                        <TextBlock Text="Nhập % giảm:"
+                                                   Foreground="#666"
+                                                   Margin="0,0,0,5"/>
+                                        <TextBox x:Name="txtPercent"
+                                                 Height="40"
+                                                 FontSize="20"
+                                                 FontWeight="Bold"
+                                                 HorizontalContentAlignment="Center"
+                                                 Text="0"
+                                                 PreviewTextInput="NumberValidationTextBox"
+                                                 GotFocus="Txt_GotFocus"
+                                                 TextChanged="TxtPercent_TextChanged"/>
+                                        <TextBlock Text="(Nhập % muốn giảm 0-100)"
+                                                   FontSize="11"
+                                                   Foreground="#999"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,5,0,0"/>
+
+                                        <Border x:Name="pnlAfterPercent"
+                                                BorderBrush="#E5E7EB"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Padding="8"
+                                                Margin="0,10,0,0">
+                                                <StackPanel Orientation="Horizontal"
+                                                            HorizontalAlignment="Center">
+                                                        <TextBlock Text="Sau giảm: "
+                                                                   Foreground="#666"/>
+                                                        <TextBlock x:Name="txtAfterPercent"
+                                                                   Text="0"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="#007BFF"/>
+                                                        <TextBlock Text=" đ"
+                                                                   Foreground="#666"/>
+                                                </StackPanel>
+                                        </Border>
+                                </StackPanel>
+                        </TabItem>
+
+                        <!-- TAB 2: THEO SỐ TIỀN / GIÁ MỚI -->
+                        <TabItem Header="Theo Giá Tiền">
+                                <StackPanel VerticalAlignment="Center"
+                                            Margin="10">
+                                        <TextBlock x:Name="lblCashTitle"
+                                                   Text="Nhập số tiền:"
+                                                   Foreground="#666"
+                                                   Margin="0,0,0,5"/>
+                                        <TextBox x:Name="txtAmount"
+                                                 Height="40"
+                                                 FontSize="20"
+                                                 FontWeight="Bold"
+                                                 HorizontalContentAlignment="Center"
+                                                 Text="0"
+                                                 PreviewTextInput="NumberValidationTextBox"
+                                                 GotFocus="Txt_GotFocus"
+                                                 TextChanged="TxtAmount_TextChanged"/>
+                                        <TextBlock Text="(Nhập số tiền giảm, tối đa = tổng tiền)"
+                                                   FontSize="11"
+                                                   Foreground="#999"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,5,0,0"/>
+
+                                        <Border x:Name="pnlAfterAmount"
+                                                BorderBrush="#E5E7EB"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Padding="8"
+                                                Margin="0,10,0,0">
+                                                <StackPanel Orientation="Horizontal"
+                                                            HorizontalAlignment="Center">
+                                                        <TextBlock Text="Sau giảm: "
+                                                                   Foreground="#666"/>
+                                                        <TextBlock x:Name="txtAfterAmount"
+                                                                   Text="0"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="#007BFF"/>
+                                                        <TextBlock Text=" đ"
+                                                                   Foreground="#666"/>
+                                                </StackPanel>
+                                        </Border>
+                                </StackPanel>
+                        </TabItem>
+                </TabControl>
+
+                <!-- Nút bấm -->
+                <StackPanel Grid.Row="2"
+                            Orientation="Horizontal"
                             HorizontalAlignment="Center"
-                            Margin="0,5,0,0"/>
+                            Margin="0,15,0,5">
+                        <Button x:Name="btnUndo"
+                                Content="KHÔI PHỤC"
+                                Width="90"
+                                Height="40"
+                                Margin="0,0,10,0"
+                                Click="BtnUndo_Click"
+                                FontWeight="Bold"
+                                Background="#FD7E14"
+                                Foreground="White"
+                                BorderBrush="#FD7E14"/>
+                        <Button Content="XÁC NHẬN"
+                                Width="120"
+                                Height="40"
+                                Background="#007BFF"
+                                Foreground="White"
+                                FontWeight="Bold"
+                                Click="BtnOK_Click"
+                                IsDefault="True"/>
                 </StackPanel>
-            </TabItem>
-
-            <!-- TAB 2: THEO SỐ TIỀN / GIÁ MỚI -->
-            <TabItem Header="Theo Giá Tiền">
-                <StackPanel VerticalAlignment="Center"
-                        Margin="10">
-                    <TextBlock x:Name="lblCashTitle"
-                            Text="Nhập số tiền:"
-                            Foreground="#666"
-                            Margin="0,0,0,5"/>
-                    <TextBox x:Name="txtAmount"
-                            Height="40"
-                            FontSize="20"
-                            FontWeight="Bold"
-                             HorizontalContentAlignment="Center"
-                            Text="0"
-                             PreviewTextInput="NumberValidationTextBox"
-                            GotFocus="Txt_GotFocus"
-                            TextChanged="TxtAmount_TextChanged"/>
-                    <TextBlock Text="(Nhập thẳng giá bán mới hoặc số tiền giảm)"
-                            FontSize="11"
-                            Foreground="#999"
-                            HorizontalAlignment="Center"
-                            Margin="0,5,0,0"/>
-                </StackPanel>
-            </TabItem>
-        </TabControl>
-
-        <!-- Nút bấm -->
-        <StackPanel Grid.Row="2"
-                Orientation="Horizontal"
-                HorizontalAlignment="Center"
-                Margin="0,15,0,5">
-            <Button Content="Hủy bỏ"
-                    Width="100"
-                    Height="40"
-                    Margin="0,0,10,0"
-                    Click="BtnCancel_Click"
-                    Background="#EEE"/>
-            <Button Content="XÁC NHẬN"
-                    Width="120"
-                    Height="40"
-                    Background="#007BFF"
-                    Foreground="White"
-                    FontWeight="Bold"
-                    Click="BtnOK_Click"
-                    IsDefault="True"/>
-        </StackPanel>
-    </Grid>
+        </Grid>
 </Window>

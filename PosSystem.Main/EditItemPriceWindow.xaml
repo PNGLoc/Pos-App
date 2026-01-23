@@ -11,6 +11,56 @@
         BorderBrush="#007BFF"
         BorderThickness="1">
 
+    <Window.Resources>
+        <Style x:Key="CloseIconButton"
+               TargetType="Button">
+            <Setter Property="Width"
+                    Value="28"/>
+            <Setter Property="Height"
+                    Value="28"/>
+            <Setter Property="FontSize"
+                    Value="14"/>
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+            <Setter Property="Foreground"
+                    Value="#374151"/>
+            <Setter Property="Background"
+                    Value="Transparent"/>
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+            <Setter Property="Cursor"
+                    Value="Hand"/>
+            <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                <Setter TargetName="Bd"
+                                        Property="Background"
+                                        Value="#F3F4F6"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed"
+                                     Value="True">
+                                <Setter TargetName="Bd"
+                                        Property="Background"
+                                        Value="#E5E7EB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -27,24 +77,35 @@
                    Foreground="#1F2937"
                    Margin="0,0,0,10"/>
 
+        <!-- Close (Cancel) button -->
+        <Button x:Name="btnClose"
+                Content="✕"
+                Style="{StaticResource CloseIconButton}"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,0,0,0"
+                Panel.ZIndex="10"
+                Click="BtnCancel_Click"
+                IsCancel="True"/>
+
         <StackPanel Grid.Row="1"
-                Orientation="Horizontal"
-                Margin="0,0,0,6">
+                    Orientation="Horizontal"
+                    Margin="0,0,0,6">
             <TextBlock Text="Giá gốc: "
-                    Foreground="#666"/>
+                       Foreground="#666"/>
             <TextBlock x:Name="txtOriginalPrice"
                        FontWeight="Bold"
                        Foreground="#111"
                        Text="0"/>
             <TextBlock Text=" đ"
-                    Foreground="#666"/>
+                       Foreground="#666"/>
         </StackPanel>
 
         <StackPanel Grid.Row="2"
-                Margin="0,0,0,6">
+                    Margin="0,0,0,6">
             <TextBlock Text="Nhập giá mới (đ):"
-                    Foreground="#666"
-                    Margin="0,0,0,4"/>
+                       Foreground="#666"
+                       Margin="0,0,0,4"/>
             <TextBox x:Name="txtNewPrice"
                      Height="40"
                      FontSize="20"
@@ -68,18 +129,14 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Margin="0,12,0,0">
-            <Button Content="Hoàn tác"
+            <Button Content="KHÔI PHỤC"
                     Width="90"
                     Height="38"
                     Margin="0,0,10,0"
                     Click="BtnUndo_Click"
-                    Background="#F3F4F6"/>
-            <Button Content="Hủy"
-                    Width="80"
-                    Height="38"
-                    Margin="0,0,10,0"
-                    Click="BtnCancel_Click"
-                    Background="#EEE"/>
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Background="#FD7E14"/>
             <Button Content="XÁC NHẬN"
                     Width="110"
                     Height="38"

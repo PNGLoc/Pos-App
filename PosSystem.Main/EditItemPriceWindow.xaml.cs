@@ -33,7 +33,15 @@ namespace PosSystem.Main
 
         private void BtnUndo_Click(object sender, RoutedEventArgs e)
         {
-            txtNewPrice.Text = FormatMoney(_originalPrice);
+            // Undo => apply original price immediately
+            if (_originalPrice <= 0)
+            {
+                DialogResult = false;
+                return;
+            }
+
+            NewPrice = _originalPrice;
+            DialogResult = true;
         }
 
         private void BtnCancel_Click(object sender, RoutedEventArgs e)
