@@ -810,40 +810,8 @@ async function doPaymentMobile(method = 'Cash') {
         return;
     }
 
-    if (!confirm(`Xác nhận thanh toán (${method === 'Cash' ? 'Tiền mặt' : 'Chuyển khoản'}) và in hóa đơn?`)) return;
-
-    try {
-        const payload = {
-            accID: currentUser.accID,
-            orderID: appState.currentOrderId,
-            paymentMethod: method, // [MODIFIED] Use argument
-            discountPercent: 0,
-            discountAmount: 0
-        };
-        console.log("Sending payment:", payload);
-
-        const res = await fetch(`${API_URL}/Order/checkout-mobile`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-            showToast("Thanh toán thành công!");
-            // Reset lại trạng thái
-            appState.currentOrderId = 0;
-            appState.orderDetails = [];
-            renderConfirmedTab();
-            // Quay về trang chủ
-            showView('view-tables');
-        } else {
-            const errorText = await res.text();
-            showToast("Lỗi: " + errorText, "danger");
-        }
-    } catch (e) {
-        console.error(e);
-        showToast("Lỗi kết nối", "danger");
-    }
+    // Thay confirm() của trình duyệt bằng popup confirmModal
+    openConfirmModal('payment', { method });
 }
 
 // [NEW] Open Modal
@@ -927,6 +895,7 @@ function updateUIByPermission() {
 let currentActionType = '';
 let cancelState = { detailId: 0, currentQty: 1, maxQty: 0 };
 let moveTarget = null;
+let pendingPaymentMethod = 'Cash';
 
 // --- 1. XỬ LÝ MENU TRƯỢT ---
 function toggleActionMenu() {
@@ -966,8 +935,9 @@ function updateMenuPermissions() {
 
 // --- 2. XỬ LÝ POPUP XÁC NHẬN (IN & THANH TOÁN) ---
 function openConfirmModal(type, payload = null) {
-    // Chỉ đóng action sheet cho các action được mở từ menu action sheet
-    if (type === 'request' || type === 'payment' || type === 'provisional') {
+    // Đóng action sheet nếu nó đang mở (tránh trường hợp gọi từ nơi khác mà bị bật ngược lại)
+    const sheet = document.getElementById('actionSheet');
+    if (sheet && sheet.classList.contains('show')) {
         toggleActionMenu();
     }
     currentActionType = type;
@@ -984,11 +954,13 @@ function openConfirmModal(type, payload = null) {
         icon.className = "fas fa-print fa-3x text-warning";
         btn.onclick = executeRequestBill;
     } else if (type === 'payment') {
+        pendingPaymentMethod = (payload && payload.method) ? payload.method : pendingPaymentMethod;
+        const methodText = pendingPaymentMethod === 'Cash' ? 'Tiền mặt' : 'Chuyển khoản / QR';
         title.innerText = "Thanh toán";
-        msg.innerText = "Xác nhận thanh toán đơn hàng này ngay?";
+        msg.innerText = `Xác nhận thanh toán (${methodText}) và in hóa đơn?`;
         btn.className = "btn btn-success";
         icon.className = "fas fa-money-bill-wave fa-3x text-success";
-        btn.onclick = executePayment;
+        btn.onclick = () => executePayment(pendingPaymentMethod);
     }
     else if (type === 'move') {
         title.innerText = "Xác nhận Chuyển bàn";
@@ -1027,13 +999,20 @@ async function executeRequestBill() {
     } catch (e) { showToast("Lỗi kết nối", "danger"); }
 }
 
-async function executePayment() {
+async function executePayment(method = 'Cash') {
     closeModal('confirmModal');
-    // Payload thanh toán
+    // Kiểm tra OrderID
+    if (!appState.currentOrderId || appState.currentOrderId === 0) {
+        showToast("Bàn này đang trống hoặc chưa có đơn hàng!", "warning");
+        return;
+    }
+
     const payload = {
         accID: currentUser.accID,
         orderID: appState.currentOrderId,
-        paymentMethod: "Cash", discountPercent: 0, discountAmount: 0
+        paymentMethod: method,
+        discountPercent: 0,
+        discountAmount: 0
     };
     try {
         const res = await fetch(`${API_URL}/Order/checkout-mobile`, {
@@ -1041,6 +1020,11 @@ async function executePayment() {
         });
         if (res.ok) {
             showToast("Thanh toán thành công!");
+            // Reset lại trạng thái
+            appState.currentOrderId = 0;
+            appState.orderDetails = [];
+            renderConfirmedTab();
+            updateTabBadges();
             showView('view-tables');
         } else {
             showToast(await res.text(), "danger");
