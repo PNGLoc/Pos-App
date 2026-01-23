@@ -13,14 +13,15 @@
                     </Grid.RowDefinitions>
 
                     <!-- HEADER TOOLBAR -->
-                    <DockPanel Grid.Row="0" Margin="0,0,0,15">
+                    <DockPanel Grid.Row="0"
+                            Margin="0,0,0,15">
                         <TextBlock Text="DANH SÁCH MÁY IN"
                                    FontSize="20"
                                    FontWeight="Bold"
                                    VerticalAlignment="Center"
                                    Foreground="#333"
                                    DockPanel.Dock="Left"/>
-                        
+
                         <Button Content="➕ THÊM MÁY IN"
                                 Click="BtnAdd_Click"
                                 DockPanel.Dock="Right"
@@ -31,11 +32,12 @@
                                 FontSize="13"
                                 BorderThickness="0"
                                 HorizontalAlignment="Right"
-        Width="Auto"
+                                Width="Auto"
                                 Cursor="Hand">
                             <Button.Resources>
                                 <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="4"/>
+                                    <Setter Property="CornerRadius"
+                                            Value="4"/>
                                 </Style>
                             </Button.Resources>
                         </Button>
@@ -55,63 +57,104 @@
                               HeadersVisibility="Column">
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="#F8F9FA"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
-                                <Setter Property="Padding" Value="10,12"/>
-                                <Setter Property="BorderBrush" Value="#DEE2E6"/>
-                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                <Setter Property="Background"
+                                        Value="#F8F9FA"/>
+                                <Setter Property="FontWeight"
+                                        Value="Bold"/>
+                                <Setter Property="Padding"
+                                        Value="10,12"/>
+                                <Setter Property="BorderBrush"
+                                        Value="#DEE2E6"/>
+                                <Setter Property="BorderThickness"
+                                        Value="0,0,0,1"/>
                             </Style>
                         </DataGrid.ColumnHeaderStyle>
                         <DataGrid.CellStyle>
                             <Style TargetType="DataGridCell">
-                                <Setter Property="Padding" Value="10,0"/>
-                                <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding"
+                                        Value="10,0"/>
+                                <Setter Property="VerticalContentAlignment"
+                                        Value="Center"/>
+                                <Setter Property="BorderThickness"
+                                        Value="0"/>
                             </Style>
                         </DataGrid.CellStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="ID" Binding="{Binding PrinterID}" Width="60" FontWeight="SemiBold"/>
-                            <DataGridTextColumn Header="Tên Máy" Binding="{Binding PrinterName}" Width="*" FontWeight="SemiBold"/>
-                            <DataGridTextColumn Header="Loại" Binding="{Binding ConnectionType}" Width="100"/>
-                            <DataGridTextColumn Header="Kết nối" Binding="{Binding ConnectionString}" Width="200"/>
-                            <DataGridCheckBoxColumn Header="In Bill?" Binding="{Binding IsBillPrinter}" Width="80" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Bíp" Binding="{Binding BeepCount}" Width="60"/>
-                            
+                            <DataGridTextColumn Header="ID"
+                                    Binding="{Binding PrinterID}"
+                                    Width="60"
+                                    FontWeight="SemiBold"/>
+                            <DataGridTextColumn Header="Tên Máy"
+                                    Binding="{Binding PrinterName}"
+                                    Width="*"
+                                    FontWeight="SemiBold"/>
+                            <DataGridTextColumn Header="Loại"
+                                    Binding="{Binding ConnectionType}"
+                                    Width="100"/>
+                            <DataGridTextColumn Header="Kết nối"
+                                    Binding="{Binding ConnectionString}"
+                                    Width="200"/>
+                            <DataGridCheckBoxColumn Header="In Bill?"
+                                    Binding="{Binding IsBillPrinter}"
+                                    Width="80"
+                                    IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Bíp"
+                                    Binding="{Binding BeepCount}"
+                                    Width="60"/>
+
                             <!-- ACTION COLUMN -->
-                            <DataGridTemplateColumn Header="Hành động" Width="220">
+                            <DataGridTemplateColumn Header="Hành động"
+                                    Width="220">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
                                             <Button Content="⚡ Test"
                                                     Click="BtnTestRow_Click"
                                                     Tag="{Binding}"
-                                                    Width="60" Height="30" Margin="0,0,5,0"
-                                                    Background="#17A2B8" Foreground="White" BorderThickness="0" Cursor="Hand">
+                                                    Width="60"
+                                                    Height="30"
+                                                    Margin="0,0,5,0"
+                                                    Background="#17A2B8"
+                                                    Foreground="White"
+                                                    BorderThickness="0"
+                                                    Cursor="Hand">
                                                 <Button.Resources>
                                                     <Style TargetType="Border">
-                                                        <Setter Property="CornerRadius" Value="3"/>
+                                                        <Setter Property="CornerRadius"
+                                                                Value="3"/>
                                                     </Style>
                                                 </Button.Resources>
                                             </Button>
                                             <Button Content="✏️ Sửa"
                                                     Click="BtnEditRow_Click"
                                                     Tag="{Binding}"
-                                                    Width="60" Height="30" Margin="0,0,5,0"
-                                                    Background="#FFC107" Foreground="#333" BorderThickness="0" Cursor="Hand">
+                                                    Width="60"
+                                                    Height="30"
+                                                    Margin="0,0,5,0"
+                                                    Background="#FFC107"
+                                                    Foreground="#333"
+                                                    BorderThickness="0"
+                                                    Cursor="Hand">
                                                 <Button.Resources>
                                                     <Style TargetType="Border">
-                                                        <Setter Property="CornerRadius" Value="3"/>
+                                                        <Setter Property="CornerRadius"
+                                                                Value="3"/>
                                                     </Style>
                                                 </Button.Resources>
                                             </Button>
                                             <Button Content="🗑️ Xóa"
                                                     Click="BtnDeleteRow_Click"
                                                     Tag="{Binding}"
-                                                    Width="60" Height="30"
-                                                    Background="#DC3545" Foreground="White" BorderThickness="0" Cursor="Hand">
+                                                    Width="60"
+                                                    Height="30"
+                                                    Background="#DC3545"
+                                                    Foreground="White"
+                                                    BorderThickness="0"
+                                                    Cursor="Hand">
                                                 <Button.Resources>
                                                     <Style TargetType="Border">
-                                                        <Setter Property="CornerRadius" Value="3"/>
+                                                        <Setter Property="CornerRadius"
+                                                                Value="3"/>
                                                     </Style>
                                                 </Button.Resources>
                                             </Button>
@@ -123,35 +166,85 @@
                     </DataGrid>
 
                     <!-- MODAL OVERLAY -->
-                    <Grid x:Name="modalOverlay" Grid.RowSpan="2" Visibility="Collapsed">
-                        <Border Background="#99000000" MouseDown="BtnCloseModal_Click"/>
-                        <Border Background="White" Width="450" VerticalAlignment="Center" HorizontalAlignment="Center" 
-                                CornerRadius="8" Padding="25">
+                    <Grid x:Name="modalOverlay"
+                            Grid.RowSpan="2"
+                            Visibility="Collapsed">
+                        <Border Background="#99000000"
+                                MouseDown="BtnCloseModal_Click"/>
+                        <Border Background="White"
+                                Width="450"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+                                CornerRadius="8"
+                                Padding="25">
                             <Border.Effect>
-                                <DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.3"/>
+                                <DropShadowEffect BlurRadius="30"
+                                        ShadowDepth="0"
+                                        Opacity="0.3"/>
                             </Border.Effect>
                             <StackPanel>
-                                <TextBlock x:Name="lblModalTitle" Text="THÊM MÁY IN MỚI" FontSize="18" FontWeight="Bold" 
-                                           HorizontalAlignment="Center" Margin="0,0,0,20" Foreground="#007BFF"/>
+                                <TextBlock x:Name="lblModalTitle"
+                                        Text="THÊM MÁY IN MỚI"
+                                        FontSize="18"
+                                        FontWeight="Bold"
+                                           HorizontalAlignment="Center"
+                                        Margin="0,0,0,20"
+                                        Foreground="#007BFF"/>
 
-                                <TextBlock Text="Tên máy in (Vd: Bếp 1):" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                                <TextBox x:Name="txtName" Height="35" Margin="0,0,0,15" Padding="5,0" VerticalContentAlignment="Center" BorderBrush="#CED4DA"/>
+                                <TextBlock Text="Tên máy in (Vd: Bếp 1):"
+                                        FontWeight="SemiBold"
+                                        Margin="0,0,0,5"/>
+                                <TextBox x:Name="txtName"
+                                        Height="35"
+                                        Margin="0,0,0,15"
+                                        Padding="5,0"
+                                        VerticalContentAlignment="Center"
+                                        BorderBrush="#CED4DA"/>
 
-                                <TextBlock Text="Loại kết nối:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                                <ComboBox x:Name="cboType" Height="35" Margin="0,0,0,15" Padding="5,5" SelectedIndex="0" BorderBrush="#CED4DA">
+                                <TextBlock Text="Loại kết nối:"
+                                        FontWeight="SemiBold"
+                                        Margin="0,0,0,5"/>
+                                <ComboBox x:Name="cboType"
+                                        Height="35"
+                                        Margin="0,0,0,15"
+                                        Padding="5,5"
+                                        SelectedIndex="0"
+                                        BorderBrush="#CED4DA">
                                     <ComboBoxItem Content="LAN (Mạng nội bộ)"/>
                                     <ComboBoxItem Content="USB (Driver Windows)"/>
                                 </ComboBox>
 
-                                <TextBlock Text="IP hoặc Tên Share (Vd: 192.168.1.100):" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                                <TextBox x:Name="txtString" Height="35" Margin="0,0,0,10" Padding="5,0" VerticalContentAlignment="Center" BorderBrush="#CED4DA"/>
-                                <TextBlock Text="* Với USB, nhập đúng tên máy in trong Control Panel." FontSize="11" Foreground="Gray" Margin="0,0,0,15"/>
+                                <TextBlock Text="IP hoặc Tên Share (Vd: 192.168.1.100):"
+                                        FontWeight="SemiBold"
+                                        Margin="0,0,0,5"/>
+                                <TextBox x:Name="txtString"
+                                        Height="35"
+                                        Margin="0,0,0,10"
+                                        Padding="5,0"
+                                        VerticalContentAlignment="Center"
+                                        BorderBrush="#CED4DA"/>
+                                <TextBlock Text="* Với USB, nhập đúng tên máy in trong Control Panel."
+                                        FontSize="11"
+                                        Foreground="Gray"
+                                        Margin="0,0,0,15"/>
 
-                                <CheckBox x:Name="chkIsBill" Content="Đây là máy in Hóa đơn (Thu ngân)" FontWeight="SemiBold" Margin="0,0,0,20"/>
+                                <CheckBox x:Name="chkIsBill"
+                                        Content="Đây là máy in Hóa đơn (Thu ngân)"
+                                        FontWeight="SemiBold"
+                                        Margin="0,0,0,20"/>
 
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,20" VerticalAlignment="Center">
-                                    <TextBlock Text="Bíp khi in:" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                    <ComboBox x:Name="cboBeepCount" Width="140" Height="32" Margin="10,0,0,0" SelectedIndex="0" BorderBrush="#CED4DA">
+                                <StackPanel Orientation="Horizontal"
+                                        Margin="0,0,0,20"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="Bíp khi in:"
+                                            FontWeight="SemiBold"
+                                            VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="cboBeepCount"
+                                            Width="140"
+                                            Height="32"
+                                            Margin="10,0,0,0"
+                                            SelectedIndex="0"
+                                            BorderBrush="#CED4DA">
                                         <ComboBoxItem Content="0 (Không kêu)"/>
                                         <ComboBoxItem Content="1 lần"/>
                                         <ComboBoxItem Content="2 lần"/>
@@ -159,20 +252,38 @@
                                     </ComboBox>
                                 </StackPanel>
 
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button Content="Hủy bỏ" Click="BtnCloseModal_Click" Width="100" Height="35" Margin="0,0,10,0" 
-                                            Background="#F1F3F5" Foreground="Black" BorderThickness="0" FontWeight="SemiBold" Cursor="Hand">
+                                <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right">
+                                    <Button Content="Hủy bỏ"
+                                            Click="BtnCloseModal_Click"
+                                            Width="100"
+                                            Height="35"
+                                            Margin="0,0,10,0"
+                                            Background="#F1F3F5"
+                                            Foreground="Black"
+                                            BorderThickness="0"
+                                            FontWeight="SemiBold"
+                                            Cursor="Hand">
                                         <Button.Resources>
                                             <Style TargetType="Border">
-                                                <Setter Property="CornerRadius" Value="4"/>
+                                                <Setter Property="CornerRadius"
+                                                        Value="4"/>
                                             </Style>
                                         </Button.Resources>
                                     </Button>
-                                    <Button Content="💾 LƯU LẠI" Click="BtnSaveModal_Click" Width="120" Height="35" 
-                                            Background="#007BFF" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
+                                    <Button Content="💾 LƯU LẠI"
+                                            Click="BtnSaveModal_Click"
+                                            Width="120"
+                                            Height="35"
+                                            Background="#007BFF"
+                                            Foreground="White"
+                                            FontWeight="Bold"
+                                            BorderThickness="0"
+                                            Cursor="Hand">
                                         <Button.Resources>
                                             <Style TargetType="Border">
-                                                <Setter Property="CornerRadius" Value="4"/>
+                                                <Setter Property="CornerRadius"
+                                                        Value="4"/>
                                             </Style>
                                         </Button.Resources>
                                     </Button>
@@ -185,12 +296,14 @@
 
             <!-- TAB 2: LAYOUT HÓA ĐƠN -->
             <TabItem Header="📄 Layout Hóa đơn">
-                <pages:LayoutDesignerPage x:Name="billLayoutDesigner" TemplateType="Bill"/>
+                <pages:LayoutDesignerPage x:Name="billLayoutDesigner"
+                        TemplateType="Bill"/>
             </TabItem>
 
             <!-- TAB 3: LAYOUT BẾP -->
             <TabItem Header="🍽 Layout Bếp">
-                <pages:LayoutDesignerPage x:Name="kitchenLayoutDesigner" TemplateType="Kitchen"/>
+                <pages:LayoutDesignerPage x:Name="kitchenLayoutDesigner"
+                        TemplateType="Kitchen"/>
             </TabItem>
         </TabControl>
     </Grid>
