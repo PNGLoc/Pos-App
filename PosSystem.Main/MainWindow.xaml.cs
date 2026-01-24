@@ -940,7 +940,8 @@ namespace PosSystem.Main
                             d.DishID,
                             // [FIX] Group Sent and Modified together. New items stay separate.
                             GroupStatus = (d.ItemStatus == "New") ? "New" : "SentGroup",
-                            Note = (d.Note ?? "").Trim()
+                            Note = (d.Note ?? "").Trim(),
+                            d.DiscountRate
                         })
                         .Select(g => new OrderDetailViewModel
                         {
@@ -1226,7 +1227,7 @@ namespace PosSystem.Main
 
                         // Create View Models
                         var vms = order.OrderDetails
-                            .GroupBy(d => new { d.DishID, GroupStatus = (d.ItemStatus == "New" ? "New" : "SentGroup"), Note = (d.Note ?? "").Trim() })
+                            .GroupBy(d => new { d.DishID, GroupStatus = (d.ItemStatus == "New" ? "New" : "SentGroup"), Note = (d.Note ?? "").Trim(), d.DiscountRate })
                             .Select(g => new OrderDetailViewModel
                             {
                                 OrderDetailID = g.First().OrderDetailID,
@@ -1766,14 +1767,16 @@ namespace PosSystem.Main
                     {
                         decimal newPrice = dialog.NewPrice;
 
-                        // Apply discount to the whole visible group (same Dish + Note + GroupStatus)
+                        // Apply discount to the whole visible group (same Dish + Note + GroupStatus + DiscountRate)
                         var groupNote = (detail.Note ?? "").Trim();
                         bool isNewGroup = detail.ItemStatus == "New";
+                        var currentRate = detail.DiscountRate;
 
                         var groupDetails = db.OrderDetails
                             .Where(d => d.OrderID == detail.OrderID
                                         && d.DishID == detail.DishID
                                         && ((d.Note ?? "").Trim() == groupNote)
+                                        && d.DiscountRate == currentRate
                                         && (isNewGroup ? d.ItemStatus == "New" : d.ItemStatus != "New"))
                             .ToList();
 
