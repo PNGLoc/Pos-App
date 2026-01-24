@@ -10,8 +10,8 @@
 #define IconFile "..\\PosSystem.Main\\Assets\\app.ico"
 
 ; You should run `dotnet publish` before compiling this installer.
-; Default expected publish folder (you can change this path):
-#define PublishDir "..\\PosSystem.Main\\bin\\Release\\net10.0-windows\\publish"
+; Default expected publish folder (self-contained x64 publish):
+#define PublishDir "..\\PosSystem.Main\\bin\\Release\\net10.0-windows\\win-x64\\publish"
 
 [Setup]
 AppId={{7B3D76D0-6A2D-4C80-AF8A-7B0B8B2F4F8A}

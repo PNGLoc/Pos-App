@@ -1183,7 +1183,14 @@
                                   HeadersVisibility="Column"
                                   Background="White"
                                   MinRowHeight="55"
-                                  FontSize="14">
+                                  FontSize="14"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                  ScrollViewer.CanContentScroll="True"
+                                  ScrollViewer.IsDeferredScrollingEnabled="False"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  VirtualizingPanel.ScrollUnit="Pixel">
                             <!-- Remove selection highlight (row/cell blue) to keep RowColor readable when clicking rows or focusing note textbox -->
                             <DataGrid.Resources>
                                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"
