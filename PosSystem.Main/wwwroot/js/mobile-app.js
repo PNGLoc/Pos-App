@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!userStr) { window.location.href = 'index.html'; return; }
     currentUser = JSON.parse(userStr);
 
+    updateDetailTabsOffset();
+    window.addEventListener('resize', updateDetailTabsOffset);
+
     await loadTables();
     await loadMenuData();
     setTimeout(() => initSignalR(), 500);
@@ -30,6 +33,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('menuUserAvatar').innerText = firstLetter;
     }
 });
+
+function updateDetailTabsOffset() {
+    const header = document.getElementById('detailHeader');
+    if (!header) return;
+    const h = Math.ceil(header.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--detail-header-height', `${h}px`);
+}
 
 // --- SIDEBAR TOGGLE ---
 function toggleSidebar() {
@@ -243,7 +253,13 @@ function removeAccents(str) {
 function getAcronym(str) { return removeAccents(str).toLowerCase().split(/\s+/).map(w => w[0]).join(''); }
 
 // --- NAV & UI ---
-function showView(viewId) { document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active')); document.getElementById(viewId).classList.add('active'); }
+function showView(viewId) {
+    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+    if (viewId === 'view-detail') {
+        requestAnimationFrame(() => requestAnimationFrame(updateDetailTabsOffset));
+    }
+}
 function showToast(msg, type = 'success') {
     const toastEl = document.getElementById('liveToast');
     if (toastEl) {

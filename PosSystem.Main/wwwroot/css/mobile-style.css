@@ -116,6 +116,13 @@ body {
     border-bottom: 3px solid var(--primary-color);
 }
 
+.table-tabs-sticky {
+    position: sticky;
+    top: var(--detail-header-height, 56px);
+    z-index: 900;
+    background: #fff;
+}
+
 .action-select-food {
     color: var(--primary-color);
     font-weight: bold;
