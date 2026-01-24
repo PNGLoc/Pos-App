@@ -459,7 +459,8 @@
                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  ScrollViewer.CanContentScroll="True"
-                                 ScrollViewer.IsDeferredScrollingEnabled="True">
+                                 ScrollViewer.IsDeferredScrollingEnabled="False"
+                                 VirtualizingPanel.ScrollUnit="Pixel">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <helpers:VirtualizingWrapPanel ItemWidth="200"
@@ -751,7 +752,8 @@
                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  ScrollViewer.CanContentScroll="True"
-                                 ScrollViewer.IsDeferredScrollingEnabled="True">
+                                 ScrollViewer.IsDeferredScrollingEnabled="False"
+                                 VirtualizingPanel.ScrollUnit="Pixel">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <helpers:VirtualizingWrapPanel ItemWidth="190"
