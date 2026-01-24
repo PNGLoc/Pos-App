@@ -591,11 +591,15 @@ function renderConfirmedTab() {
     const items = appState.orderDetails.filter(d => d.itemStatus !== 'New');
     if (items.length === 0) { container.innerHTML = `<div class="text-center text-muted mt-5">Chưa có món nào được gọi</div>`; return; }
 
-    // [FIXED] Restore Grouping Logic (Smart Cancel)
+    // [FIXED] Group by Dish + Note + Status + DiscountRate (Smart Cancel)
     const grouped = [];
     items.forEach(item => {
-        const key = `${item.dishID}_${(item.note || "").trim()}_${item.itemStatus}`;
-        const exist = grouped.find(g => `${g.dishID}_${(g.note || "").trim()}_${g.itemStatus}` === key);
+        const rateKey = Number(item.discountRate || 0).toFixed(4);
+        const key = `${item.dishID}_${(item.note || "").trim()}_${item.itemStatus}_${rateKey}`;
+        const exist = grouped.find(g => {
+            const gRate = Number(g.discountRate || 0).toFixed(4);
+            return `${g.dishID}_${(g.note || "").trim()}_${g.itemStatus}_${gRate}` === key;
+        });
         if (exist) {
             exist.quantity += item.quantity;
             exist.totalAmount += item.totalAmount;
@@ -621,7 +625,7 @@ function renderConfirmedTab() {
             // Thêm nút Hủy (X) - Truyền key định danh nhóm
             if (currentUser && currentUser.canCancelItem) {
                 // Encode key để truyền vào hàm safely
-                const groupKey = `${d.dishID}|${(d.note || "").trim()}|${d.itemStatus}`;
+                const groupKey = `${d.dishID}|${(d.note || "").trim()}|${d.itemStatus}|${Number(d.discountRate || 0).toFixed(4)}`;
                 cancelBtn = `<button class="btn btn-sm btn-outline-danger ms-1" style="padding: 0px 8px;" onclick="openCancelModalGroup('${groupKey}', ${d.quantity}, '${d.dishName}')"><i class="fas fa-times"></i></button>`;
             }
         }
@@ -1142,17 +1146,19 @@ function openCancelModalGroup(groupKey, maxQty, dishName) {
     if (!currentUser.canCancelItem) { showToast("Không có quyền hủy!", "warning"); return; }
 
     // Parse ngược lại key để tìm items
-    // Key format: dishID|note|status
+    // Key format: dishID|note|status|discountRate
     const parts = groupKey.split('|');
     const dishID = parseInt(parts[0]);
     const note = parts[1];
     const status = parts[2];
+    const rate = parts.length > 3 ? parseFloat(parts[3]) : 0;
 
     // Tìm tất cả items match với group này
     const matchingItems = appState.orderDetails.filter(d =>
         d.dishID === dishID &&
         (d.note || "").trim() === note &&
-        d.itemStatus === status
+        d.itemStatus === status &&
+        Math.abs((d.discountRate || 0) - rate) < 0.0001
     );
 
     // Lưu danh sách items cần hủy vào state

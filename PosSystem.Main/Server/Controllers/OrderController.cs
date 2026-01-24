@@ -404,6 +404,7 @@ namespace PosSystem.Main.Server.Controllers
                     d.Dish!.DishName, // ! để bỏ cảnh báo null
                     d.Quantity,
                     d.UnitPrice,
+                    d.DiscountRate,
                     d.TotalAmount,
                     d.Note,
                     d.ItemStatus // Quan trọng để JS phân loại tab

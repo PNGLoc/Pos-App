@@ -1798,6 +1798,8 @@ namespace PosSystem.Main
                         RecalculateOrder(db, detail.OrderID);
                         LoadOrderDetails(_selectedTableId);
 
+                        NotifyTableUpdated(_selectedTableId);
+
                         ShowToast("Đã cập nhật giá món!");
                     }
                 }
