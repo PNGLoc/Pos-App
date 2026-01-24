@@ -162,6 +162,7 @@ namespace PosSystem.Main
 
     public partial class MainWindow : Window
     {
+        private const string TableSearchPlaceholder = "Tìm bàn";
         private static SoundPlayer? _notificationPlayer;
         private static MemoryStream? _notificationStream;
         private static bool _notificationSoundEnabled = true;
@@ -173,6 +174,7 @@ namespace PosSystem.Main
         private HubConnection _connection = default!;
         private int _selectedTableId = 0;
         private int? _selectedCategoryId = null; // Filter by CategoryID
+        private string _tableSearchText = string.Empty;
 
         // Menu dish ordering: category OrderIndex lookup (used when selecting "TẤT CẢ")
         private Dictionary<int, int> _menuCategoryOrderIndexById = new Dictionary<int, int>();
@@ -572,6 +574,15 @@ namespace PosSystem.Main
                 return;
             }
 
+            ResetTableSearch();
+
+            if (_selectedCategoryId.HasValue)
+            {
+                _selectedCategoryId = null;
+                UpdateFilterButtonStyles();
+                LoadTables();
+            }
+
             // [FIX] Clear "Request Payment" flag in DB when selecting table
             if (selected.IsRequestingPayment)
             {
@@ -912,6 +923,7 @@ namespace PosSystem.Main
                 }).ToList();
 
                 lstTables.ItemsSource = viewModels;
+                ApplyTableSearchFilter();
             }
         }
 
@@ -1198,11 +1210,89 @@ namespace PosSystem.Main
                 }).ToList();
 
                 lstTables.ItemsSource = viewModels;
+                ApplyTableSearchFilter();
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Async LoadTables Error: " + ex.Message);
             }
+        }
+
+        private void TxtTableSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!IsLoaded || lstTables == null) return;
+            var text = txtTableSearch.Text?.Trim() ?? string.Empty;
+            _tableSearchText = text.Equals(TableSearchPlaceholder, StringComparison.OrdinalIgnoreCase) ? string.Empty : text;
+            ApplyTableSearchFilter();
+        }
+
+        private void TxtTableSearch_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (txtTableSearch.Text == TableSearchPlaceholder)
+            {
+                txtTableSearch.Text = string.Empty;
+                txtTableSearch.Foreground = new SolidColorBrush(Color.FromRgb(51, 51, 51));
+            }
+        }
+
+        private void TxtTableSearch_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtTableSearch.Text))
+            {
+                txtTableSearch.Text = TableSearchPlaceholder;
+                txtTableSearch.Foreground = new SolidColorBrush(Color.FromRgb(154, 160, 166));
+            }
+        }
+
+        private void TxtTableSearch_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                ResetTableSearch();
+                e.Handled = true;
+            }
+        }
+
+        private void ResetTableSearch()
+        {
+            _tableSearchText = string.Empty;
+            if (txtTableSearch != null)
+            {
+                txtTableSearch.Text = TableSearchPlaceholder;
+                txtTableSearch.Foreground = new SolidColorBrush(Color.FromRgb(154, 160, 166));
+            }
+            ApplyTableSearchFilter();
+        }
+
+        private void ApplyTableSearchFilter()
+        {
+            if (lstTables == null) return;
+            if (lstTables.ItemsSource == null) return;
+
+            var view = CollectionViewSource.GetDefaultView(lstTables.ItemsSource);
+            if (view == null) return;
+
+            if (string.IsNullOrWhiteSpace(_tableSearchText))
+            {
+                view.Filter = null;
+            }
+            else
+            {
+                var keyword = RemoveDiacritics(_tableSearchText).ToLowerInvariant();
+                view.Filter = obj =>
+                {
+                    if (obj is not TableViewModel vm) return false;
+                    var name = RemoveDiacritics(vm.TableName ?? string.Empty).ToLowerInvariant();
+                    var compact = new string(name.Where(c => !char.IsWhiteSpace(c)).ToArray());
+                    var words = name.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    var acronym = string.Concat(words.Select(w => w.Length > 0 ? w[0].ToString() : ""));
+                    return name.Contains(keyword)
+                           || compact.Contains(keyword)
+                           || acronym.Contains(keyword);
+                };
+            }
+
+            view.Refresh();
         }
 
         private async Task LoadOrderDetailsAsync(int tableId)

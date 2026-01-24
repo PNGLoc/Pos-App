@@ -316,6 +316,7 @@
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
@@ -327,8 +328,32 @@
                                            Foreground="#333"
                                            VerticalAlignment="Center"/>
 
+                                <Border Grid.Column="1"
+                                        Background="#F8F9FA"
+                                        BorderBrush="#D0D7DE"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Margin="12,0,0,0"
+                                        VerticalAlignment="Center">
+                                    <TextBox x:Name="txtTableSearch"
+                                             Width="220"
+                                             Height="34"
+                                             Padding="10,6"
+                                             BorderThickness="0"
+                                             Background="Transparent"
+                                             FontSize="14"
+                                             VerticalContentAlignment="Center"
+                                             Text="Tìm bàn"
+                                             Foreground="#9AA0A6"
+                                             TextChanged="TxtTableSearch_TextChanged"
+                                             GotFocus="TxtTableSearch_GotFocus"
+                                             LostFocus="TxtTableSearch_LostFocus"
+                                             KeyDown="TxtTableSearch_KeyDown"
+                                             ToolTip="Tìm bàn theo tên"/>
+                                </Border>
+
                                 <!-- Filter Bar -->
-                                <StackPanel Grid.Column="1"
+                                <StackPanel Grid.Column="2"
                                             Orientation="Horizontal"
                                             HorizontalAlignment="Right"
                                             VerticalAlignment="Center"
