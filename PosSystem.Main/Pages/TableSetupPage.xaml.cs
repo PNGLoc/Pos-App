@@ -82,23 +82,33 @@ namespace PosSystem.Main.Pages
         {
             if (sender is Button btn && btn.Tag is Table t)
             {
-                if (MessageBox.Show($"Bạn có chắc muốn xóa bàn '{t.TableName}'?", "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                if (MessageBox.Show($"Bạn có chắc muốn xóa bàn '{t.TableName}'?\nTất cả đơn hàng và lịch sử liên quan sẽ bị xóa.", "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
                     using (var db = new AppDbContext())
                     {
                         var item = db.Tables.Find(t.TableID);
                         if (item != null)
                         {
-                            // Prevent delete if table has any orders
-                            bool hasOrders = db.Orders.Any(o => o.TableID == item.TableID);
-                            if (hasOrders)
-                            {
-                                MessageBox.Show("Không thể xóa bàn vì đã có đơn hàng liên quan.\nVui lòng xóa/hoàn tất đơn hàng trước.", "Không thể xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
-                                return;
-                            }
-
                             try
                             {
+                                var orders = db.Orders
+                                    .Include(o => o.OrderDetails)
+                                    .Where(o => o.TableID == item.TableID)
+                                    .ToList();
+
+                                var orderDetails = orders.SelectMany(o => o.OrderDetails).ToList();
+                                if (orderDetails.Count > 0)
+                                    db.OrderDetails.RemoveRange(orderDetails);
+
+                                if (orders.Count > 0)
+                                    db.Orders.RemoveRange(orders);
+
+                                var cancelLogs = db.CancelledLogs
+                                    .Where(c => c.TableID == item.TableID)
+                                    .ToList();
+                                if (cancelLogs.Count > 0)
+                                    db.CancelledLogs.RemoveRange(cancelLogs);
+
                                 db.Tables.Remove(item);
                                 db.SaveChanges();
                                 LoadData();

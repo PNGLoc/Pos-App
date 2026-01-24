@@ -74,23 +74,45 @@ namespace PosSystem.Main.Pages
         {
             if (sender is Button btn && btn.Tag is TableCategory cat)
             {
-                if (MessageBox.Show($"Bạn có chắc muốn xóa loại bàn '{cat.CategoryName}'?\nLưu ý: Các bàn thuộc loại này có thể bị ảnh hưởng.", "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                if (MessageBox.Show($"Bạn có chắc muốn xóa loại bàn '{cat.CategoryName}'?\nTất cả bàn và đơn hàng liên quan sẽ bị xóa.", "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
                     using (var db = new AppDbContext())
                     {
                         var item = db.TableCategories.Find(cat.CategoryID);
                         if (item != null)
                         {
-                            // Prevent delete if category is still used by tables
-                            bool hasTables = db.Tables.Any(t => t.CategoryID == item.CategoryID);
-                            if (hasTables)
-                            {
-                                MessageBox.Show("Không thể xóa loại bàn vì còn bàn đang sử dụng loại này.", "Không thể xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
-                                return;
-                            }
-
                             try
                             {
+                                var tableIds = db.Tables
+                                    .Where(t => t.CategoryID == item.CategoryID)
+                                    .Select(t => t.TableID)
+                                    .ToList();
+
+                                if (tableIds.Count > 0)
+                                {
+                                    var orders = db.Orders
+                                        .Include(o => o.OrderDetails)
+                                        .Where(o => o.TableID.HasValue && tableIds.Contains(o.TableID.Value))
+                                        .ToList();
+
+                                    var orderDetails = orders.SelectMany(o => o.OrderDetails).ToList();
+                                    if (orderDetails.Count > 0)
+                                        db.OrderDetails.RemoveRange(orderDetails);
+
+                                    if (orders.Count > 0)
+                                        db.Orders.RemoveRange(orders);
+
+                                    var cancelLogs = db.CancelledLogs
+                                        .Where(c => c.TableID.HasValue && tableIds.Contains(c.TableID.Value))
+                                        .ToList();
+                                    if (cancelLogs.Count > 0)
+                                        db.CancelledLogs.RemoveRange(cancelLogs);
+
+                                    var tables = db.Tables.Where(t => tableIds.Contains(t.TableID)).ToList();
+                                    if (tables.Count > 0)
+                                        db.Tables.RemoveRange(tables);
+                                }
+
                                 db.TableCategories.Remove(item);
                                 db.SaveChanges();
                                 LoadData();
