@@ -139,7 +139,6 @@ namespace PosSystem.Main
 
         // Menu dish ordering: category OrderIndex lookup (used when selecting "TẤT CẢ")
         private Dictionary<int, int> _menuCategoryOrderIndexById = new Dictionary<int, int>();
-        private string _tableTypeFilter = "All"; // Legacy or backup
 
         // List categories for Filter Bar
         public List<TableCategory> FilterCategories { get; set; } = new List<TableCategory>();
@@ -580,7 +579,6 @@ namespace PosSystem.Main
             using (var db = new AppDbContext())
             {
                 int? catId = _selectedCategoryId;
-                string typeFilter = _tableTypeFilter;
 
                 var query = db.Tables
                     .AsNoTracking()
@@ -590,7 +588,6 @@ namespace PosSystem.Main
                         t.TableName,
                         t.TableStatus,
                         t.CategoryID,
-                        t.TableType,
                         CategoryDisplayOrder = t.Category != null ? t.Category.DisplayOrder : int.MaxValue,
                         PendingOrder = t.Orders
                             .Where(o => o.OrderStatus == "Pending")
@@ -601,23 +598,18 @@ namespace PosSystem.Main
 
                 if (catId.HasValue)
                 {
-                    query = query.Where(t => t.CategoryID == catId.Value)
-                                 .OrderBy(t => t.TableName);
-                }
-                else if (typeFilter != "All")
-                {
-                    query = query.Where(t => t.TableType == typeFilter)
-                                 .OrderBy(t => t.TableName);
-                }
-                else
-                {
-                    query = query
-                        .OrderBy(t => t.CategoryDisplayOrder)
-                        .ThenBy(t => t.CategoryID ?? int.MaxValue)
-                        .ThenBy(t => t.TableName);
+                    query = query.Where(t => t.CategoryID == catId.Value);
                 }
 
                 var rows = query.ToList();
+
+                rows = catId.HasValue
+                    ? rows.OrderBy(t => t.TableID).ToList()
+                    : rows.OrderBy(t => t.CategoryDisplayOrder)
+                          .ThenBy(t => t.CategoryID ?? int.MaxValue)
+                          .ThenBy(t => t.TableID)
+                          .ToList();
+
                 var viewModels = rows.Select(t =>
                 {
                     var pendingTime = (t.TableStatus == "Occupied") ? t.PendingOrder?.OrderTime : (DateTime?)null;
@@ -865,7 +857,6 @@ namespace PosSystem.Main
             {
                 // Use local copies of filters to avoid threading issues
                 int? catId = _selectedCategoryId;
-                string typeFilter = _tableTypeFilter;
 
                 using var db = new AppDbContext();
 
@@ -877,7 +868,6 @@ namespace PosSystem.Main
                         t.TableName,
                         t.TableStatus,
                         t.CategoryID,
-                        t.TableType,
                         CategoryDisplayOrder = t.Category != null ? t.Category.DisplayOrder : int.MaxValue,
                         PendingOrder = t.Orders
                             .Where(o => o.OrderStatus == "Pending")
@@ -888,23 +878,18 @@ namespace PosSystem.Main
 
                 if (catId.HasValue)
                 {
-                    query = query.Where(t => t.CategoryID == catId.Value)
-                                 .OrderBy(t => t.TableName);
-                }
-                else if (typeFilter != "All")
-                {
-                    query = query.Where(t => t.TableType == typeFilter)
-                                 .OrderBy(t => t.TableName);
-                }
-                else
-                {
-                    query = query
-                        .OrderBy(t => t.CategoryDisplayOrder)
-                        .ThenBy(t => t.CategoryID ?? int.MaxValue)
-                        .ThenBy(t => t.TableName);
+                    query = query.Where(t => t.CategoryID == catId.Value);
                 }
 
                 var rows = await query.ToListAsync();
+
+                rows = catId.HasValue
+                    ? rows.OrderBy(t => t.TableID).ToList()
+                    : rows.OrderBy(t => t.CategoryDisplayOrder)
+                          .ThenBy(t => t.CategoryID ?? int.MaxValue)
+                          .ThenBy(t => t.TableID)
+                          .ToList();
+
                 var viewModels = rows.Select(t =>
                 {
                     var pendingTime = (t.TableStatus == "Occupied") ? t.PendingOrder?.OrderTime : (DateTime?)null;

@@ -112,23 +112,6 @@ namespace PosSystem.Main.Pages
             }
 
             int? selectedCatId = (int?)cboType.SelectedValue;
-            string catName = "DineIn"; // Default fallback
-
-            // Get Category Name for backward compatibility
-            if (cboType.SelectedItem is TableCategory cat)
-            {
-                // Map category name to old TableType string if needed, or just use CategoryName
-                // For now, let's keep TableType simple or map it based on known categories
-                // Simple mapping strategy: Keep TableType = "DineIn" by default or derived from CategoryName if possible.
-                // Actually, let's just save the CategoryName as TableType for now to see it in debugging, 
-                // but rely on CategoryID for logic.
-                // Better approach: If Category Name matches "Mang Về" -> "TakeAway", etc.
-
-                if (cat.CategoryName.Contains("Mang")) catName = "TakeAway";
-                else if (cat.CategoryName.Contains("Ship")) catName = "Delivery";
-                else if (cat.CategoryName.Contains("Khách")) catName = "Pickup";
-                else catName = "DineIn";
-            }
 
             using (var db = new AppDbContext())
             {
@@ -146,7 +129,6 @@ namespace PosSystem.Main.Pages
                     {
                         TableName = txtName.Text,
                         CategoryID = selectedCatId,
-                        TableType = catName, // Legacy support
                         TableStatus = "Empty"
                     });
                 }
@@ -168,7 +150,6 @@ namespace PosSystem.Main.Pages
 
                         t.TableName = txtName.Text;
                         t.CategoryID = selectedCatId;
-                        t.TableType = catName; // Legacy support
                     }
                 }
                 db.SaveChanges();

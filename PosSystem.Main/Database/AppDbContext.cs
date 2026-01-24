@@ -35,8 +35,8 @@ namespace PosSystem.Main.Database
         {
             // Seed dữ liệu mẫu cho máy in
             modelBuilder.Entity<Printer>().HasData(
-                new Printer { PrinterID = 1, PrinterName = "Máy Thu Ngân", ConnectionType = "USB", ConnectionString = "XP-80C", IsBillPrinter = true, BeepOnPrint = false, BeepCount = 0 },
-                new Printer { PrinterID = 2, PrinterName = "Máy Pha Chế", ConnectionType = "USB", ConnectionString = "192.168.1.201", IsBillPrinter = false, BeepOnPrint = false, BeepCount = 0 },
+                new Printer { PrinterID = 1, PrinterName = "Máy Thu Ngân", ConnectionType = "USB", ConnectionString = "BILL", IsBillPrinter = true, BeepOnPrint = false, BeepCount = 0 },
+                new Printer { PrinterID = 2, PrinterName = "Máy Pha Chế", ConnectionType = "USB", ConnectionString = "PHACHE", IsBillPrinter = false, BeepOnPrint = false, BeepCount = 0 },
                 new Printer { PrinterID = 3, PrinterName = "Máy Bếp Mì", ConnectionType = "LAN", ConnectionString = "192.168.1.202", IsBillPrinter = false, BeepOnPrint = false, BeepCount = 0 },
                 new Printer { PrinterID = 4, PrinterName = "Máy Bếp Bánh", ConnectionType = "LAN", ConnectionString = "192.168.1.203", IsBillPrinter = false, BeepOnPrint = false, BeepCount = 0 }
             );
@@ -56,9 +56,83 @@ namespace PosSystem.Main.Database
    }
 );
             modelBuilder.Entity<Table>().HasData(
-                new Table { TableID = 1, TableName = "Bàn 1", TableType = "DineIn", CategoryID = 1 },
-                new Table { TableID = 2, TableName = "Bàn 2", TableType = "DineIn", CategoryID = 1 }
-            );
+     // Dine-in (CategoryID = 1)
+     new Table { TableID = 1, TableName = "Bàn 1", CategoryID = 1 },
+     new Table { TableID = 2, TableName = "Bàn 2", CategoryID = 1 },
+     new Table { TableID = 3, TableName = "Bàn 3", CategoryID = 1 },
+     new Table { TableID = 4, TableName = "Bàn 4", CategoryID = 1 },
+     new Table { TableID = 5, TableName = "Bàn 5", CategoryID = 1 },
+     new Table { TableID = 6, TableName = "Bàn 6", CategoryID = 1 },
+     new Table { TableID = 7, TableName = "Bàn 7", CategoryID = 1 },
+     new Table { TableID = 8, TableName = "Bàn 8", CategoryID = 1 },
+     new Table { TableID = 9, TableName = "Bàn 9", CategoryID = 1 },
+     new Table { TableID = 10, TableName = "Bàn 10", CategoryID = 1 },
+     new Table { TableID = 11, TableName = "Bàn 11", CategoryID = 1 },
+     new Table { TableID = 12, TableName = "Bàn 12", CategoryID = 1 },
+     new Table { TableID = 13, TableName = "Bàn 13", CategoryID = 1 },
+     new Table { TableID = 14, TableName = "Bàn 14", CategoryID = 1 },
+     new Table { TableID = 15, TableName = "Bàn 15", CategoryID = 1 },
+     new Table { TableID = 16, TableName = "Bàn 16", CategoryID = 1 },
+     new Table { TableID = 17, TableName = "Bàn 17", CategoryID = 1 },
+     new Table { TableID = 18, TableName = "Bàn 18", CategoryID = 1 },
+     new Table { TableID = 19, TableName = "Bàn 19", CategoryID = 1 },
+     new Table { TableID = 20, TableName = "Bàn 20", CategoryID = 1 },
+     new Table { TableID = 21, TableName = "Bàn 21", CategoryID = 1 },
+     new Table { TableID = 22, TableName = "Bàn 22", CategoryID = 1 },
+     new Table { TableID = 23, TableName = "Bàn 23", CategoryID = 1 },
+     new Table { TableID = 24, TableName = "Bàn 24", CategoryID = 1 },
+     new Table { TableID = 25, TableName = "Bàn 25", CategoryID = 1 },
+     new Table { TableID = 26, TableName = "Bàn 26", CategoryID = 1 },
+     new Table { TableID = 27, TableName = "Bàn 27", CategoryID = 1 },
+     new Table { TableID = 28, TableName = "Bàn 28", CategoryID = 1 },
+     new Table { TableID = 29, TableName = "Bàn 29", CategoryID = 1 },
+     new Table { TableID = 30, TableName = "Bàn 30", CategoryID = 1 },
+     new Table { TableID = 31, TableName = "Bàn 31", CategoryID = 1 },
+     new Table { TableID = 32, TableName = "Bàn 32", CategoryID = 1 },
+     new Table { TableID = 33, TableName = "Bàn 33", CategoryID = 1 },
+     new Table { TableID = 34, TableName = "Bàn 34", CategoryID = 1 },
+     new Table { TableID = 35, TableName = "Bàn 35", CategoryID = 1 },
+     // Mang về (CategoryID = 2)
+     new Table { TableID = 36, TableName = "Mang về 1", CategoryID = 2 },
+     new Table { TableID = 37, TableName = "Mang về 2", CategoryID = 2 },
+     new Table { TableID = 38, TableName = "Mang về 3", CategoryID = 2 },
+     new Table { TableID = 39, TableName = "Mang về 4", CategoryID = 2 },
+     new Table { TableID = 40, TableName = "Mang về 5", CategoryID = 2 },
+     new Table { TableID = 41, TableName = "Mang về 6", CategoryID = 2 },
+     new Table { TableID = 42, TableName = "Mang về Trụn 1", CategoryID = 2 },
+     new Table { TableID = 43, TableName = "Mang về Trụn 2", CategoryID = 2 },
+     new Table { TableID = 44, TableName = "Mang về Trụn 3", CategoryID = 2 },
+     new Table { TableID = 45, TableName = "Mang về Trụn 4", CategoryID = 2 },
+     new Table { TableID = 46, TableName = "Mang về Trụn 5", CategoryID = 2 },
+     new Table { TableID = 47, TableName = "Mang về Trụn 6", CategoryID = 2 },
+     // Khách Lấy (CategoryID = 3)
+     new Table { TableID = 48, TableName = "Khách Lấy 1", CategoryID = 3 },
+     new Table { TableID = 49, TableName = "Khách Lấy 2", CategoryID = 3 },
+     new Table { TableID = 50, TableName = "Khách Lấy 3", CategoryID = 3 },
+     new Table { TableID = 51, TableName = "Khách Lấy 4", CategoryID = 3 },
+     new Table { TableID = 52, TableName = "Khách Lấy 5", CategoryID = 3 },
+     new Table { TableID = 53, TableName = "Khách Lấy 6", CategoryID = 3 },
+     new Table { TableID = 54, TableName = "Khách Lấy Trụn 1", CategoryID = 3 },
+     new Table { TableID = 55, TableName = "Khách Lấy Trụn 2", CategoryID = 3 },
+     new Table { TableID = 56, TableName = "Khách Lấy Trụn 3", CategoryID = 3 },
+     new Table { TableID = 57, TableName = "Khách Lấy Trụn 4", CategoryID = 3 },
+     new Table { TableID = 58, TableName = "Khách Lấy Trụn 5", CategoryID = 3 },
+     new Table { TableID = 59, TableName = "Khách Lấy Trụn 6", CategoryID = 3 },
+     // Ship (CategoryID = 4)
+     new Table { TableID = 60, TableName = "Ship 1", CategoryID = 4 },
+     new Table { TableID = 61, TableName = "Ship 2", CategoryID = 4 },
+     new Table { TableID = 62, TableName = "Ship 3", CategoryID = 4 },
+     new Table { TableID = 63, TableName = "Ship 4", CategoryID = 4 },
+     new Table { TableID = 64, TableName = "Ship 5", CategoryID = 4 },
+     new Table { TableID = 65, TableName = "Ship 6", CategoryID = 4 },
+     new Table { TableID = 66, TableName = "Ship Trụn 1", CategoryID = 4 },
+     new Table { TableID = 67, TableName = "Ship Trụn 2", CategoryID = 4 },
+     new Table { TableID = 68, TableName = "Ship Trụn 3", CategoryID = 4 },
+     new Table { TableID = 69, TableName = "Ship Trụn 4", CategoryID = 4 },
+     new Table { TableID = 70, TableName = "Ship Trụn 5", CategoryID = 4 },
+     new Table { TableID = 71, TableName = "Ship Trụn 6", CategoryID = 4 }
+
+ );
 
             // Seed Table Categories
             modelBuilder.Entity<TableCategory>().HasData(

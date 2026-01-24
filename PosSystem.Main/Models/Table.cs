@@ -11,9 +11,6 @@ namespace PosSystem.Main.Models
         [Required]
         public string TableName { get; set; } = string.Empty; // Vd: Bàn 1, Bàn 2
 
-        // Loại bàn (Legacy - sẽ bỏ sau này)
-        public string TableType { get; set; } = "DineIn";
-
         // Category Link
         public int? CategoryID { get; set; }
         public TableCategory? Category { get; set; }

@@ -14,7 +14,7 @@ namespace PosSystem.Main.Helpers
 
             // --- 1. THÔNG TIN CƠ BẢN ---
             res = res.Replace("{Table}", order.Table?.TableName ?? "Mang về");
-            res = res.Replace("{TableType}", order.Table?.TableType ?? "");
+            res = res.Replace("{TableType}", order.Table?.Category?.CategoryName ?? "");
             res = res.Replace("{OrderId}", order.OrderID.ToString());
 
             // --- 2. THÔNG TIN NHÂN VIÊN & NGƯỜI GỬI ---

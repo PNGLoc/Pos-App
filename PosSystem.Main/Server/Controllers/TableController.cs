@@ -27,18 +27,13 @@ namespace PosSystem.Main.Server.Controllers
         public async Task<IActionResult> GetTables()
         {
             var tables = await _context.Tables
-                // Match WPF ordering: Category.DisplayOrder -> CategoryID -> TableName
-                // (so "Tất cả" shows tables grouped by category, not by creation)
-                .OrderBy(t => t.Category != null ? t.Category.DisplayOrder : int.MaxValue)
-                .ThenBy(t => t.CategoryID ?? int.MaxValue)
-                .ThenBy(t => t.TableName)
                 .Select(t => new
                 {
                     t.TableID,
                     t.TableName,
                     t.TableStatus,
                     t.CategoryID,
-                    t.TableType,
+                    CategoryDisplayOrder = t.Category != null ? t.Category.DisplayOrder : int.MaxValue,
                     // [NEW] Kiểm tra có đơn tạm tính không
                     HasProvisionalBill = _context.Orders.Any(o => o.TableID == t.TableID && o.OrderStatus == "Pending" && o.IsPreCalculated),
                     // [NEW] Kiểm tra có yêu cầu thanh toán không
@@ -50,6 +45,12 @@ namespace PosSystem.Main.Server.Controllers
                         .FirstOrDefault()
                 })
                 .ToListAsync();
+
+            tables = tables
+                .OrderBy(t => t.CategoryDisplayOrder)
+                .ThenBy(t => t.CategoryID ?? int.MaxValue)
+                .ThenBy(t => t.TableID)
+                .ToList();
 
             return Ok(tables);
         }
