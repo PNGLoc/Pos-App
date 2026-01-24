@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.EntityFrameworkCore; // For DbUpdateException
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 
@@ -80,10 +81,24 @@ namespace PosSystem.Main.Pages
                         var item = db.TableCategories.Find(cat.CategoryID);
                         if (item != null)
                         {
-                            // Kiểm tra ràng buộc nếu cần (Optional)
-                            db.TableCategories.Remove(item);
-                            db.SaveChanges();
-                            LoadData();
+                            // Prevent delete if category is still used by tables
+                            bool hasTables = db.Tables.Any(t => t.CategoryID == item.CategoryID);
+                            if (hasTables)
+                            {
+                                MessageBox.Show("Không thể xóa loại bàn vì còn bàn đang sử dụng loại này.", "Không thể xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+
+                            try
+                            {
+                                db.TableCategories.Remove(item);
+                                db.SaveChanges();
+                                LoadData();
+                            }
+                            catch (DbUpdateException)
+                            {
+                                MessageBox.Show("Không thể xóa loại bàn do còn dữ liệu liên quan.", "Không thể xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            }
                         }
                     }
                 }

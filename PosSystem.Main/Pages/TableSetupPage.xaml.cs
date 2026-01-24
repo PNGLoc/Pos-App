@@ -89,9 +89,24 @@ namespace PosSystem.Main.Pages
                         var item = db.Tables.Find(t.TableID);
                         if (item != null)
                         {
-                            db.Tables.Remove(item);
-                            db.SaveChanges();
-                            LoadData();
+                            // Prevent delete if table has any orders
+                            bool hasOrders = db.Orders.Any(o => o.TableID == item.TableID);
+                            if (hasOrders)
+                            {
+                                MessageBox.Show("Không thể xóa bàn vì đã có đơn hàng liên quan.\nVui lòng xóa/hoàn tất đơn hàng trước.", "Không thể xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+
+                            try
+                            {
+                                db.Tables.Remove(item);
+                                db.SaveChanges();
+                                LoadData();
+                            }
+                            catch (DbUpdateException)
+                            {
+                                MessageBox.Show("Không thể xóa bàn do còn dữ liệu liên quan.", "Không thể xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            }
                         }
                     }
                 }
