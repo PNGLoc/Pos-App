@@ -123,6 +123,21 @@ body {
     background: #fff;
 }
 
+.confirmed-total-bar {
+    position: fixed;
+    top: calc(var(--detail-header-height, 56px) + 40px);
+    left: 0;
+    right: 0;
+    z-index: 850;
+    background: #fff;
+    padding: 6px 15px;
+    border-bottom: 1px solid #eee;
+}
+
+#tab-confirmed {
+    padding-top: 44px;
+}
+
 .action-select-food {
     color: var(--primary-color);
     font-weight: bold;
