@@ -549,20 +549,22 @@
                                                            MaxWidth="165"/>
                                                 <TextBlock Text="{Binding TimeDisplay}"
                                                            Foreground="{Binding TextBrush}"
-                                                           FontSize="14"
+                                                           FontSize="16"
                                                            TextAlignment="Center"
                                                            Margin="0,4,0,0"/>
-                                                <Border Background="White"
-                                                        CornerRadius="10"
-                                                        Padding="7,2"
-                                                        Margin="0,6,0,0"
-                                                        HorizontalAlignment="Center">
-                                                    <TextBlock Text="{Binding StatusDisplay}"
-                                                               Foreground="Black"
-                                                               FontSize="10"
-                                                               FontWeight="Bold"/>
-                                                </Border>
                                             </StackPanel>
+
+                                            <Border Background="White"
+                                                    CornerRadius="8"
+                                                    Padding="6,2"
+                                                    Margin="0,0,0,6"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Bottom">
+                                                <TextBlock Text="{Binding StatusDisplay}"
+                                                           Foreground="Black"
+                                                           FontSize="12"
+                                                           FontWeight="Bold"/>
+                                            </Border>
 
                                             <!-- Icon Provisional Bill (LEFT) -->
                                             <TextBlock Text="🧾"
