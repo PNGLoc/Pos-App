@@ -620,12 +620,19 @@ namespace PosSystem.Main.Server.Controllers
 
                     // --- POST COMMIT ---
 
-                    // 4. IN PHIẾU BÁO BẾP
-                    Services.PrintService.PrintMoveTableNotification(targetOrder ?? sourceOrder, oldTableName, newTableName);
-
-                    // 5. Cập nhật UI
+                    // 4. Cập nhật UI trước để phản hồi nhanh
                     await _hubContext.Clients.All.SendAsync("TableUpdated", sourceTableId);
                     await _hubContext.Clients.All.SendAsync("TableUpdated", req.TargetTableID);
+
+                    // 5. IN PHIẾU BÁO BẾP (chạy nền để không chặn response)
+                    _ = Task.Run(() =>
+                    {
+                        try
+                        {
+                            Services.PrintService.PrintMoveTableNotification(targetOrder ?? sourceOrder, oldTableName, newTableName);
+                        }
+                        catch { }
+                    });
 
                     // Activity log
                     try

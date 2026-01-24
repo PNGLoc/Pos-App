@@ -389,7 +389,7 @@ namespace PosSystem.Main
             {
                 int targetTableId = selected.TableID;
                 lstTables.SelectedItem = null;  // Deselect to reset
-                ExecuteMoveTable(targetTableId);
+                _ = ExecuteMoveTableAsync(targetTableId);
                 return;
             }
 
@@ -2076,7 +2076,7 @@ namespace PosSystem.Main
             SelectAndLoadTable(_selectedTableId);
         }
 
-        private void ExecuteMoveTable(int targetTableId)
+        private async Task ExecuteMoveTableAsync(int targetTableId)
         {
             if (targetTableId == _selectedTableId)
             {
@@ -2085,83 +2085,115 @@ namespace PosSystem.Main
                 return;
             }
 
-            using (var db = new AppDbContext())
+            ShowToastPersistent("⏳ Đang chuyển bàn...");
+
+            var result = await Task.Run(() =>
             {
-                var sourceOrder = db.Orders
-                    .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
-                    .Include(o => o.Table)
-                    .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
-
-                var targetOrder = db.Orders
-                    .FirstOrDefault(o => o.TableID == targetTableId && o.OrderStatus == "Pending");
-
-                if (sourceOrder != null)
+                try
                 {
-                    // Lưu tên bàn cũ trước khi cập nhật
-                    string oldTableName = sourceOrder.Table?.TableName ?? $"Bàn {_selectedTableId}";
-
-                    // If target table already has an order, merge them
-                    if (targetOrder != null)
+                    using (var db = new AppDbContext())
                     {
-                        // Move all order details from source to target
-                        foreach (var detail in sourceOrder.OrderDetails)
+                        var sourceOrder = db.Orders
+                            .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
+                            .Include(o => o.Table)
+                            .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+
+                        var targetOrder = db.Orders
+                            .FirstOrDefault(o => o.TableID == targetTableId && o.OrderStatus == "Pending");
+
+                        if (sourceOrder == null)
                         {
-                            detail.OrderID = targetOrder.OrderID;
+                            return (Success: false, Error: "❌ Không có đơn hàng để chuyển!", TargetTableId: targetTableId, OrderIdToNotify: 0L, OldName: "", NewName: "");
                         }
+
+                        // Lưu tên bàn cũ trước khi cập nhật
+                        string oldTableName = sourceOrder.Table?.TableName ?? $"Bàn {_selectedTableId}";
+
+                        // If target table already has an order, merge them
+                        if (targetOrder != null)
+                        {
+                            // Move all order details from source to target
+                            foreach (var detail in sourceOrder.OrderDetails)
+                            {
+                                detail.OrderID = targetOrder.OrderID;
+                            }
+                        }
+                        else
+                        {
+                            // Move entire order to target table
+                            sourceOrder.TableID = targetTableId;
+                        }
+
+                        // Update source table status to empty
+                        var sourceTable = db.Tables.FirstOrDefault(t => t.TableID == _selectedTableId);
+                        if (sourceTable != null)
+                        {
+                            sourceTable.TableStatus = "Empty";
+                        }
+
+                        // Update target table status to occupied
+                        var targetTable = db.Tables.FirstOrDefault(t => t.TableID == targetTableId);
+                        if (targetTable != null)
+                        {
+                            targetTable.TableStatus = "Occupied";
+                        }
+
+                        db.SaveChanges();
+
+                        // Recalculate totals
+                        if (targetOrder != null)
+                        {
+                            RecalculateOrder(db, targetOrder.OrderID);
+                        }
+                        else
+                        {
+                            RecalculateOrder(db, sourceOrder.OrderID);
+                        }
+
+                        // Lấy tên bàn mới
+                        var newTableInfo = db.Tables.FirstOrDefault(t => t.TableID == targetTableId);
+                        string newTableName = newTableInfo?.TableName ?? $"Bàn {targetTableId}";
+
+                        var orderIdToNotify = (targetOrder ?? sourceOrder).OrderID;
+                        return (Success: true, Error: (string?)null, TargetTableId: targetTableId, OrderIdToNotify: orderIdToNotify, OldName: oldTableName, NewName: newTableName);
                     }
-                    else
-                    {
-                        // Move entire order to target table
-                        sourceOrder.TableID = targetTableId;
-                    }
-
-                    // Update source table status to empty
-                    var sourceTable = db.Tables.FirstOrDefault(t => t.TableID == _selectedTableId);
-                    if (sourceTable != null)
-                    {
-                        sourceTable.TableStatus = "Empty";
-                    }
-
-                    // Update target table status to occupied
-                    var targetTable = db.Tables.FirstOrDefault(t => t.TableID == targetTableId);
-                    if (targetTable != null)
-                    {
-                        targetTable.TableStatus = "Occupied";
-                    }
-
-                    db.SaveChanges();
-
-                    // Recalculate totals
-                    if (targetOrder != null)
-                    {
-                        RecalculateOrder(db, targetOrder.OrderID);
-                    }
-                    else
-                    {
-                        RecalculateOrder(db, sourceOrder.OrderID);
-                    }
-
-                    // Lấy tên bàn mới
-                    var newTableInfo = db.Tables.FirstOrDefault(t => t.TableID == targetTableId);
-                    string newTableName = newTableInfo?.TableName ?? $"Bàn {targetTableId}";
-
-                    // In thông báo chuyển bàn cho các máy in tương ứng
-                    var orderToNotify = targetOrder ?? sourceOrder;
-                    PrintService.PrintMoveTableNotification(orderToNotify, oldTableName, newTableName);
-
-                    Dispatcher.Invoke(() =>
-                    {
-                        _isWaitingForMoveTargetTable = false;
-                        HideToast();
-                        btnCancelMove.Visibility = Visibility.Collapsed; // [NEW] Hide Cancel button
-
-                        LoadTables();
-                        SelectAndLoadTable(targetTableId);
-
-                        ShowToast("✅ Chuyển bàn thành công!", 2000);
-                    });
                 }
-            }
+                catch
+                {
+                    return (Success: false, Error: "❌ Không thể chuyển bàn. Vui lòng thử lại.", TargetTableId: targetTableId, OrderIdToNotify: 0L, OldName: "", NewName: "");
+                }
+            });
+
+            Dispatcher.Invoke(() =>
+            {
+                _isWaitingForMoveTargetTable = false;
+                HideToast();
+                btnCancelMove.Visibility = Visibility.Collapsed; // [NEW] Hide Cancel button
+
+                if (result.Success)
+                {
+                    LoadTables();
+                    SelectAndLoadTable(result.TargetTableId);
+                    ShowToast("✅ Chuyển bàn thành công!", 2000);
+
+                    if (result.OrderIdToNotify > 0 && !string.IsNullOrWhiteSpace(result.OldName) && !string.IsNullOrWhiteSpace(result.NewName))
+                    {
+                        _ = Task.Run(() =>
+                        {
+                            try
+                            {
+                                var orderStub = new Order { OrderID = result.OrderIdToNotify };
+                                PrintService.PrintMoveTableNotification(orderStub, result.OldName, result.NewName);
+                            }
+                            catch { }
+                        });
+                    }
+                }
+                else
+                {
+                    ShowToast(result.Error ?? "❌ Không thể chuyển bàn.", 2000);
+                }
+            });
         }
 
         private void BtnSplitTable_Click(object sender, RoutedEventArgs e)
