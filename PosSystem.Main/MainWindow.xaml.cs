@@ -1766,20 +1766,30 @@ namespace PosSystem.Main
                     {
                         decimal newPrice = dialog.NewPrice;
 
+                        // Apply discount to the whole visible group (same Dish + Note + GroupStatus)
+                        var groupNote = (detail.Note ?? "").Trim();
+                        bool isNewGroup = detail.ItemStatus == "New";
+
+                        var groupDetails = db.OrderDetails
+                            .Where(d => d.OrderID == detail.OrderID
+                                        && d.DishID == detail.DishID
+                                        && ((d.Note ?? "").Trim() == groupNote)
+                                        && (isNewGroup ? d.ItemStatus == "New" : d.ItemStatus != "New"))
+                            .ToList();
+
                         // Derive DiscountRate from new price (positive = decrease, negative = increase)
+                        decimal newRate = 0;
                         if (originalPrice > 0)
                         {
-                            var newRate = ((originalPrice - newPrice) / originalPrice) * 100m;
-                            // Avoid tiny rounding noise
+                            newRate = ((originalPrice - newPrice) / originalPrice) * 100m;
                             if (Math.Abs(newRate) < 0.0001m) newRate = 0;
-                            detail.DiscountRate = newRate;
-                        }
-                        else
-                        {
-                            detail.DiscountRate = 0;
                         }
 
-                        detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100m);
+                        foreach (var d in groupDetails)
+                        {
+                            d.DiscountRate = newRate;
+                            d.TotalAmount = d.Quantity * d.UnitPrice * (1 - d.DiscountRate / 100m);
+                        }
 
                         db.SaveChanges();
                         RecalculateOrder(db, detail.OrderID);
