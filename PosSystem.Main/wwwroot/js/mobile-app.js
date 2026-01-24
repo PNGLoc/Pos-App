@@ -249,7 +249,7 @@ function showToast(msg, type = 'success') {
     if (toastEl) {
         document.getElementById('toastMessage').innerText = msg;
         toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
-        new bootstrap.Toast(toastEl).show();
+        new bootstrap.Toast(toastEl, { delay: 1500 }).show();
     }
 }
 
