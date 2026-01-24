@@ -84,6 +84,9 @@ namespace PosSystem.Main
                     case "ExpenseHistory": // [NEW] Link to Expense Page
                         mainFrame.Navigate(new Pages.ExpenseHistoryPage());
                         break;
+                    case "NotificationSound":
+                        mainFrame.Navigate(new Pages.NotificationSoundSettingsPage());
+                        break;
                 }
             }
         }

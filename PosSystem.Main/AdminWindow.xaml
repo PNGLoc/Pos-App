@@ -2,8 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Quản trị hệ thống"
-       WindowState="Maximized"
-    >
+        WindowState="Maximized">
 
     <!-- 1. KHAI BÁO RESOURCES Ở ĐẦU TIÊN -->
     <Window.Resources>
@@ -45,9 +44,9 @@
     <!-- 2. GIAO DIỆN CHÍNH (GRID) Ở DƯỚI -->
     <Grid>
         <Grid.ColumnDefinitions>
-           <ColumnDefinition Width="Auto"
-                  MinWidth="200"
-                  MaxWidth="280"/>
+            <ColumnDefinition Width="Auto"
+                              MinWidth="200"
+                              MaxWidth="280"/>
             <!-- Menu trái -->
             <ColumnDefinition Width="*"/>
             <!-- Nội dung phải -->
@@ -80,7 +79,8 @@
                                    FontWeight="Bold"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
-                </Border> <!-- NÚT CHUYỂN SANG BÁN HÀNG -->
+                </Border>
+                <!-- NÚT CHUYỂN SANG BÁN HÀNG -->
                 <Button Content="➡ VÀO BÁN HÀNG"
                         Height="45"
                         Background="#28A745"
@@ -95,7 +95,7 @@
                         </Style>
                     </Button.Resources>
                 </Button>
-                    <Separator Background="#555"
+                <Separator Background="#555"
                            Margin="10"/>
                 <!-- Lúc này StaticResource đã được định nghĩa ở trên nên sẽ không lỗi nữa -->
                 <RadioButton Content="🏠 Thống kê"
@@ -109,9 +109,9 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="Printer"/>
-                <RadioButton Content="🏷 Loại bàn" 
+                <RadioButton Content="🏷 Loại bàn"
                              Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click" 
+                             Click="Menu_Click"
                              Tag="TableCategory"/>
                 <RadioButton Content="🍽 Quản lý bàn"
                              Style="{StaticResource AdminMenuButton}"
@@ -141,7 +141,11 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="ExpenseHistory"/>
-               
+                <RadioButton Content="🔊 Âm thanh thông báo"
+                             Style="{StaticResource AdminMenuButton}"
+                             Click="Menu_Click"
+                             Tag="NotificationSound"/>
+
             </StackPanel>
         </Border>
 

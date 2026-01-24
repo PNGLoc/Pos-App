@@ -1,0 +1,102 @@
+<UserControl x:Class="PosSystem.Main.Pages.NotificationSoundSettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600"
+             d:DesignWidth="800"
+             Background="#F4F6F9">
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0"
+                Background="White"
+                Padding="20,15"
+                Margin="0,0,0,15"
+                CornerRadius="8">
+            <StackPanel>
+                <TextBlock Text="ÂM THANH THÔNG BÁO"
+                           FontSize="20"
+                           FontWeight="Bold"
+                           Foreground="#333"/>
+                <TextBlock Text="Bật/tắt và điều chỉnh âm lượng thông báo khi có hoạt động mới."
+                           FontSize="13"
+                           Foreground="#666"
+                           Margin="0,5,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Content -->
+        <Border Grid.Row="1"
+                Background="White"
+                Padding="20"
+                CornerRadius="8">
+            <StackPanel>
+                <CheckBox x:Name="chkEnableSound"
+                          Content="Bật âm thanh thông báo"
+                          FontSize="14"
+                          FontWeight="SemiBold"
+                          Margin="0,0,0,15"
+                          Checked="ChkEnableSound_Checked"
+                          Unchecked="ChkEnableSound_Unchecked"/>
+
+                <StackPanel Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="Âm lượng:"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"
+                               FontWeight="SemiBold"/>
+                    <Slider x:Name="sldVolume"
+                            Minimum="0"
+                            Maximum="100"
+                            Width="260"
+                            ValueChanged="SldVolume_ValueChanged"/>
+                    <TextBlock x:Name="lblVolume"
+                               Margin="10,0,0,0"
+                               VerticalAlignment="Center"
+                               Foreground="#555"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            Margin="0,20,0,0"
+                            HorizontalAlignment="Right">
+                    <Button Content="Nghe thử"
+                            Width="110"
+                            Height="35"
+                            Background="#6C757D"
+                            Foreground="White"
+                            FontWeight="Bold"
+                            Margin="0,0,10,0"
+                            Click="BtnTest_Click">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius"
+                                        Value="5"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                    <Button Content="Lưu lại"
+                            Width="120"
+                            Height="35"
+                            Background="#007BFF"
+                            Foreground="White"
+                            FontWeight="Bold"
+                            Click="BtnSave_Click">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius"
+                                        Value="5"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -16,6 +16,8 @@ using PosSystem.Main.Services;
 using System.Threading.Tasks;
 using System.Globalization;
 using System.Text;
+using System.IO;
+using System.Media;
 // [THÊM] Namespace quan trọng
 using Microsoft.AspNetCore.SignalR;        // Cho Server (Gửi đi)
 using Microsoft.Extensions.DependencyInjection;
@@ -146,6 +148,13 @@ namespace PosSystem.Main
 
     public partial class MainWindow : Window
     {
+        private static SoundPlayer? _notificationPlayer;
+        private static MemoryStream? _notificationStream;
+        private static bool _notificationSoundEnabled = true;
+        private static int _notificationSoundVolume = 25;
+        private static int _notificationSoundVolumeApplied = -1;
+        private static DateTime _notificationSettingsLastRead = DateTime.MinValue;
+        private static DateTime _lastNotificationSoundAt = DateTime.MinValue;
         private HubConnection _connection = default!;
         private int _selectedTableId = 0;
         private int? _selectedCategoryId = null; // Filter by CategoryID
@@ -265,6 +274,148 @@ namespace PosSystem.Main
             }
         }
 
+        private static void EnsureNotificationPlayer()
+        {
+            if ((DateTime.Now - _notificationSettingsLastRead).TotalSeconds > 5)
+            {
+                ReloadNotificationSoundSettings();
+            }
+
+            if (!_notificationSoundEnabled || _notificationSoundVolume <= 0)
+                return;
+
+            if (_notificationPlayer != null && _notificationSoundVolumeApplied == _notificationSoundVolume)
+                return;
+
+            try
+            {
+                _notificationPlayer?.Stop();
+                _notificationPlayer?.Dispose();
+                _notificationStream?.Dispose();
+
+                var wav = BuildNotificationWav(_notificationSoundVolume);
+                _notificationStream = new MemoryStream(wav);
+                _notificationPlayer = new SoundPlayer(_notificationStream);
+                _notificationPlayer.Load();
+                _notificationSoundVolumeApplied = _notificationSoundVolume;
+            }
+            catch
+            {
+                _notificationPlayer = null;
+                _notificationStream = null;
+            }
+        }
+
+        private static void PlayNotificationSound()
+        {
+            if (!_notificationSoundEnabled || _notificationSoundVolume <= 0)
+            {
+                try { _notificationPlayer?.Stop(); } catch { }
+                return;
+            }
+
+            if ((DateTime.Now - _lastNotificationSoundAt).TotalMilliseconds < 800)
+            {
+                return;
+            }
+            _lastNotificationSoundAt = DateTime.Now;
+
+            EnsureNotificationPlayer();
+            _notificationPlayer?.Play();
+        }
+
+        public static void TestNotificationSound()
+        {
+            PlayNotificationSound();
+        }
+
+        public static void TestNotificationSound(int volumePercent, bool enabled)
+        {
+            if (!enabled || volumePercent <= 0) return;
+            try
+            {
+                var wav = BuildNotificationWav(Math.Clamp(volumePercent, 0, 100));
+                using var ms = new MemoryStream(wav);
+                using var player = new SoundPlayer(ms);
+                player.Load();
+                player.PlaySync();
+            }
+            catch { }
+        }
+
+        public static void ReloadNotificationSoundSettings()
+        {
+            try
+            {
+                using (var db = new AppDbContext())
+                {
+                    var enabledSetting = db.GlobalSettings.FirstOrDefault(s => s.Key == "notificationSoundEnabled");
+                    var volumeSetting = db.GlobalSettings.FirstOrDefault(s => s.Key == "notificationSoundVolume");
+
+                    _notificationSoundEnabled = enabledSetting == null || enabledSetting.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    if (volumeSetting != null && int.TryParse(volumeSetting.Value, out var v))
+                    {
+                        _notificationSoundVolume = Math.Clamp(v, 0, 100);
+                    }
+                    else
+                    {
+                        _notificationSoundVolume = 25;
+                    }
+                }
+            }
+            catch
+            {
+                _notificationSoundEnabled = true;
+                _notificationSoundVolume = 25;
+            }
+
+            if (!_notificationSoundEnabled || _notificationSoundVolume <= 0)
+            {
+                try { _notificationPlayer?.Stop(); } catch { }
+            }
+            _notificationSettingsLastRead = DateTime.Now;
+        }
+
+        private static byte[] BuildNotificationWav(int volumePercent)
+        {
+            const int sampleRate = 8000;
+            const double durationSeconds = 0.08;
+            const double frequency = 660.0;
+            double volume = Math.Clamp(volumePercent, 0, 100) / 100.0;
+            double amplitude = 40.0 * Math.Pow(volume, 1.1);
+            if (amplitude < 2.0) amplitude = 2.0;
+
+            int sampleCount = (int)(sampleRate * durationSeconds);
+            byte[] data = new byte[sampleCount];
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                double t = (double)i / sampleRate;
+                double sample = 128 + amplitude * Math.Sin(2 * Math.PI * frequency * t);
+                data[i] = (byte)Math.Clamp((int)Math.Round(sample), 0, 255);
+            }
+
+            using var ms = new MemoryStream();
+            using var bw = new BinaryWriter(ms);
+
+            bw.Write(Encoding.ASCII.GetBytes("RIFF"));
+            bw.Write(36 + data.Length);
+            bw.Write(Encoding.ASCII.GetBytes("WAVE"));
+            bw.Write(Encoding.ASCII.GetBytes("fmt "));
+            bw.Write(16);
+            bw.Write((short)1); // PCM
+            bw.Write((short)1); // mono
+            bw.Write(sampleRate);
+            bw.Write(sampleRate); // byte rate (8-bit mono)
+            bw.Write((short)1); // block align
+            bw.Write((short)8); // bits per sample
+            bw.Write(Encoding.ASCII.GetBytes("data"));
+            bw.Write(data.Length);
+            bw.Write(data);
+
+            return ms.ToArray();
+        }
+
         private void AppendActivityLog(string message)
         {
             // Fire-and-forget to avoid blocking UI thread
@@ -306,6 +457,11 @@ namespace PosSystem.Main
                     {
                         NotificationList.Insert(0, $"[{DateTime.Now:HH:mm:ss}] {message}");
                         while (NotificationList.Count > 200) NotificationList.RemoveAt(NotificationList.Count - 1);
+                        try
+                        {
+                            PlayNotificationSound();
+                        }
+                        catch { }
                     });
                 }
                 catch { }
