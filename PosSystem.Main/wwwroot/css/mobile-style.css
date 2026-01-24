@@ -48,6 +48,13 @@ body {
 }
 
 /* Filter Bàn */
+.table-filter-bar {
+    position: sticky;
+    top: 56px;
+    z-index: 900;
+    background: #fff;
+}
+
 .table-filters {
     overflow-x: auto;
     white-space: nowrap;
