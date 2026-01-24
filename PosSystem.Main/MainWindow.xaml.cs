@@ -70,7 +70,7 @@ namespace PosSystem.Main
         public SolidColorBrush ColorBrush => IsGrayedOut
             ? new SolidColorBrush(Colors.Gray)
             : (TableStatus == "Occupied"
-                ? new SolidColorBrush(Color.FromRgb(244, 200, 206))
+                ? new SolidColorBrush(Color.FromRgb(232, 102, 102))
                 : new SolidColorBrush(Color.FromRgb(245, 246, 248)));
 
         public SolidColorBrush TextBrush => IsGrayedOut
