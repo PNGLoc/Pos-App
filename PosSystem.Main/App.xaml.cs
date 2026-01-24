@@ -5,6 +5,8 @@ using System;
 using PosSystem.Main.Database; // Dùng để khởi tạo DB nếu cần
 using Microsoft.Extensions.DependencyInjection;
 using PosSystem.Main.Helpers;
+using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
 namespace PosSystem.Main
 {
     public partial class App : Application

@@ -82,6 +82,20 @@ namespace PosSystem.Main
                 : new SolidColorBrush(Color.FromRgb(55, 65, 81)));
 
         public SolidColorBrush CategoryBorderBrush { get; set; } = new SolidColorBrush(Color.FromRgb(208, 208, 208));
+        public string CategoryIconGlyph { get; set; } = "\uf6c0";
+        private bool _isCategoryIconVisible = true;
+        public bool IsCategoryIconVisible
+        {
+            get => _isCategoryIconVisible;
+            set
+            {
+                if (_isCategoryIconVisible != value)
+                {
+                    _isCategoryIconVisible = value;
+                    OnPropertyChanged(nameof(IsCategoryIconVisible));
+                }
+            }
+        }
         public bool IsRequestingPayment { get; set; } = false;
         public bool HasProvisionalBill { get; set; } = false; // [NEW]
     }
@@ -155,6 +169,7 @@ namespace PosSystem.Main
         private static int _notificationSoundVolumeApplied = -1;
         private static DateTime _notificationSettingsLastRead = DateTime.MinValue;
         private static DateTime _lastNotificationSoundAt = DateTime.MinValue;
+        private static bool _showTableCardIcons = true;
         private HubConnection _connection = default!;
         private int _selectedTableId = 0;
         private int? _selectedCategoryId = null; // Filter by CategoryID
@@ -186,6 +201,8 @@ namespace PosSystem.Main
         public MainWindow()
         {
             InitializeComponent();
+
+            ReloadTableIconSettings();
 
             // Defer heavy work until the window is rendered at least once.
             Loaded += MainWindow_Loaded;
@@ -227,6 +244,44 @@ namespace PosSystem.Main
             btnDiscountBill.Visibility = Visibility.Collapsed; // [FIX] Hide initially
 
             // LoadTables/LoadMenu/SetupRealtime are started in MainWindow_Loaded
+        }
+
+        public static void ReloadTableIconSettings()
+        {
+            try
+            {
+                using (var db = new AppDbContext())
+                {
+                    var setting = db.GlobalSettings.FirstOrDefault(s => s.Key == "showTableCardIcons");
+                    _showTableCardIcons = setting == null || setting.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            catch
+            {
+                _showTableCardIcons = true;
+            }
+        }
+
+        public static void ApplyTableIconSettingsToOpenWindows()
+        {
+            ReloadTableIconSettings();
+            if (Application.Current == null) return;
+            foreach (Window w in Application.Current.Windows)
+            {
+                if (w is MainWindow mw)
+                {
+                    mw.Dispatcher.Invoke(() => mw.RefreshTableIconVisibility());
+                }
+            }
+        }
+
+        private void RefreshTableIconVisibility()
+        {
+            if (lstTables.ItemsSource is not IEnumerable<TableViewModel> items) return;
+            foreach (var vm in items)
+            {
+                vm.IsCategoryIconVisible = _showTableCardIcons;
+            }
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -781,6 +836,24 @@ namespace PosSystem.Main
             }
         }
 
+        private static string GetCategoryIconGlyph(string? iconClass)
+        {
+            var cls = (iconClass ?? string.Empty).Trim().ToLowerInvariant();
+            int codepoint = cls switch
+            {
+                "fas fa-chair" or "fa-solid fa-chair" => 0xf6c0,
+                "fas fa-shopping-bag" or "fa-solid fa-bag-shopping" or "fa-solid fa-shopping-bag" => 0xf290,
+                "fas fa-walking" or "fa-solid fa-person-walking" or "fa-solid fa-walking" => 0xf554,
+                "fas fa-motorcycle" or "fa-solid fa-motorcycle" => 0xf21c,
+                "fas fa-crown" or "fa-solid fa-crown" => 0xf521,
+                "fas fa-users" or "fa-solid fa-users" => 0xf0c0,
+                "fas fa-clock" or "fa-solid fa-clock" => 0xf017,
+                _ => 0xf6c0
+            };
+
+            return char.ConvertFromUtf32(codepoint);
+        }
+
         private void LoadTables()
         {
             using (var db = new AppDbContext())
@@ -797,6 +870,7 @@ namespace PosSystem.Main
                         t.CategoryID,
                         CategoryDisplayOrder = t.Category != null ? t.Category.DisplayOrder : int.MaxValue,
                         CategoryBorderColorHex = t.Category != null ? t.Category.BorderColorHex : "#D0D0D0",
+                        CategoryIconClass = t.Category != null ? t.Category.IconClass : "fas fa-chair",
                         PendingOrder = t.Orders
                             .Where(o => o.OrderStatus == "Pending")
                             .OrderByDescending(o => o.OrderTime)
@@ -831,7 +905,9 @@ namespace PosSystem.Main
                         HasProvisionalBill = t.PendingOrder?.IsPreCalculated ?? false,
                         IsRequestingPayment = t.PendingOrder?.IsRequestingPayment ?? false,
                         IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId),
-                        CategoryBorderBrush = ParseHexBrush(t.CategoryBorderColorHex, Color.FromRgb(208, 208, 208))
+                        CategoryBorderBrush = ParseHexBrush(t.CategoryBorderColorHex, Color.FromRgb(208, 208, 208)),
+                        CategoryIconGlyph = GetCategoryIconGlyph(t.CategoryIconClass),
+                        IsCategoryIconVisible = _showTableCardIcons
                     };
                 }).ToList();
 
@@ -1079,6 +1155,7 @@ namespace PosSystem.Main
                         t.CategoryID,
                         CategoryDisplayOrder = t.Category != null ? t.Category.DisplayOrder : int.MaxValue,
                         CategoryBorderColorHex = t.Category != null ? t.Category.BorderColorHex : "#D0D0D0",
+                        CategoryIconClass = t.Category != null ? t.Category.IconClass : "fas fa-chair",
                         PendingOrder = t.Orders
                             .Where(o => o.OrderStatus == "Pending")
                             .OrderByDescending(o => o.OrderTime)
@@ -1113,7 +1190,9 @@ namespace PosSystem.Main
                         HasProvisionalBill = t.PendingOrder?.IsPreCalculated ?? false,
                         IsRequestingPayment = t.PendingOrder?.IsRequestingPayment ?? false,
                         IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId),
-                        CategoryBorderBrush = ParseHexBrush(t.CategoryBorderColorHex, Color.FromRgb(208, 208, 208))
+                        CategoryBorderBrush = ParseHexBrush(t.CategoryBorderColorHex, Color.FromRgb(208, 208, 208)),
+                        CategoryIconGlyph = GetCategoryIconGlyph(t.CategoryIconClass),
+                        IsCategoryIconVisible = _showTableCardIcons
                     };
                 }).ToList();
 

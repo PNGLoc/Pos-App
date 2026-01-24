@@ -1,12 +1,19 @@
 // Minimal Service Worker for installability (Android) and basic offline caching.
 // Note: Keep this conservative; avoid caching API responses.
 
-const CACHE_NAME = 'lp-pos-static-v1';
+const CACHE_NAME = 'lp-pos-static-v2';
 const PRECACHE_URLS = [
     '/',
     '/index.html',
     '/mobile.html',
     '/css/mobile-style.css',
+    '/vendor/fontawesome/css/all.min.css',
+    '/vendor/fontawesome/webfonts/fa-solid-900.woff2',
+    '/vendor/fontawesome/webfonts/fa-solid-900.woff',
+    '/vendor/fontawesome/webfonts/fa-regular-400.woff2',
+    '/vendor/fontawesome/webfonts/fa-regular-400.woff',
+    '/vendor/fontawesome/webfonts/fa-brands-400.woff2',
+    '/vendor/fontawesome/webfonts/fa-brands-400.woff',
     '/js/mobile-app.js',
     '/js/signalr.min.js',
     '/manifest.webmanifest',

@@ -382,11 +382,13 @@ function renderTables(filterId) {
             ? `<div class="position-absolute top-0 start-50 translate-middle-x mt-0 px-2 border border-danger text-danger fw-bold table-timer" data-ordertime="${t.orderTime}" style="z-index: 5; font-size: 0.85rem;"><i class="fas fa-clock me-1"></i> ...</div>`
             : '';
 
+        const iconClass = t.categoryIconClass || t.CategoryIconClass || 'fas fa-chair';
+
         div.innerHTML = `
             ${provMarker}
             ${payMarker}
             ${timerHtml}
-            <div class="fs-4 mb-1"><i class="fas fa-chair"></i></div>
+            <div class="fs-4 mb-1"><i class="${iconClass}"></i></div>
             <div class="fw-bold">${t.tableName}</div>
             <small class="${t.tableStatus === 'Occupied' ? 'text-danger' : 'text-success'}">
                 ${t.tableStatus === 'Occupied' ? 'Đã gọi món' : 'Bàn trống'}

@@ -3,10 +3,79 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:helpers="clr-namespace:PosSystem.Main.Helpers"
              mc:Ignorable="d"
              d:DesignHeight="600"
              d:DesignWidth="800"
              Background="#F4F6F9">
+
+    <UserControl.Resources>
+        <FontFamily x:Key="FaSolidFont">pack://application:,,,/Assets/Fonts/#Font Awesome 5 Free Solid</FontFamily>
+        <helpers:FontAwesomeIconClassToGlyphConverter x:Key="FaClassToGlyph"/>
+
+        <Style x:Key="SwitchToggleStyle"
+                TargetType="ToggleButton">
+            <Setter Property="Width"
+                    Value="46"/>
+            <Setter Property="Height"
+                    Value="24"/>
+            <Setter Property="Cursor"
+                    Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid>
+                            <Border x:Name="track"
+                                    Background="#D1D5DB"
+                                    CornerRadius="12"/>
+                            <Border x:Name="thumb"
+                                    Width="20"
+                                    Height="20"
+                                    Background="White"
+                                    CornerRadius="10"
+                                    Margin="2,2,0,2"
+                                    HorizontalAlignment="Left">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="4"
+                                            ShadowDepth="1"
+                                            Opacity="0.2"/>
+                                </Border.Effect>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked"
+                                    Value="True">
+                                <Setter TargetName="track"
+                                        Property="Background"
+                                        Value="#28A745"/>
+                                <Setter TargetName="thumb"
+                                        Property="HorizontalAlignment"
+                                        Value="Right"/>
+                                <Setter TargetName="thumb"
+                                        Property="Margin"
+                                        Value="0,2,2,2"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver"
+                                    Value="True">
+                                <Setter TargetName="track"
+                                        Property="Opacity"
+                                        Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled"
+                                    Value="False">
+                                <Setter TargetName="track"
+                                        Property="Opacity"
+                                        Value="0.5"/>
+                                <Setter TargetName="thumb"
+                                        Property="Opacity"
+                                        Value="0.6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -35,6 +104,19 @@
                                FontSize="13"
                                Foreground="#666"
                                Margin="0,5,0,0"/>
+                    <StackPanel Orientation="Horizontal"
+                            Margin="0,8,0,0"
+                            VerticalAlignment="Center">
+                        <ToggleButton x:Name="chkShowTableIcons"
+                                      Style="{StaticResource SwitchToggleStyle}"
+                                      Checked="ChkShowTableIcons_Checked"
+                                      Unchecked="ChkShowTableIcons_Unchecked"/>
+                        <TextBlock Text="Hiện icon loại bàn trên card (màn hình bán hàng)"
+                                   FontSize="13"
+                                   Foreground="#444"
+                                   Margin="10,0,0,0"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
                 </StackPanel>
                 <Button Grid.Column="1"
                         Content="➕ THÊM LOẠI BÀN"
@@ -141,6 +223,20 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
+                <DataGridTemplateColumn Header="Icon (FA)"
+                                        Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding IconClass, Converter={StaticResource FaClassToGlyph}}"
+                                       FontFamily="{StaticResource FaSolidFont}"
+                                       FontSize="16"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       ToolTip="{Binding IconClass}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <DataGridTemplateColumn Header="Thao tác"
                                         Width="140">
                     <DataGridTemplateColumn.CellTemplate>
@@ -228,6 +324,34 @@
                                 Margin="12,0,0,0"
                                 BorderBrush="#D0D0D0"/>
                     </StackPanel>
+
+                    <TextBlock Text="Icon (Font Awesome)"
+                               FontWeight="SemiBold"
+                               Margin="0,15,0,5"/>
+                    <ComboBox x:Name="cmbIconClass"
+                              Height="35"
+                              Padding="6,4"
+                              VerticalContentAlignment="Center">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Glyph}"
+                                               FontFamily="{StaticResource FaSolidFont}"
+                                               FontSize="16"
+                                               Width="22"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Name}"
+                                               Margin="8,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Class}"
+                                               Margin="8,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="#888"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Right"

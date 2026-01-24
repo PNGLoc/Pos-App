@@ -33,6 +33,7 @@ namespace PosSystem.Main.Server.Controllers
                     t.TableName,
                     t.TableStatus,
                     t.CategoryID,
+                    CategoryIconClass = t.Category != null ? t.Category.IconClass : "fas fa-chair",
                     CategoryDisplayOrder = t.Category != null ? t.Category.DisplayOrder : int.MaxValue,
                     // [NEW] Kiểm tra có đơn tạm tính không
                     HasProvisionalBill = _context.Orders.Any(o => o.TableID == t.TableID && o.OrderStatus == "Pending" && o.IsPreCalculated),

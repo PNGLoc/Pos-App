@@ -37,6 +37,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\Fonts\fa-solid-900.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="Assets\app.ico" Condition="Exists('Assets\\app.ico')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

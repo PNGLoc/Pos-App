@@ -79,7 +79,7 @@ namespace PosSystem.Main.Pages
                 }
 
                 MainWindow.ReloadNotificationSoundSettings();
-                MessageBox.Show("Đã lưu cài đặt âm thanh.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Đã lưu cài đặt.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch
             {

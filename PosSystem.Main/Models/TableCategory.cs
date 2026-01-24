@@ -19,6 +19,9 @@ namespace PosSystem.Main.Models
         // Màu viền hiển thị cho card bàn (hex: #RRGGBB)
         public string BorderColorHex { get; set; } = "#D0D0D0";
 
+        // Font Awesome class cho icon hiển thị ở mobile (vd: "fas fa-chair")
+        public string IconClass { get; set; } = "fas fa-chair";
+
         // Navigation property
         public ICollection<Table> Tables { get; set; } = new List<Table>();
     }

@@ -10,6 +10,8 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
+        <FontFamily x:Key="FaSolidFont">pack://application:,,,/Assets/Fonts/#Font Awesome 5 Free Solid</FontFamily>
+
         <local:EmptyStringToVisibilityConverter x:Key="EmptyStringToVisibilityConverter"/>
         <local:NotEmptyStringToVisibilityConverter x:Key="NotEmptyStringToVisibilityConverter"/>
 
@@ -536,9 +538,17 @@
                                         </Border.Style>
 
                                         <Grid>
+                                            <TextBlock Text="{Binding CategoryIconGlyph}"
+                                                       FontFamily="{StaticResource FaSolidFont}"
+                                                       FontSize="22"
+                                                       Opacity="0.9"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Top"
+                                                       Margin="0,2,0,0"
+                                                       Visibility="{Binding IsCategoryIconVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                             <StackPanel VerticalAlignment="Center"
                                                         HorizontalAlignment="Center"
-                                                        Margin="0,0,0,0">
+                                                        Margin="0,6,0,0">
                                                 <TextBlock Text="{Binding TableName}"
                                                            Foreground="{Binding TextBrush}"
                                                            FontWeight="Bold"
@@ -557,7 +567,6 @@
                                             <Border Background="White"
                                                     CornerRadius="8"
                                                     Padding="6,2"
-                                                    Margin="0,0,0,6"
                                                     HorizontalAlignment="Center"
                                                     VerticalAlignment="Bottom">
                                                 <TextBlock Text="{Binding StatusDisplay}"
