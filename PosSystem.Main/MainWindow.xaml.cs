@@ -228,6 +228,7 @@ namespace PosSystem.Main
             await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ContextIdle);
 
             _ = LoadTablesAsync();
+            Dispatcher.BeginInvoke(new Action(UpdateFilterButtonStyles), DispatcherPriority.Loaded);
 
             // LoadMenu is UI-bound; keep it deferred so table grid appears ASAP.
             Dispatcher.BeginInvoke(new Action(() =>
@@ -2601,8 +2602,7 @@ namespace PosSystem.Main
         private void BtnFilterAll_Click(object sender, RoutedEventArgs e)
         {
             _selectedCategoryId = null;
-            if (btnFilterAll != null)
-                btnFilterAll.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007BFF"));
+            UpdateFilterButtonStyles();
             LoadTables();
         }
 
@@ -2611,9 +2611,57 @@ namespace PosSystem.Main
             if (sender is Button btn && btn.Tag is int catId)
             {
                 _selectedCategoryId = catId;
-                if (btnFilterAll != null)
-                    btnFilterAll.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6C757D"));
+                UpdateFilterButtonStyles();
                 LoadTables();
+            }
+        }
+
+        private void UpdateFilterButtonStyles()
+        {
+            if (btnFilterAll != null)
+            {
+                SetFilterButtonSelected(btnFilterAll, !_selectedCategoryId.HasValue);
+            }
+
+            if (icFilterCategories == null)
+                return;
+
+            foreach (var item in icFilterCategories.Items)
+            {
+                var container = icFilterCategories.ItemContainerGenerator.ContainerFromItem(item) as ContentPresenter;
+                if (container == null)
+                {
+                    icFilterCategories.UpdateLayout();
+                    container = icFilterCategories.ItemContainerGenerator.ContainerFromItem(item) as ContentPresenter;
+                }
+
+                if (container == null)
+                    continue;
+
+                var btn = container.FindVisualChild<Button>();
+                if (btn == null)
+                    continue;
+
+                if (btn.Tag is int catId)
+                {
+                    SetFilterButtonSelected(btn, _selectedCategoryId == catId);
+                }
+            }
+        }
+
+        private void SetFilterButtonSelected(Button btn, bool isSelected)
+        {
+            if (isSelected)
+            {
+                btn.Background = new SolidColorBrush(Color.FromRgb(37, 99, 235));
+                btn.Foreground = new SolidColorBrush(Colors.White);
+                btn.BorderBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235));
+            }
+            else
+            {
+                btn.Background = new SolidColorBrush(Color.FromRgb(241, 243, 245));
+                btn.Foreground = new SolidColorBrush(Color.FromRgb(73, 80, 87));
+                btn.BorderBrush = new SolidColorBrush(Color.FromRgb(208, 215, 222));
             }
         }
     }

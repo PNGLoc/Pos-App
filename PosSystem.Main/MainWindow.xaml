@@ -331,6 +331,53 @@
                                             HorizontalAlignment="Right"
                                             VerticalAlignment="Center"
                                             Margin="20,0,0,0">
+                                    <StackPanel.Resources>
+                                        <Style x:Key="TableFilterButtonStyle"
+                                               TargetType="Button">
+                                            <Setter Property="Height"
+                                                    Value="34"/>
+                                            <Setter Property="MinWidth"
+                                                    Value="90"/>
+                                            <Setter Property="Padding"
+                                                    Value="10,5"/>
+                                            <Setter Property="Margin"
+                                                    Value="4,0"/>
+                                            <Setter Property="Background"
+                                                    Value="#F1F3F5"/>
+                                            <Setter Property="Foreground"
+                                                    Value="#495057"/>
+                                            <Setter Property="BorderBrush"
+                                                    Value="#D0D7DE"/>
+                                            <Setter Property="BorderThickness"
+                                                    Value="1"/>
+                                            <Setter Property="FontSize"
+                                                    Value="14"/>
+                                            <Setter Property="FontWeight"
+                                                    Value="SemiBold"/>
+                                            <Setter Property="Cursor"
+                                                    Value="Hand"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                CornerRadius="8">
+                                                            <ContentPresenter HorizontalAlignment="Center"
+                                                                              VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver"
+                                                         Value="True">
+                                                    <Setter Property="Background"
+                                                            Value="#E9ECEF"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Resources>
                                     <Button x:Name="btnCancelMove"
                                             Content="❌ Hủy chuyển bàn"
                                             Background="#DC3545"
@@ -370,19 +417,12 @@
                                                Foreground="#666"/>
                                     <Button x:Name="btnFilterAll"
                                             Content="Tất cả"
-                                            Width="90"
-                                            Height="30"
-                                            Margin="3,0"
-                                            Padding="5"
-                                            Background="#007BFF"
-                                            Foreground="White"
-                                            FontSize="12"
-                                            FontWeight="Bold"
-                                            Cursor="Hand"
+                                            Style="{StaticResource TableFilterButtonStyle}"
                                             Click="BtnFilterAll_Click"
                                             Tag="All"/>
 
-                                    <ItemsControl ItemsSource="{Binding FilterCategories}">
+                                    <ItemsControl x:Name="icFilterCategories"
+                                                  ItemsSource="{Binding FilterCategories}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <StackPanel Orientation="Horizontal"/>
@@ -392,15 +432,7 @@
                                             <DataTemplate>
                                                 <Button Content="{Binding CategoryName}"
                                                         Tag="{Binding CategoryID}"
-                                                        Width="90"
-                                                        Height="30"
-                                                        Margin="3,0"
-                                                        Padding="5"
-                                                        Background="#6C757D"
-                                                        Foreground="White"
-                                                        FontSize="12"
-                                                        FontWeight="Bold"
-                                                        Cursor="Hand"
+                                                        Style="{StaticResource TableFilterButtonStyle}"
                                                         Click="BtnFilterCategory_Click">
                                                     <Button.Resources>
                                                         <Style TargetType="Border">
