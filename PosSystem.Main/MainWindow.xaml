@@ -834,17 +834,17 @@
                                                 </Grid.RowDefinitions>
 
                                                 <Border Grid.Row="0"
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        Margin="10"
-                                                        Padding="10,8"
-                                                        CornerRadius="10"
-                                                        Background="#CCFFFFFF">
+                                                        HorizontalAlignment="Stretch"
+                                                        VerticalAlignment="Top"
+                                                        Margin="10,8,10,0"
+                                                        Padding="8,6"
+                                                        CornerRadius="8"
+                                                        Background="#EFFFFFFF">
                                                     <TextBlock Text="{Binding DishName}"
                                                                TextWrapping="Wrap"
                                                                TextAlignment="Center"
                                                                FontWeight="SemiBold"
-                                                               FontSize="16"
+                                                               FontSize="18"
                                                                Foreground="#222"/>
                                                 </Border>
 
@@ -852,16 +852,16 @@
                                                         Grid.Row="1"
                                                         HorizontalAlignment="Center"
                                                         Margin="0,0,0,10"
-                                                        Padding="14,6"
-                                                        CornerRadius="999"
-                                                        Background="#DFFFFFFF"
+                                                        Padding="12,6"
+                                                        CornerRadius="6"
+                                                        Background="#F4F6F8"
                                                         BorderThickness="1"
-                                                        BorderBrush="#E6E6E6">
+                                                        BorderBrush="#E1E5EA">
                                                     <TextBlock Text="{Binding Price, StringFormat={}{0:N0} đ}"
                                                                TextAlignment="Center"
                                                                Foreground="#F44336"
                                                                FontWeight="Bold"
-                                                               FontSize="15"/>
+                                                               FontSize="17"/>
                                                 </Border>
                                             </Grid>
                                         </Grid>

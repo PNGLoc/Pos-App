@@ -399,6 +399,27 @@ namespace PosSystem.Main
             pnlTableList.Visibility = Visibility.Collapsed;
             pnlMenu.Visibility = Visibility.Visible;
 
+            // Ensure menu data is ready when entering a table
+            if (lstCategories.ItemsSource == null || _dishViewModels.Count == 0)
+            {
+                LoadMenu();
+            }
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                // Default to "TẤT CẢ" every time entering a table
+                if (lstCategories.ItemsSource != null)
+                {
+                    lstCategories.SelectedIndex = 0;
+                }
+
+                if (txtDishSearch != null && !string.IsNullOrEmpty(txtDishSearch.Text))
+                {
+                    txtDishSearch.Clear();
+                }
+
+                UpdateDishListDisplay();
+            }), DispatcherPriority.Loaded);
+
             // Show split and move buttons when selecting a table
             btnSplitTable.Visibility = Visibility.Visible;
             btnMoveTable.Visibility = Visibility.Visible;
@@ -789,8 +810,8 @@ namespace PosSystem.Main
                     ImagePath = d.ImagePath
                 }).ToList();
 
-                UpdateDishListDisplay();
                 lstCategories.SelectedIndex = 0;
+                UpdateDishListDisplay();
             }
         }
 
