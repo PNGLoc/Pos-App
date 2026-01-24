@@ -121,6 +121,25 @@
                 <DataGridTextColumn Header="Mô tả"
                                     Binding="{Binding Description}"
                                     Width="2*"/>
+                <DataGridTemplateColumn Header="Màu viền"
+                                        Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <Border Width="36"
+                                        Height="18"
+                                        CornerRadius="3"
+                                        BorderThickness="2"
+                                        BorderBrush="{Binding BorderColorHex}"/>
+                                <TextBlock Text="{Binding BorderColorHex}"
+                                           Margin="8,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="#555"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
 
                 <DataGridTemplateColumn Header="Thao tác"
                                         Width="140">
@@ -190,6 +209,25 @@
                     <TextBox x:Name="txtDesc"
                              Height="35"
                              Padding="5,8"/>
+
+                    <TextBlock Text="Màu viền (Hex, ví dụ #4F8EF7)"
+                               FontWeight="SemiBold"
+                               Margin="0,15,0,5"/>
+                    <StackPanel Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <TextBox x:Name="txtBorderColor"
+                                 Height="35"
+                                 Padding="5,8"
+                                 Width="200"
+                                 TextChanged="TxtBorderColor_TextChanged"/>
+                        <Border x:Name="previewBorderColor"
+                                Width="50"
+                                Height="20"
+                                CornerRadius="3"
+                                BorderThickness="2"
+                                Margin="12,0,0,0"
+                                BorderBrush="#D0D0D0"/>
+                    </StackPanel>
 
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Right"

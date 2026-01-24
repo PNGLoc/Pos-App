@@ -62,11 +62,24 @@ namespace PosSystem.Main
                     _isGrayedOut = value;
                     OnPropertyChanged(nameof(IsGrayedOut));
                     OnPropertyChanged(nameof(ColorBrush));
+                    OnPropertyChanged(nameof(TextBrush));
                 }
             }
         }
 
-        public SolidColorBrush ColorBrush => IsGrayedOut ? new SolidColorBrush(Colors.Gray) : (TableStatus == "Occupied" ? new SolidColorBrush(Color.FromRgb(220, 53, 69)) : new SolidColorBrush(Color.FromRgb(40, 167, 69)));
+        public SolidColorBrush ColorBrush => IsGrayedOut
+            ? new SolidColorBrush(Colors.Gray)
+            : (TableStatus == "Occupied"
+                ? new SolidColorBrush(Color.FromRgb(244, 200, 206))
+                : new SolidColorBrush(Color.FromRgb(245, 246, 248)));
+
+        public SolidColorBrush TextBrush => IsGrayedOut
+            ? new SolidColorBrush(Colors.White)
+            : (TableStatus == "Occupied"
+                ? new SolidColorBrush(Colors.Black)
+                : new SolidColorBrush(Color.FromRgb(55, 65, 81)));
+
+        public SolidColorBrush CategoryBorderBrush { get; set; } = new SolidColorBrush(Color.FromRgb(208, 208, 208));
         public bool IsRequestingPayment { get; set; } = false;
         public bool HasProvisionalBill { get; set; } = false; // [NEW]
     }
@@ -555,6 +568,22 @@ namespace PosSystem.Main
             return $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
         }
 
+        private static SolidColorBrush ParseHexBrush(string? hex, Color fallback)
+        {
+            if (string.IsNullOrWhiteSpace(hex))
+                return new SolidColorBrush(fallback);
+
+            try
+            {
+                var color = (Color)ColorConverter.ConvertFromString(hex.Trim());
+                return new SolidColorBrush(color);
+            }
+            catch
+            {
+                return new SolidColorBrush(fallback);
+            }
+        }
+
         private void UpdateTableTimeDisplays()
         {
             if (lstTables.ItemsSource is not IEnumerable<TableViewModel> items)
@@ -589,6 +618,7 @@ namespace PosSystem.Main
                         t.TableStatus,
                         t.CategoryID,
                         CategoryDisplayOrder = t.Category != null ? t.Category.DisplayOrder : int.MaxValue,
+                        CategoryBorderColorHex = t.Category != null ? t.Category.BorderColorHex : "#D0D0D0",
                         PendingOrder = t.Orders
                             .Where(o => o.OrderStatus == "Pending")
                             .OrderByDescending(o => o.OrderTime)
@@ -622,7 +652,8 @@ namespace PosSystem.Main
                         TimeDisplay = pendingTime.HasValue ? FormatElapsedTime(pendingTime.Value) : "",
                         HasProvisionalBill = t.PendingOrder?.IsPreCalculated ?? false,
                         IsRequestingPayment = t.PendingOrder?.IsRequestingPayment ?? false,
-                        IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId)
+                        IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId),
+                        CategoryBorderBrush = ParseHexBrush(t.CategoryBorderColorHex, Color.FromRgb(208, 208, 208))
                     };
                 }).ToList();
 
@@ -869,6 +900,7 @@ namespace PosSystem.Main
                         t.TableStatus,
                         t.CategoryID,
                         CategoryDisplayOrder = t.Category != null ? t.Category.DisplayOrder : int.MaxValue,
+                        CategoryBorderColorHex = t.Category != null ? t.Category.BorderColorHex : "#D0D0D0",
                         PendingOrder = t.Orders
                             .Where(o => o.OrderStatus == "Pending")
                             .OrderByDescending(o => o.OrderTime)
@@ -902,7 +934,8 @@ namespace PosSystem.Main
                         TimeDisplay = pendingTime.HasValue ? FormatElapsedTime(pendingTime.Value) : "",
                         HasProvisionalBill = t.PendingOrder?.IsPreCalculated ?? false,
                         IsRequestingPayment = t.PendingOrder?.IsRequestingPayment ?? false,
-                        IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId)
+                        IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId),
+                        CategoryBorderBrush = ParseHexBrush(t.CategoryBorderColorHex, Color.FromRgb(208, 208, 208))
                     };
                 }).ToList();
 

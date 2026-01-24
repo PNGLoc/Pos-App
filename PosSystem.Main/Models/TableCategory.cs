@@ -16,6 +16,9 @@ namespace PosSystem.Main.Models
 
         public string Description { get; set; } = "";
 
+        // Màu viền hiển thị cho card bàn (hex: #RRGGBB)
+        public string BorderColorHex { get; set; } = "#D0D0D0";
+
         // Navigation property
         public ICollection<Table> Tables { get; set; } = new List<Table>();
     }

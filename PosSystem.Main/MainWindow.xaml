@@ -428,8 +428,8 @@
                                  ScrollViewer.IsDeferredScrollingEnabled="True">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <helpers:VirtualizingWrapPanel ItemWidth="155"
-                                                                   ItemHeight="125"/>
+                                    <helpers:VirtualizingWrapPanel ItemWidth="200"
+                                                                   ItemHeight="150"/>
                                 </ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
                             <ListBox.ItemContainerStyle>
@@ -452,8 +452,8 @@
                             </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Width="135"
-                                            Height="105"
+                                    <Border Width="180"
+                                            Height="130"
                                             Margin="10"
                                             CornerRadius="12"
                                             Cursor="Hand">
@@ -462,7 +462,9 @@
                                                 <Setter Property="Background"
                                                         Value="{Binding ColorBrush}"/>
                                                 <Setter Property="BorderThickness"
-                                                        Value="0"/>
+                                                        Value="2"/>
+                                                <Setter Property="BorderBrush"
+                                                        Value="{Binding CategoryBorderBrush}"/>
                                                 <Setter Property="Effect"
                                                         Value="{x:Null}"/>
 
@@ -506,16 +508,16 @@
                                                         HorizontalAlignment="Center"
                                                         Margin="0,0,0,0">
                                                 <TextBlock Text="{Binding TableName}"
-                                                           Foreground="White"
+                                                           Foreground="{Binding TextBrush}"
                                                            FontWeight="Bold"
-                                                           FontSize="19"
+                                                           FontSize="20"
                                                            TextAlignment="Center"
-                                                           TextWrapping="NoWrap"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           MaxWidth="110"/>
+                                                           TextWrapping="Wrap"
+                                                           TextTrimming="None"
+                                                           MaxWidth="165"/>
                                                 <TextBlock Text="{Binding TimeDisplay}"
-                                                           Foreground="White"
-                                                           FontSize="12"
+                                                           Foreground="{Binding TextBrush}"
+                                                           FontSize="14"
                                                            TextAlignment="Center"
                                                            Margin="0,4,0,0"/>
                                                 <Border Background="White"
