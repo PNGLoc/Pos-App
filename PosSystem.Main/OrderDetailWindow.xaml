@@ -47,6 +47,11 @@
                                                                     Margin="5,0">
                                                                 <TextBlock Text="{Binding DishName}"
                                                                            FontWeight="SemiBold"/>
+                                                                <TextBlock Text="{Binding DiscountDisplay}"
+                                                                           FontSize="11"
+                                                                           Foreground="#C0392B"
+                                                                           FontStyle="Italic"
+                                                                           Visibility="{Binding HasDiscount, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                                 <TextBlock Text="{Binding NoteDisplay}"
                                                                            FontSize="11"
                                                                            Foreground="#E67E22"
@@ -73,13 +78,44 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             Margin="0,10,0,0">
-                        <TextBlock Text="TỔNG CỘNG: "
-                                   FontSize="16"/>
-                        <TextBlock x:Name="lblTotal"
-                                   Text="0đ"
-                                   FontSize="18"
-                                   FontWeight="Bold"
-                                   Foreground="#DC3545"/>
+                        <StackPanel Orientation="Vertical"
+                                    HorizontalAlignment="Right">
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Right">
+                                        <TextBlock Text="TẠM TÍNH: "
+                                                   FontSize="14"
+                                                   FontWeight="Bold"/>
+                                        <TextBlock x:Name="lblSubTotal"
+                                                   Text="0đ"
+                                                   FontSize="14"
+                                                   FontWeight="Bold"
+                                                   Foreground="#333"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            Margin="0,4,0,0">
+                                        <TextBlock Text="GIẢM BILL: "
+                                                   FontSize="14"
+                                                   FontWeight="Bold"/>
+                                        <TextBlock x:Name="lblDiscount"
+                                                   Text="0đ"
+                                                   FontSize="14"
+                                                   FontWeight="Bold"
+                                                   Foreground="#C0392B"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            Margin="0,6,0,0">
+                                        <TextBlock Text="TỔNG CỘNG: "
+                                                   FontSize="16"
+                                                   FontWeight="Bold"/>
+                                        <TextBlock x:Name="lblTotal"
+                                                   Text="0đ"
+                                                   FontSize="18"
+                                                   FontWeight="Bold"
+                                                   Foreground="#DC3545"/>
+                                </StackPanel>
+                        </StackPanel>
                         <Button Content="Đóng"
                                 IsCancel="True"
                                 Width="80"

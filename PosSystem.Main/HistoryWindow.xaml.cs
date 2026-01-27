@@ -19,15 +19,8 @@ namespace PosSystem.Main
         public long OrderID { get; set; }
         public DateTime OrderTime { get; set; }
         public DateTime? CheckoutTime { get; set; }   // Giờ ra (Có thể null nếu chưa thanh toán)
-        public string TimeDisplay
-        {
-            get
-            {
-                string start = OrderTime.ToString("HH:mm");
-                string end = CheckoutTime.HasValue ? CheckoutTime.Value.ToString("HH:mm") : "...";
-                return $"{start} - {end}";
-            }
-        }
+        public string OrderTimeDisplay => OrderTime.ToString("HH:mm");
+        public string CheckoutTimeDisplay => CheckoutTime.HasValue ? CheckoutTime.Value.ToString("HH:mm") : "...";
         public string TableName { get; set; } = "";
         public decimal TotalAmount { get; set; }
         public string StaffName { get; set; } = "";
@@ -162,7 +155,7 @@ namespace PosSystem.Main
                     .Include(o => o.Account)
                     .Where(o => o.OrderTime.Date == selectedDate
                              && o.OrderStatus == "Paid") // <--- [MỚI] Chỉ lấy đơn đã thanh toán
-                    .OrderByDescending(o => o.OrderTime)
+                    .OrderByDescending(o => o.CheckoutTime ?? o.OrderTime)
                     .Select(o => new OrderViewModel
                     {
                         OrderID = o.OrderID,
@@ -255,8 +248,15 @@ namespace PosSystem.Main
                             DishName = d.Dish != null ? d.Dish.DishName : "Unknown",
                             UnitPrice = d.UnitPrice,
                             Quantity = d.Quantity,
+                            DiscountRate = d.DiscountRate,
                             TotalAmount = d.TotalAmount,
-                            Note = d.Note ?? ""
+                            Note = d.Note ?? "",
+                            DiscountDisplay = d.DiscountRate != 0
+                                ? (d.DiscountRate > 0
+                                    ? $"Giảm món: {d.DiscountRate:N0}% (-{(d.UnitPrice * d.Quantity * d.DiscountRate / 100m):N0}đ)"
+                                    : $"Tăng món: {Math.Abs(d.DiscountRate):N0}% (+{Math.Abs(d.UnitPrice * d.Quantity * d.DiscountRate / 100m):N0}đ)")
+                                : string.Empty,
+                            HasDiscount = d.DiscountRate != 0
                         })
                         .ToList();
 
@@ -266,6 +266,13 @@ namespace PosSystem.Main
                     string time = (order.CheckoutTime ?? order.OrderTime).ToString("HH:mm dd/MM/yyyy");
                     lblPopupInfo.Text = $"{tableName}  |  {time}";
 
+                    decimal subTotal = order.SubTotal;
+                    decimal discountValue = order.DiscountPercent > 0
+                        ? subTotal * (order.DiscountPercent / 100m)
+                        : order.DiscountAmount;
+
+                    lblPopupSubTotal.Text = subTotal.ToString("N0") + "đ";
+                    lblPopupDiscount.Text = discountValue.ToString("N0") + "đ";
                     lblPopupTotal.Text = order.FinalAmount.ToString("N0") + "đ";
 
                     dgPopupDetails.ItemsSource = details;
@@ -299,7 +306,10 @@ namespace PosSystem.Main
         public string DishName { get; set; } = "";
         public decimal UnitPrice { get; set; }
         public int Quantity { get; set; }
+        public decimal DiscountRate { get; set; }
         public decimal TotalAmount { get; set; }
         public string Note { get; set; } = "";
+        public string DiscountDisplay { get; set; } = "";
+        public bool HasDiscount { get; set; }
     }
 }
