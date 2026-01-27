@@ -1003,6 +1003,7 @@ namespace PosSystem.Main
                             DishName = g.First().Dish != null ? g.First().Dish.DishName : "Unknown",
                             UnitPrice = g.First().UnitPrice,
                             DiscountRate = g.First().DiscountRate,
+                            SortTime = g.Max(x => x.ItemOrderTime),
                             // Status for logic: If any is New, it's New. Else check if modified.
                             ItemStatus = g.Key.GroupStatus == "New" ? "New" : (g.Sum(x => x.Quantity) < g.Sum(x => x.PrintedQuantity) ? "Modified" : "Sent"),
                             Note = g.Key.Note,
@@ -1025,6 +1026,7 @@ namespace PosSystem.Main
                         })
                         // --- [SỬA ĐỔI QUAN TRỌNG: LOGIC SẮP XẾP] ---
                         .OrderByDescending(vm => vm.ItemStatus == "New")
+                        .ThenByDescending(vm => vm.SortTime)
                         .ThenByDescending(vm => vm.KitchenBatch)
                         .ThenBy(vm => vm.DishName)
                         .ToList();
@@ -1377,6 +1379,7 @@ namespace PosSystem.Main
                                 DishName = g.First().Dish != null ? g.First().Dish.DishName : "Unknown",
                                 UnitPrice = g.First().UnitPrice,
                                 DiscountRate = g.First().DiscountRate,
+                                SortTime = g.Max(x => x.ItemOrderTime),
                                 ItemStatus = g.Key.GroupStatus == "New" ? "New" : (g.Sum(x => x.Quantity) < g.Sum(x => x.PrintedQuantity) ? "Modified" : "Sent"),
                                 Note = g.Key.Note,
                                 Quantity = g.Sum(x => x.Quantity),
@@ -1387,6 +1390,7 @@ namespace PosSystem.Main
                                 RowColor = g.Sum(x => x.Quantity) == 0 ? "#FFCCCC" : (g.Key.GroupStatus == "New" ? "#FFF3CD" : (g.Sum(x => x.Quantity) < g.Sum(x => x.PrintedQuantity) ? "#FFF3CD" : "#D4EDDA"))
                             })
                             .OrderByDescending(vm => vm.ItemStatus == "New")
+                            .ThenByDescending(vm => vm.SortTime)
                             .ThenByDescending(vm => vm.KitchenBatch)
                             .ThenBy(vm => vm.DishName)
                             .ToList();
@@ -1512,6 +1516,8 @@ namespace PosSystem.Main
                     existingDetail.UnitPrice = currentPrice;
                     existingDetail.Quantity++;
                     existingDetail.TotalAmount = existingDetail.Quantity * existingDetail.UnitPrice;
+                    // Update order time so newest selection stays on top
+                    existingDetail.ItemOrderTime = DateTime.Now;
                 }
                 else
                 {
@@ -1594,6 +1600,7 @@ namespace PosSystem.Main
                         // Món đang chờ (New) -> Tăng số lượng bình thường
                         detail.Quantity++;
                         detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100);
+                        detail.ItemOrderTime = DateTime.Now;
                         db.SaveChanges();
                         RecalculateOrder(db, detail.OrderID);
                         LoadOrderDetails(_selectedTableId);
@@ -3122,6 +3129,7 @@ namespace PosSystem.Main
         public decimal DiscountRate { get; set; }
         public string ItemStatus { get; set; } = "";
         public int KitchenBatch { get; set; }
+        public DateTime SortTime { get; set; }
         // Ghi chú (Cho phép sửa đổi)
         public string Note { get; set; } = "";
 
