@@ -2062,6 +2062,7 @@ namespace PosSystem.Main
                             _ = LoadTablesAsync();
                             _ = LoadOrderDetailsAsync(_selectedTableId);
                             ShowToast("✅ Đã hủy món & Trả bàn trống");
+                            BtnBackToTables_Click(null, null);
                         }));
                     }
                     else
@@ -2070,6 +2071,7 @@ namespace PosSystem.Main
                         {
                             _ = LoadOrderDetailsAsync(_selectedTableId);
                             ShowToast($"✅ Đã gửi Đợt {nextBatch}!");
+                            BtnBackToTables_Click(null, null);
                         }));
                     }
                 }
