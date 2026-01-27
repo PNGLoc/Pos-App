@@ -199,8 +199,8 @@ namespace PosSystem.Main.Helpers
         public void LineUp() => SetVerticalOffset(VerticalOffset - ItemHeight);
         public void PageDown() => SetVerticalOffset(VerticalOffset + ViewportHeight);
         public void PageUp() => SetVerticalOffset(VerticalOffset - ViewportHeight);
-        public void MouseWheelDown() => SetVerticalOffset(VerticalOffset + (ItemHeight * 3));
-        public void MouseWheelUp() => SetVerticalOffset(VerticalOffset - (ItemHeight * 3));
+        public void MouseWheelDown() => SetVerticalOffset(VerticalOffset + (ItemHeight * 1));
+        public void MouseWheelUp() => SetVerticalOffset(VerticalOffset - (ItemHeight * 1));
 
         public void LineLeft() { }
         public void LineRight() { }
