@@ -47,7 +47,7 @@
                                      Value="True">
                                 <Setter TargetName="border"
                                         Property="Background"
-                                        Value="#28A745"/>
+                                        Value="#47a67f"/>
                                 <Setter TargetName="txtStatus"
                                         Property="Text"
                                         Value="In Bill: Bật"/>
@@ -192,7 +192,7 @@
                         <Button Content="🚪 ĐĂNG XUẤT"
                                 Click="BtnLogout_Click"
                                 Height="35"
-                                Background="#DC3545"
+                                Background="#6c757d"
                                 Foreground="White"
                                 Padding="15,0"
                                 BorderThickness="0"
@@ -209,7 +209,7 @@
                                 Content="⚙ ADMIN"
                                 Click="BtnBackToAdmin_Click"
                                 Height="35"
-                                Background="#343A40"
+                                Background="#6c757d"
                                 Foreground="White"
                                 Padding="15,0"
                                 BorderThickness="0"
@@ -227,7 +227,7 @@
                         <Button Content="💸 NHẬP CHI"
                                 Click="BtnExpense_Click"
                                 Height="35"
-                                Background="#E74C3C"
+                                Background="#47a67f"
                                 Foreground="White"
                                 Padding="15,0"
                                 BorderThickness="0"
@@ -244,7 +244,7 @@
                         <Button Content="📜 LỊCH SỬ"
                                 Click="BtnHistory_Click"
                                 Height="35"
-                                Background="#17A2B8"
+                                Background="#47a67f"
                                 Foreground="White"
                                 Padding="15,0"
                                 BorderThickness="0"
@@ -920,7 +920,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="48"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -1085,58 +1085,51 @@
 
                     <Grid Grid.Row="1"
                           Background="#007BFF">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0"
-                                    Orientation="Vertical"
-                                    VerticalAlignment="Center"
-                                    Margin="15,0,0,0">
+
+                        <Grid Grid.Row="0"
+                              Grid.Column="0"
+                              Grid.ColumnSpan="4"
+                              Margin="15,6,15,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
                             <TextBlock x:Name="lblSelectedTable"
+                                       Grid.Column="0"
                                        Text="Chưa chọn bàn"
                                        Foreground="White"
                                        FontWeight="Bold"
-                                       FontSize="18"
+                                       FontSize="20"
                                        HorizontalAlignment="Left"/>
                             <TextBlock x:Name="lblTableTime"
+                                       Grid.Column="1"
                                        Text=""
                                        Foreground="#FFEB3B"
-                                       FontSize="12"
+                                       FontSize="16"
                                        FontWeight="Bold"
-                                       HorizontalAlignment="Left"
-                                       Margin="0,2,0,0"/>
-                        </StackPanel>
-                        <Button Grid.Column="2"
+                                       HorizontalAlignment="Right"/>
+                        </Grid>
+
+                        <Button Grid.Row="1"
+                                Grid.Column="1"
                                 x:Name="btnSplitTable"
                                 Content="📤 Tách bàn"
                                 Click="BtnSplitTable_Click"
-                                Background="#FFC107"
-                                Foreground="Black"
-                                Height="32"
-                                Width="120"
-                                Margin="5,8"
-                                FontWeight="Bold"
-                                BorderThickness="0">
-                            <Button.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius"
-                                            Value="4"/>
-                                </Style>
-                            </Button.Resources>
-                        </Button>
-                        <Button Grid.Column="3"
-                                x:Name="btnMoveTable"
-                                Content="🔄 Chuyển bàn"
-                                Click="BtnMoveTable_Click"
-                                Background="#28A745"
+                                Background="#47a67f"
                                 Foreground="White"
                                 Height="32"
                                 Width="120"
-                                Margin="5,8"
+                                Margin="5,6"
                                 FontWeight="Bold"
                                 BorderThickness="0">
                             <Button.Resources>
@@ -1146,16 +1139,36 @@
                                 </Style>
                             </Button.Resources>
                         </Button>
-                        <Button Grid.Column="4"
+                        <Button Grid.Row="1"
+                                Grid.Column="2"
+                                x:Name="btnMoveTable"
+                                Content="🔄 Chuyển bàn"
+                                Click="BtnMoveTable_Click"
+                                Background="#47a67f"
+                                Foreground="White"
+                                Height="32"
+                                Width="120"
+                                Margin="5,6"
+                                FontWeight="Bold"
+                                BorderThickness="0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius"
+                                            Value="4"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                        <Button Grid.Row="1"
+                                Grid.Column="3"
                                 x:Name="btnReprintKitchen"
                                 Visibility="Collapsed"
                                 Content="🖨 In lại bếp"
                                 Click="BtnReprint_Click"
-                                Background="#6F42C1"
+                                Background="#47a67f"
                                 Foreground="White"
                                 Height="32"
                                 Width="110"
-                                Margin="5,8,15,8"
+                                Margin="5,6,15,6"
                                 FontWeight="Bold"
                                 BorderThickness="0">
                             <Button.Resources>
