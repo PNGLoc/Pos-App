@@ -663,7 +663,13 @@ namespace PosSystem.Main
                 }
 
                 UpdateDishListDisplay();
-            }), DispatcherPriority.Loaded);
+
+                if (txtDishSearch != null)
+                {
+                    txtDishSearch.Focus();
+                    Keyboard.Focus(txtDishSearch);
+                }
+            }), DispatcherPriority.Input);
 
             // Show split and move buttons when selecting a table
             btnSplitTable.Visibility = Visibility.Visible;
