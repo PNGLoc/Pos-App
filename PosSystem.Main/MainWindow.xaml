@@ -488,8 +488,8 @@
                                  VirtualizingPanel.ScrollUnit="Pixel">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <helpers:VirtualizingWrapPanel ItemWidth="200"
-                                                                   ItemHeight="150"/>
+                                    <helpers:VirtualizingWrapPanel ItemWidth="220"
+                                                                   ItemHeight="170"/>
                                 </ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
                             <ListBox.ItemContainerStyle>
@@ -512,8 +512,8 @@
                             </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Width="180"
-                                            Height="130"
+                                    <Border Width="200"
+                                            Height="150"
                                             Margin="10"
                                             CornerRadius="12"
                                             Cursor="Hand">
@@ -541,23 +541,16 @@
                                                         </Setter>
                                                     </Trigger>
 
+                                                    <DataTrigger Binding="{Binding HasUnsentItems}"
+                                                                 Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="#FFF4B5"/>
+                                                    </DataTrigger>
+
                                                     <DataTrigger Binding="{Binding IsRequestingPayment}"
                                                                  Value="True">
-                                                        <Setter Property="BorderBrush"
-                                                                Value="#FFC107"/>
-                                                        <Setter Property="BorderThickness"
-                                                                Value="5"/>
-
-                                                        <DataTrigger.EnterActions>
-                                                            <BeginStoryboard>
-                                                                <Storyboard RepeatBehavior="Forever"
-                                                                            AutoReverse="True">
-                                                                    <ColorAnimation Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                                                    To="#FF5722"
-                                                                                    Duration="0:0:0.4"/>
-                                                                </Storyboard>
-                                                            </BeginStoryboard>
-                                                        </DataTrigger.EnterActions>
+                                                        <Setter Property="Background"
+                                                                Value="#A7D3F5"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -582,12 +575,19 @@
                                                            TextAlignment="Center"
                                                            TextWrapping="Wrap"
                                                            TextTrimming="None"
-                                                           MaxWidth="165"/>
+                                                           MaxWidth="185"/>
                                                 <TextBlock Text="{Binding TimeDisplay}"
                                                            Foreground="{Binding TextBrush}"
                                                            FontSize="16"
                                                            TextAlignment="Center"
                                                            Margin="0,4,0,0"/>
+                                                <TextBlock Text="{Binding TotalAmountDisplay}"
+                                                           Foreground="{Binding TextBrush}"
+                                                           FontSize="17"
+                                                           FontWeight="SemiBold"
+                                                           TextAlignment="Center"
+                                                           Margin="0,4,0,0"
+                                                           Visibility="{Binding HasTotalAmount, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                             </StackPanel>
 
                                             <Border Background="White"

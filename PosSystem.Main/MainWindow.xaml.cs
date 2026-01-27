@@ -72,7 +72,7 @@ namespace PosSystem.Main
         public SolidColorBrush ColorBrush => IsGrayedOut
             ? new SolidColorBrush(Colors.Gray)
             : (TableStatus == "Occupied"
-                ? new SolidColorBrush(Color.FromRgb(232, 102, 102))
+                ? new SolidColorBrush(Color.FromRgb(240, 130, 130))
                 : new SolidColorBrush(Color.FromRgb(245, 246, 248)));
 
         public SolidColorBrush TextBrush => IsGrayedOut
@@ -98,6 +98,29 @@ namespace PosSystem.Main
         }
         public bool IsRequestingPayment { get; set; } = false;
         public bool HasProvisionalBill { get; set; } = false; // [NEW]
+        public bool HasUnsentItems { get; set; } = false;
+
+        private decimal _totalAmount;
+        public decimal TotalAmount
+        {
+            get => _totalAmount;
+            set
+            {
+                if (_totalAmount != value)
+                {
+                    _totalAmount = value;
+                    OnPropertyChanged(nameof(TotalAmount));
+                    OnPropertyChanged(nameof(TotalAmountDisplay));
+                    OnPropertyChanged(nameof(HasTotalAmount));
+                }
+            }
+        }
+
+        public string TotalAmountDisplay => (TableStatus == "Occupied" && TotalAmount > 0)
+            ? $"{TotalAmount:N0}đ"
+            : string.Empty;
+
+        public bool HasTotalAmount => TableStatus == "Occupied" && TotalAmount > 0;
     }
 
     public class CategoryViewModel { public int CategoryID { get; set; } public string CategoryName { get; set; } = ""; }
@@ -886,6 +909,16 @@ namespace PosSystem.Main
                             .Where(o => o.OrderStatus == "Pending")
                             .OrderByDescending(o => o.OrderTime)
                             .Select(o => new { o.OrderTime, o.IsPreCalculated, o.IsRequestingPayment })
+                            .FirstOrDefault(),
+                        PendingOrderTotal = t.Orders
+                            .Where(o => o.OrderStatus == "Pending")
+                            .OrderByDescending(o => o.OrderTime)
+                            .Select(o => o.FinalAmount)
+                            .FirstOrDefault(),
+                        PendingOrderHasUnsent = t.Orders
+                            .Where(o => o.OrderStatus == "Pending")
+                            .OrderByDescending(o => o.OrderTime)
+                            .Select(o => o.OrderDetails.Any(d => d.ItemStatus == "New" && d.Quantity > 0))
                             .FirstOrDefault()
                     });
 
@@ -918,7 +951,9 @@ namespace PosSystem.Main
                         IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId),
                         CategoryBorderBrush = ParseHexBrush(t.CategoryBorderColorHex, Color.FromRgb(208, 208, 208)),
                         CategoryIconGlyph = GetCategoryIconGlyph(t.CategoryIconClass),
-                        IsCategoryIconVisible = _showTableCardIcons
+                        IsCategoryIconVisible = _showTableCardIcons,
+                        TotalAmount = t.PendingOrderTotal,
+                        HasUnsentItems = t.PendingOrderHasUnsent
                     };
                 }).ToList();
 
@@ -1173,6 +1208,16 @@ namespace PosSystem.Main
                             .Where(o => o.OrderStatus == "Pending")
                             .OrderByDescending(o => o.OrderTime)
                             .Select(o => new { o.OrderTime, o.IsPreCalculated, o.IsRequestingPayment })
+                            .FirstOrDefault(),
+                        PendingOrderTotal = t.Orders
+                            .Where(o => o.OrderStatus == "Pending")
+                            .OrderByDescending(o => o.OrderTime)
+                            .Select(o => o.FinalAmount)
+                            .FirstOrDefault(),
+                        PendingOrderHasUnsent = t.Orders
+                            .Where(o => o.OrderStatus == "Pending")
+                            .OrderByDescending(o => o.OrderTime)
+                            .Select(o => o.OrderDetails.Any(d => d.ItemStatus == "New" && d.Quantity > 0))
                             .FirstOrDefault()
                     });
 
@@ -1205,7 +1250,9 @@ namespace PosSystem.Main
                         IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId),
                         CategoryBorderBrush = ParseHexBrush(t.CategoryBorderColorHex, Color.FromRgb(208, 208, 208)),
                         CategoryIconGlyph = GetCategoryIconGlyph(t.CategoryIconClass),
-                        IsCategoryIconVisible = _showTableCardIcons
+                        IsCategoryIconVisible = _showTableCardIcons,
+                        TotalAmount = t.PendingOrderTotal,
+                        HasUnsentItems = t.PendingOrderHasUnsent
                     };
                 }).ToList();
 
