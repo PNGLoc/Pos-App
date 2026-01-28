@@ -1090,7 +1090,7 @@
                     </Border>
 
                     <Grid Grid.Row="1"
-                          Background="#007BFF">
+                          Background="#6c757d">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -1105,7 +1105,7 @@
                         <Grid Grid.Row="0"
                               Grid.Column="0"
                               Grid.ColumnSpan="4"
-                              Margin="15,6,15,0">
+                              Margin="15,0,15,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -1135,7 +1135,7 @@
                                 Foreground="White"
                                 Height="32"
                                 Width="120"
-                                Margin="5,6"
+                                Margin="5,0"
                                 FontWeight="Bold"
                                 BorderThickness="0">
                             <Button.Resources>
@@ -1154,7 +1154,7 @@
                                 Foreground="White"
                                 Height="32"
                                 Width="120"
-                                Margin="5,6"
+                                Margin="5,0"
                                 FontWeight="Bold"
                                 BorderThickness="0">
                             <Button.Resources>
@@ -1174,7 +1174,7 @@
                                 Foreground="White"
                                 Height="32"
                                 Width="110"
-                                Margin="5,6,15,6"
+                                Margin="5,0,15,0"
                                 FontWeight="Bold"
                                 BorderThickness="0">
                             <Button.Resources>
@@ -1570,10 +1570,11 @@
                                             HorizontalAlignment="Left"
                                             Height="34"
                                             Padding="12,4"
-                                            Background="#0D6EFD"
+                                            Background="#47a67f"
                                             Foreground="White"
                                             FontWeight="SemiBold"
                                             BorderThickness="0"
+                                            IsEnabled="False"
                                             Click="BtnDiscountBill_Click">
                                         <Button.Resources>
                                             <Style TargetType="Border">
@@ -1587,10 +1588,12 @@
                                             HorizontalAlignment="Right">
                                     <StackPanel Orientation="Horizontal"
                                                 HorizontalAlignment="Right">
-                                        <TextBlock Text="Tổng (gốc): "/>
+                                        <TextBlock Text="Tổng (gốc): "
+                                        FontSize="14"/>
                                         <TextBlock x:Name="lblSubTotal"
                                                    Text="0đ"
-                                                   FontWeight="Bold"/>
+                                                   FontWeight="Bold"
+                                                   FontSize="14"/>
                                     </StackPanel>
 
                                     <!-- [NEW] Item Adjustments Display -->
@@ -1600,11 +1603,13 @@
                                                 Visibility="Collapsed">
                                         <TextBlock x:Name="lblAdjustmentTitle"
                                                    Text="Chênh lệch món: "
-                                                   Foreground="#FD7E14"/>
+                                                   Foreground="#FD7E14"
+                                                   FontSize="14"/>
                                         <TextBlock x:Name="lblAdjustment"
                                                    Text="+0đ"
                                                    FontWeight="Bold"
-                                                   Foreground="#FD7E14"/>
+                                                   Foreground="#FD7E14"
+                                                   FontSize="14"/>
                                     </StackPanel>
                                     <StackPanel x:Name="pnlDiscount"
                                                 Orientation="Horizontal"
@@ -1653,7 +1658,7 @@
                                             Content="🖨 IN TẠM TÍNH"
                                             Height="44"
                                             Margin="0,8,0,0"
-                                            Background="#17A2B8"
+                                            Background="#A7D3F5"
                                             Foreground="Black"
                                             FontSize="14"
                                             FontWeight="Bold"

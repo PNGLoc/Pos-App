@@ -937,7 +937,7 @@ namespace PosSystem.Main
             _isWaitingForTargetTable = false;
             _pendingSplitItems.Clear();
             _pendingSplitItems.Clear();
-            btnDiscountBill.Visibility = Visibility.Collapsed; // [FIX] Hide when returning to table list
+            // btnDiscountBill.Visibility = Visibility.Collapsed; // [REMOVED] Don't hide it
 
             // Reset move mode when returning to table list
             _isWaitingForMoveTargetTable = false;
@@ -945,6 +945,10 @@ namespace PosSystem.Main
             // Reset buttons và labels
             btnCheckout.IsEnabled = false;
             btnProvisional.IsEnabled = false;
+            btnDiscountBill.IsEnabled = false;
+            btnDiscountBill.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#E9ECEF"); // Gray
+            btnDiscountBill.Visibility = Visibility.Visible; // [FIX] Ensure it stays visible
+
             btnSendKitchen.IsEnabled = false;
             btnSendKitchen.Background = new SolidColorBrush(Color.FromRgb(108, 117, 125));  // Màu xám
             lblSubTotal.Text = "0đ";
@@ -1276,6 +1280,10 @@ namespace PosSystem.Main
 
                     btnCheckout.IsEnabled = hasValidItems;
                     btnProvisional.IsEnabled = hasValidItems;
+                    btnDiscountBill.IsEnabled = hasValidItems;
+                    btnDiscountBill.Background = hasValidItems ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#47a67f") // Green
+                                                               : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#E9ECEF"); // Gray
+
                     btnSendKitchen.IsEnabled = hasChanges;
                     btnSendKitchen.Content = hasChanges ? "🔔 GỬI BẾP (Cập nhật)" : "👨‍🍳 GỬI BẾP";
                     btnSendKitchen.Background = hasChanges ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#fff3cd")
@@ -1288,6 +1296,8 @@ namespace PosSystem.Main
                     lblTotal.Text = "0đ";
                     lblSubTotal.Text = "0đ";
                     pnlDiscount.Visibility = Visibility.Collapsed;
+                    btnDiscountBill.IsEnabled = false;
+                    btnDiscountBill.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#E9ECEF");
                     btnCheckout.IsEnabled = false;
                     btnProvisional.IsEnabled = false;
                     btnSendKitchen.IsEnabled = false;
