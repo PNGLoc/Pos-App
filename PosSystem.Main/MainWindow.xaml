@@ -544,7 +544,7 @@
                                                     <DataTrigger Binding="{Binding HasUnsentItems}"
                                                                  Value="True">
                                                         <Setter Property="Background"
-                                                                Value="#FFF4B5"/>
+                                                                Value="#fff3cd"/>
                                                     </DataTrigger>
 
                                                     <DataTrigger Binding="{Binding IsRequestingPayment}"
