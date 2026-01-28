@@ -144,7 +144,7 @@
                 <RadioButton Content="⚙️ Cài đặt hệ thống"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
-                             Tag="NotificationSound"/>
+                             Tag="SystemSetting"/>
 
             </StackPanel>
         </Border>

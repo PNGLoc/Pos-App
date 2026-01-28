@@ -7,7 +7,7 @@ using PosSystem.Main.Models;
 
 namespace PosSystem.Main.Pages
 {
-    public partial class NotificationSoundSettingsPage : UserControl
+    public partial class SystemSettingPage : UserControl
     {
         private const string KeyEnabled = "notificationSoundEnabled";
         private const string KeyVolume = "notificationSoundVolume";
@@ -16,7 +16,7 @@ namespace PosSystem.Main.Pages
         private const string KeyAutoReturnProvisional = "autoReturnProvisional";
         private const string KeyAutoReturnKitchen = "autoReturnKitchen";
 
-        public NotificationSoundSettingsPage()
+        public SystemSettingPage()
         {
             InitializeComponent();
             LoadSettings();
