@@ -257,7 +257,8 @@ namespace PosSystem.Main
             _tableTimeTimer.Tick += TableTimeTimer_Tick;
 
             // Setup timer to refresh table list every second (for displaying elapsed times)
-            _tableListUpdateTimer.Interval = TimeSpan.FromSeconds(1);
+            // Setup timer to refresh table list every minute (as requested to reduce UI lag)
+            _tableListUpdateTimer.Interval = TimeSpan.FromMinutes(1);
             _tableListUpdateTimer.Tick += (s, e) => UpdateTableTimeDisplays();
             _tableListUpdateTimer.Start();
 
@@ -1056,9 +1057,11 @@ namespace PosSystem.Main
         private static string FormatElapsedTime(DateTime start)
         {
             var elapsed = DateTime.Now - start;
-            if (elapsed.TotalMinutes < 1) return $"{(int)elapsed.TotalSeconds}s";
-            if (elapsed.TotalHours < 1) return $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
-            return $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
+            if (elapsed.TotalMinutes < 60)
+            {
+                return $"{(int)elapsed.TotalMinutes} phút";
+            }
+            return $"{(int)elapsed.TotalHours} giờ {elapsed.Minutes} phút";
         }
 
         private static SolidColorBrush ParseHexBrush(string? hex, Color fallback)
