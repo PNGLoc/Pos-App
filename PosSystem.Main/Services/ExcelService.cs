@@ -118,17 +118,18 @@ namespace PosSystem.Main.Services
         /// <summary>
         /// Import dishes from Excel file
         /// </summary>
-        public static (int importedCount, List<string> errors) ImportDishesFromExcel(string filePath)
+        public static (int addedCount, int unchangedCount, List<string> errors) ImportDishesFromExcel(string filePath)
         {
             var errors = new List<string>();
-            int importedCount = 0;
+            int addedCount = 0;
+            int unchangedCount = 0;
 
             using (var package = new ExcelPackage(new FileInfo(filePath)))
             {
                 if (package.Workbook.Worksheets.Count == 0)
                 {
                     errors.Add("File không chứa dữ liệu");
-                    return (0, errors);
+                    return (0, 0, errors);
                 }
 
                 var worksheet = package.Workbook.Worksheets[0];
@@ -137,13 +138,14 @@ namespace PosSystem.Main.Services
                 if (rowCount < 2)
                 {
                     errors.Add("File không chứa dữ liệu hàng");
-                    return (0, errors);
+                    return (0, 0, errors);
                 }
 
                 using (var db = new AppDbContext())
                 {
                     var categories = db.Categories.ToList();
                     var existingDishes = db.Dishes.ToList();
+                    int nextCategoryOrderIndex = categories.Any() ? categories.Max(c => c.OrderIndex) + 1 : 1;
 
                     for (int row = 2; row <= rowCount; row++)
                     {
@@ -168,36 +170,51 @@ namespace PosSystem.Main.Services
                                 continue;
                             }
 
-                            // Find category
+                            // Find or create category
+                            if (string.IsNullOrWhiteSpace(categoryName))
+                            {
+                                errors.Add($"Dòng {row}: Danh mục không được để trống");
+                                continue;
+                            }
+
                             var category = categories.FirstOrDefault(c =>
                                 c.CategoryName.Equals(categoryName, StringComparison.OrdinalIgnoreCase));
 
-                            if (category == null && !string.IsNullOrEmpty(categoryName))
+                            if (category == null)
                             {
-                                errors.Add($"Dòng {row}: Danh mục '{categoryName}' không tồn tại");
-                                continue;
+                                category = new Category
+                                {
+                                    CategoryName = categoryName,
+                                    OrderIndex = nextCategoryOrderIndex++
+                                };
+                                db.Categories.Add(category);
+                                categories.Add(category);
                             }
 
-                            // Check if dish already exists
-                            if (existingDishes.Any(d => d.DishName.Equals(dishName, StringComparison.OrdinalIgnoreCase)))
+                             // Check if dish already exists
+                            var existingDish = existingDishes.FirstOrDefault(d => d.DishName.Equals(dishName, StringComparison.OrdinalIgnoreCase));
+                            
+                            if (existingDish != null)
                             {
-                                errors.Add($"Dòng {row}: Món '{dishName}' đã tồn tại");
-                                continue;
+                                // SKIP existing dish (Unchanged)
+                                unchangedCount++;
                             }
-
-                            // Create new dish
-                            var newDish = new Dish
+                            else
                             {
-                                DishName = dishName,
-                                CategoryID = category?.CategoryID ?? 0,
-                                Price = price,
-                                Unit = unit,
-                                DishStatus = status,
-                                ImagePath = "default.png"
-                            };
+                                // Create new dish
+                                var newDish = new Dish
+                                {
+                                    DishName = dishName,
+                                    Category = category,
+                                    Price = price,
+                                    Unit = unit,
+                                    DishStatus = status,
+                                    ImagePath = "default.png"
+                                };
 
-                            db.Dishes.Add(newDish);
-                            importedCount++;
+                                db.Dishes.Add(newDish);
+                                addedCount++;
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -212,12 +229,12 @@ namespace PosSystem.Main.Services
                     catch (Exception ex)
                     {
                         errors.Add($"Lỗi khi lưu dữ liệu: {ex.Message}");
-                        return (0, errors);
+                        return (0, 0, errors);
                     }
                 }
             }
 
-            return (importedCount, errors);
+            return (addedCount, unchangedCount, errors);
         }
         public static void ExportTimeLogs(List<TimeLog> logs, string filePath)
         {

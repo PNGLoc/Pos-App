@@ -125,7 +125,7 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="Employee"/>
-                <RadioButton Content="📂 Thực đơn / Danh mục"
+                <RadioButton Content="📂 Món ăn / Danh mục"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="Menu"/>

@@ -199,6 +199,35 @@
                                 </Button.Resources>
                             </Button>
 
+                            <Button Content="🗑️ XÓA TẤT CẢ"
+                                    Click="BtnDeleteAllDishes_Click"
+                                    Padding="15,0"
+                                    Height="32"
+                                    Background="#DC3545"
+                                    Foreground="White"
+                                    Margin="0,0,10,0"
+                                    BorderThickness="0"
+                                    Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius"
+                                                Value="4"/>
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+
+                            <!-- Category Filter -->
+                            <ComboBox x:Name="cboFilterCategory"
+                                      Width="180"
+                                      Height="32"
+                                      Margin="10,0,0,0"
+                                      DisplayMemberPath="CategoryName"
+                                      SelectedValuePath="CategoryID"
+                                      Padding="10,0"
+                                      VerticalContentAlignment="Center"
+                                      SelectionChanged="CboFilterCategory_SelectionChanged"
+                                      BorderBrush="#CED4DA"/>
+
                             <!-- Search Box -->
                             <Border BorderBrush="#CED4DA"
                                     BorderThickness="1"

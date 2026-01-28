@@ -50,6 +50,13 @@ namespace PosSystem.Main.Pages
                     var printers = db.Printers.Where(p => p.IsActive).ToList();
                     cboPrinters.ItemsSource = printers;
                     cboDishCat.ItemsSource = list;
+
+                    // [NEW] Load for Filter ComboBox
+                    var filterList = new System.Collections.Generic.List<Category>();
+                    filterList.Add(new Category { CategoryID = 0, CategoryName = "--- Tất cả danh mục ---" });
+                    filterList.AddRange(list);
+                    cboFilterCategory.ItemsSource = filterList;
+                    cboFilterCategory.SelectedIndex = 0; // Select "All" by default
                 }
             }
             catch { }
@@ -183,7 +190,7 @@ namespace PosSystem.Main.Pages
                 using (var db = new AppDbContext())
                 {
                     _allDishes = db.Dishes.Include(d => d.Category).ThenInclude(c => c.Printer).OrderBy(d => d.Category.OrderIndex).ThenBy(d => d.DishName).ToList();
-                    dgDishes.ItemsSource = _allDishes;
+                    FilterDishes();
                 }
             }
             catch { }
@@ -191,20 +198,40 @@ namespace PosSystem.Main.Pages
 
         private void TxtSearchDish_TextChanged(object sender, TextChangedEventArgs e)
         {
+            FilterDishes();
+        }
+
+        private void CboFilterCategory_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            FilterDishes();
+        }
+
+        private void FilterDishes()
+        {
             if (_allDishes == null) return;
-            string keyword = txtSearchDish.Text.Trim();
-            if (string.IsNullOrEmpty(keyword))
+
+            string keyword = txtSearchDish.Text?.Trim() ?? "";
+            string kwNoSign = RemoveDiacritics(keyword).ToLower();
+            int selectedCatId = (int?)cboFilterCategory.SelectedValue ?? 0;
+
+            var filtered = _allDishes.AsEnumerable();
+
+            // Filter by Category
+            if (selectedCatId > 0)
             {
-                dgDishes.ItemsSource = _allDishes;
+                filtered = filtered.Where(d => d.CategoryID == selectedCatId);
             }
-            else
+
+            // Filter by Keyword
+            if (!string.IsNullOrEmpty(keyword))
             {
-                string kwNoSign = RemoveDiacritics(keyword).ToLower();
-                dgDishes.ItemsSource = _allDishes.Where(d =>
+                filtered = filtered.Where(d =>
                     IsMatch(d.DishName, kwNoSign) ||
                     (d.Category != null && IsMatch(d.Category.CategoryName, kwNoSign))
-                ).ToList();
+                );
             }
+
+            dgDishes.ItemsSource = filtered.ToList();
         }
 
         private bool IsMatch(string source, string keywordNoSign)
@@ -291,6 +318,27 @@ namespace PosSystem.Main.Pages
                             LoadDishes();
                         }
                     }
+                }
+            }
+        }
+
+        private void BtnDeleteAllDishes_Click(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show("Bạn có chắc chắn muốn xóa TẤT CẢ món ăn?\nHành động này không thể hoàn tác!", "Cảnh báo dữ liệu", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    using (var db = new AppDbContext())
+                    {
+                        db.Dishes.RemoveRange(db.Dishes);
+                        db.SaveChanges();
+                    }
+                    LoadDishes();
+                    MessageBox.Show("Đã xóa toàn bộ món ăn thành công.");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi khi xóa dữ liệu: {ex.Message}");
                 }
             }
         }
@@ -599,10 +647,14 @@ namespace PosSystem.Main.Pages
             {
                 try
                 {
-                    var (importedCount, errors) = ExcelService.ImportDishesFromExcel(openDialog.FileName);
-                    if (importedCount > 0) LoadDishes();
+                    var (addedCount, unchangedCount, errors) = ExcelService.ImportDishesFromExcel(openDialog.FileName);
+                    if (addedCount > 0) 
+                    {
+                        LoadDishes();
+                        LoadCats(); // [NEW] Refresh categories because import might have created new ones
+                    }
 
-                    string msg = $"Nhập thành công {importedCount} món.";
+                    string msg = $"Import xong: {addedCount} món mới – {unchangedCount} món không thay đổi";
                     if (errors.Count > 0)
                     {
                         msg += $"\nCó {errors.Count} lỗi (xem chi tiết?)";
