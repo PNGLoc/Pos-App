@@ -141,7 +141,7 @@
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="ExpenseHistory"/>
-                <RadioButton Content="🔊 Âm thanh thông báo"
+                <RadioButton Content="⚙️ Cài đặt hệ thống"
                              Style="{StaticResource AdminMenuButton}"
                              Click="Menu_Click"
                              Tag="NotificationSound"/>

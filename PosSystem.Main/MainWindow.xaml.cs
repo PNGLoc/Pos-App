@@ -734,6 +734,7 @@ namespace PosSystem.Main
             lblSubTotal.Text = "0đ";
             lblTotal.Text = "0đ";
             pnlDiscount.Visibility = Visibility.Collapsed;
+            pnlAdjustment.Visibility = Visibility.Collapsed; // [FIX] Hide adjustment panel
 
             LoadTables();
             lstTables.SelectedItem = null;
