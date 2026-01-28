@@ -25,12 +25,16 @@ namespace PosSystem.Main.Helpers
 
         public static string ImagesDirLegacyPlural => Path.Combine(DataRoot, ImagesFolderNameLegacyPlural);
 
+        // [NEW] Audio Directory: <appRoot>/data/notifiaudio
+        public static string AudioDir => Path.Combine(DataRoot, "notifiaudio");
+
         public static void EnsureInitialized()
         {
             // Ensure data folders exist
             Directory.CreateDirectory(DataRoot);
             Directory.CreateDirectory(ImagesDir);
             Directory.CreateDirectory(ImagesDirLegacyPlural);
+            Directory.CreateDirectory(AudioDir); // [NEW]
         }
     }
 }

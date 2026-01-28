@@ -21,11 +21,11 @@
                 Margin="0,0,0,15"
                 CornerRadius="8">
             <StackPanel>
-                <TextBlock Text="ÂM THANH THÔNG BÁO"
+                <TextBlock Text="CÀI ĐẶT HỆ THỐNG"
                            FontSize="20"
                            FontWeight="Bold"
                            Foreground="#333"/>
-                <TextBlock Text="Bật/tắt và điều chỉnh âm lượng thông báo khi có hoạt động mới."
+                <TextBlock Text="Tùy chỉnh các thiết lập chung cho hệ thống POS."
                            FontSize="13"
                            Foreground="#666"
                            Margin="0,5,0,0"/>
@@ -38,6 +38,9 @@
                 Padding="20"
                 CornerRadius="8">
             <StackPanel>
+                <!-- Existing Sound Settings -->
+                <TextBlock Text="🔊 Âm thanh thông báo" FontWeight="Bold" Margin="0,0,0,10"/>
+                
                 <CheckBox x:Name="chkEnableSound"
                           Content="Bật âm thanh thông báo"
                           FontSize="14"
@@ -58,29 +61,64 @@
                             Width="260"
                             ValueChanged="SldVolume_ValueChanged"/>
                     <TextBlock x:Name="lblVolume"
-                               Margin="10,0,0,0"
+                               Margin="10,0,10,0"
+                               MinWidth="35"
                                VerticalAlignment="Center"
                                Foreground="#555"/>
+                    <Button Content="Nghe thử"
+                            Width="80"
+                            Height="30"
+                            Margin="0,0,10,0"
+                            Background="#6C757D"
+                            Foreground="White"
+                            FontWeight="Bold"
+                            Click="BtnTest_Click">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                    <Button Content="Chọn file..."
+                            Width="80"
+                            Height="30"
+                            Background="#17A2B8" 
+                            Foreground="White"
+                            FontWeight="Bold"
+                            Click="BtnUpload_Click">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
                 </StackPanel>
+
+                <!-- New Section for General Settings -->
+                <Separator Margin="0,20" Background="#EEE"/>
+                <TextBlock Text="⚙️ Cài đặt chung" FontWeight="Bold" Margin="0,0,0,10"/>
+
+                <CheckBox x:Name="chkAutoReturnPay"
+                          Content="Tự động quay về sau khi Thanh toán"
+                          FontSize="14"
+                          FontWeight="SemiBold"
+                          Margin="0,0,0,10"/>
+
+                <CheckBox x:Name="chkAutoReturnProvisional"
+                          Content="Tự động quay về sau khi In tạm tính"
+                          FontSize="14"
+                          FontWeight="SemiBold"
+                          Margin="0,0,0,10"/>
+
+                <CheckBox x:Name="chkAutoReturnKitchen"
+                          Content="Tự động quay về sau khi Gửi bếp"
+                          FontSize="14"
+                          FontWeight="SemiBold"
+                          Margin="0,0,0,15"/>
 
                 <StackPanel Orientation="Horizontal"
                             Margin="0,20,0,0"
                             HorizontalAlignment="Right">
-                    <Button Content="Nghe thử"
-                            Width="110"
-                            Height="35"
-                            Background="#6C757D"
-                            Foreground="White"
-                            FontWeight="Bold"
-                            Margin="0,0,10,0"
-                            Click="BtnTest_Click">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius"
-                                        Value="5"/>
-                            </Style>
-                        </Button.Resources>
-                    </Button>
                     <Button Content="Lưu lại"
                             Width="120"
                             Height="35"

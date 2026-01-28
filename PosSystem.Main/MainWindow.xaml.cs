@@ -187,6 +187,7 @@ namespace PosSystem.Main
     {
         private const string TableSearchPlaceholder = "Tìm bàn";
         private static SoundPlayer? _notificationPlayer;
+        private static MediaPlayer? _mediaPlayer = new MediaPlayer(); // [NEW] MP3 Player
         private static MemoryStream? _notificationStream;
         private static bool _notificationSoundEnabled = true;
         private static int _notificationSoundVolume = 25;
@@ -194,6 +195,10 @@ namespace PosSystem.Main
         private static DateTime _notificationSettingsLastRead = DateTime.MinValue;
         private static DateTime _lastNotificationSoundAt = DateTime.MinValue;
         private static bool _showTableCardIcons = true;
+        // [NEW] 3 separate settings (Default: false)
+        private static bool _autoReturnPay = false;
+        private static bool _autoReturnProvisional = false;
+        private static bool _autoReturnKitchen = false;
         private HubConnection _connection = default!;
         private int _selectedTableId = 0;
         private int? _selectedCategoryId = null; // Filter by CategoryID
@@ -401,6 +406,50 @@ namespace PosSystem.Main
             }
             _lastNotificationSoundAt = DateTime.Now;
 
+            try
+            {
+                // [MODIFIED] Use AppPaths.AudioDir
+                string audioDir = PosSystem.Main.Helpers.AppPaths.AudioDir;
+                string wavPath = System.IO.Path.Combine(audioDir, "notification.wav");
+                string mp3Path = System.IO.Path.Combine(audioDir, "notification.mp3");
+                // [NEW] Asset Path (Bundled with Exe)
+                string assetPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "notification.wav");
+
+                // [PRIORITY 1] Check for notification.wav (User Custom)
+                if (System.IO.File.Exists(wavPath))
+                {
+                    // [MODIFIED] Use Boosted Playback
+                    PlayCustomWavWithGain(wavPath, _notificationSoundVolume);
+                    return;
+                }
+
+                // [PRIORITY 2] Check for notification.mp3 (User Custom)
+                if (System.IO.File.Exists(mp3Path))
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        try
+                        {
+                            if (_mediaPlayer == null) _mediaPlayer = new MediaPlayer();
+                            _mediaPlayer.Open(new Uri(mp3Path));
+                            _mediaPlayer.Volume = Math.Clamp(_notificationSoundVolume, 0, 100) / 100.0;
+                            _mediaPlayer.Play();
+                        }
+                        catch { }
+                    });
+                    return;
+                }
+
+                // [PRIORITY 3] Check for Bundled Asset (Installer provided)
+                if (System.IO.File.Exists(assetPath))
+                {
+                    PlayCustomWavWithGain(assetPath, _notificationSoundVolume);
+                    return;
+                }
+            }
+            catch { }
+
+            // [FALLBACK] Use internal Tink sound
             EnsureNotificationPlayer();
             _notificationPlayer?.Play();
         }
@@ -415,6 +464,46 @@ namespace PosSystem.Main
             if (!enabled || volumePercent <= 0) return;
             try
             {
+                // [MODIFIED] Use AppPaths.AudioDir
+                string audioDir = PosSystem.Main.Helpers.AppPaths.AudioDir;
+                string wavPath = System.IO.Path.Combine(audioDir, "notification.wav");
+                string mp3Path = System.IO.Path.Combine(audioDir, "notification.mp3");
+                // [NEW] Asset Path
+                string assetPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "notification.wav");
+
+                // [PRIORITY 1] Check for notification.wav
+                if (System.IO.File.Exists(wavPath))
+                {
+                     // [MODIFIED] Use Boosted Playback
+                    PlayCustomWavWithGain(wavPath, volumePercent);
+                    return;
+                }
+
+                // [PRIORITY 2] Check for notification.mp3
+                if (System.IO.File.Exists(mp3Path))
+                {
+                   Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        try
+                        {
+                            if (_mediaPlayer == null) _mediaPlayer = new MediaPlayer();
+                            _mediaPlayer.Open(new Uri(mp3Path));
+                            _mediaPlayer.Volume = Math.Clamp(volumePercent, 0, 100) / 100.0;
+                            _mediaPlayer.Play();
+                        }
+                        catch { }
+                    });
+                    return;
+                }
+
+                // [PRIORITY 3] Check for Bundled Asset
+                if (System.IO.File.Exists(assetPath))
+                {
+                    PlayCustomWavWithGain(assetPath, volumePercent);
+                    return;
+                }
+
+                // [FALLBACK]
                 var wav = BuildNotificationWav(Math.Clamp(volumePercent, 0, 100));
                 using var ms = new MemoryStream(wav);
                 using var player = new SoundPlayer(ms);
@@ -426,12 +515,21 @@ namespace PosSystem.Main
 
         public static void ReloadNotificationSoundSettings()
         {
+            ReloadSystemSettings();
+        }
+
+        public static void ReloadSystemSettings()
+        {
             try
             {
                 using (var db = new AppDbContext())
                 {
                     var enabledSetting = db.GlobalSettings.FirstOrDefault(s => s.Key == "notificationSoundEnabled");
                     var volumeSetting = db.GlobalSettings.FirstOrDefault(s => s.Key == "notificationSoundVolume");
+                    
+                    var autoReturnPay = db.GlobalSettings.FirstOrDefault(s => s.Key == "autoReturnPay");
+                    var autoReturnProvisional = db.GlobalSettings.FirstOrDefault(s => s.Key == "autoReturnProvisional");
+                    var autoReturnKitchen = db.GlobalSettings.FirstOrDefault(s => s.Key == "autoReturnKitchen");
 
                     _notificationSoundEnabled = enabledSetting == null || enabledSetting.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
                     if (volumeSetting != null && int.TryParse(volumeSetting.Value, out var v))
@@ -442,12 +540,20 @@ namespace PosSystem.Main
                     {
                         _notificationSoundVolume = 25;
                     }
+
+                    // [NEW] Load 3 AutoReturn Settings
+                    _autoReturnPay = autoReturnPay != null && autoReturnPay.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    _autoReturnProvisional = autoReturnProvisional != null && autoReturnProvisional.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    _autoReturnKitchen = autoReturnKitchen != null && autoReturnKitchen.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
                 }
             }
             catch
             {
                 _notificationSoundEnabled = true;
                 _notificationSoundVolume = 25;
+                _autoReturnPay = false;
+                _autoReturnProvisional = false;
+                _autoReturnKitchen = false;
             }
 
             if (!_notificationSoundEnabled || _notificationSoundVolume <= 0)
@@ -459,42 +565,150 @@ namespace PosSystem.Main
 
         private static byte[] BuildNotificationWav(int volumePercent)
         {
-            const int sampleRate = 8000;
-            const double durationSeconds = 0.08;
-            const double frequency = 660.0;
+            // [MODIFIED] "Hyper" Sound Generation - Square Wave for Max Energy
+            const int sampleRate = 44100;
+            const double durationSeconds = 1.0; // Long duration
+            const double frequency = 2000.0; // High sensitivity range
+            
             double volume = Math.Clamp(volumePercent, 0, 100) / 100.0;
-            double amplitude = 40.0 * Math.Pow(volume, 1.1);
-            if (amplitude < 2.0) amplitude = 2.0;
+            double maxAmplitude = 32000.0 * volume; 
 
             int sampleCount = (int)(sampleRate * durationSeconds);
-            byte[] data = new byte[sampleCount];
-
-            for (int i = 0; i < sampleCount; i++)
-            {
-                double t = (double)i / sampleRate;
-                double sample = 128 + amplitude * Math.Sin(2 * Math.PI * frequency * t);
-                data[i] = (byte)Math.Clamp((int)Math.Round(sample), 0, 255);
-            }
-
+            
             using var ms = new MemoryStream();
             using var bw = new BinaryWriter(ms);
 
             bw.Write(Encoding.ASCII.GetBytes("RIFF"));
-            bw.Write(36 + data.Length);
+            bw.Write(36 + sampleCount * 2); 
             bw.Write(Encoding.ASCII.GetBytes("WAVE"));
             bw.Write(Encoding.ASCII.GetBytes("fmt "));
             bw.Write(16);
-            bw.Write((short)1); // PCM
-            bw.Write((short)1); // mono
+            bw.Write((short)1); 
+            bw.Write((short)1); 
             bw.Write(sampleRate);
-            bw.Write(sampleRate); // byte rate (8-bit mono)
-            bw.Write((short)1); // block align
-            bw.Write((short)8); // bits per sample
+            bw.Write(sampleRate * 2); 
+            bw.Write((short)2); 
+            bw.Write((short)16); 
             bw.Write(Encoding.ASCII.GetBytes("data"));
-            bw.Write(data.Length);
-            bw.Write(data);
+            bw.Write(sampleCount * 2); 
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                double t = (double)i / sampleRate;
+                
+                // Delayed Decay: Hold max volume for 0.15s before fading
+                double decay = 1.0;
+                if (t > 0.15) 
+                {
+                    decay = Math.Exp(-4.0 * (t - 0.15));
+                }
+
+                // Square Wave logic: Math.Sign(Sin)
+                // This maximizes the area under the curve (Energy)
+                double sine = Math.Sin(2 * Math.PI * frequency * t);
+                double square = sine >= 0 ? 1.0 : -1.0;
+
+                // Mix: 60% Square (Loudness) + 40% Sine (Tone)
+                // Plus a high-frequency alternating "click" for attack
+                double wave = (0.6 * square) + (0.4 * sine);
+                
+                double sample = wave * maxAmplitude * decay;
+
+                bw.Write((short)Math.Clamp((int)sample, -32768, 32767));
+            }
 
             return ms.ToArray();
+        } 
+
+        private static void PlayCustomWavWithGain(string filePath, int volumePercent)
+        {
+            try
+            {
+                byte[] fileBytes = System.IO.File.ReadAllBytes(filePath);
+                
+                // Simple WAV parsing
+                // Header is 44 bytes minimum. 
+                // We need to find "fmt " to get BitsPerSample
+                // We need to find "data" to get AudioData
+                
+                // Helper to find chunk
+                int FindChunk(byte[] src, string chunkName, int startObj)
+                {
+                    byte[] chunkTag = Encoding.ASCII.GetBytes(chunkName);
+                    for (int i = startObj; i < src.Length - 4; i++)
+                    {
+                        if (src[i] == chunkTag[0] && src[i + 1] == chunkTag[1] && src[i + 2] == chunkTag[2] && src[i + 3] == chunkTag[3])
+                            return i;
+                    }
+                    return -1;
+                }
+
+                // 1. Find fmt chunk
+                int fmtIdx = FindChunk(fileBytes, "fmt ", 12);
+                if (fmtIdx == -1) throw new Exception("No fmt chunk");
+                
+                // BitsPerSample is at fmtIdx + 8 (chunk size) + 2 (format) + 2 (channels) + 4 (sample rate) + 4 (byte rate) + 2 (block align)
+                // Offset 22 from Chunk Tag start?
+                // fmt tag (4) + size (4) + format tag (2) + channels (2) + samplerate (4) + byterate (4) + blockalign (2) + BitsPerSample (2)
+                int bitsPerSampleIdx = fmtIdx + 8 + 2 + 2 + 4 + 4 + 2; 
+                short bitsPerSample = BitConverter.ToInt16(fileBytes, bitsPerSampleIdx);
+
+                // 2. Find data chunk
+                int dataIdx = FindChunk(fileBytes, "data", 12);
+                if (dataIdx == -1) throw new Exception("No data chunk");
+
+                int dataSize = BitConverter.ToInt32(fileBytes, dataIdx + 4);
+                int dataStart = dataIdx + 8;
+                
+                // 3. Apply Gain
+                // User wants "Louder" than max. Max slider (100) = 300% Gain.
+                double gain = (volumePercent / 100.0) * 3.0f; // Boost up to 3x
+
+                // Process in-memory (Copy first)
+                byte[] newBytes = new byte[fileBytes.Length];
+                Array.Copy(fileBytes, newBytes, fileBytes.Length);
+
+                if (bitsPerSample == 16)
+                {
+                    for (int i = dataStart; i < dataStart + dataSize; i += 2)
+                    {
+                        if (i + 1 >= newBytes.Length) break;
+                        short sample = BitConverter.ToInt16(newBytes, i);
+                        int newSample = (int)(sample * gain);
+                        short clamped = (short)Math.Clamp(newSample, -32768, 32767);
+                        newBytes[i] = (byte)(clamped & 0xFF);
+                        newBytes[i + 1] = (byte)((clamped >> 8) & 0xFF);
+                    }
+                }
+                else if (bitsPerSample == 8)
+                {
+                    for (int i = dataStart; i < dataStart + dataSize; i++)
+                    {
+                        // 8-bit is unsigned 0..255, center 128
+                        int sample = newBytes[i] - 128;
+                        int newSample = (int)(sample * gain);
+                        byte clamped = (byte)Math.Clamp(newSample + 128, 0, 255);
+                        newBytes[i] = clamped;
+                    }
+                }
+
+                // 4. Play
+                using var ms = new MemoryStream(newBytes);
+                using var player = new SoundPlayer(ms);
+                player.Load();
+                player.PlaySync();
+            }
+            catch (Exception)
+            {
+                // Fallback if parsing fails: Use standard MediaPlayer without boost
+                 Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (_mediaPlayer == null) _mediaPlayer = new MediaPlayer();
+                    _mediaPlayer.Open(new Uri(filePath));
+                    _mediaPlayer.Volume = Math.Clamp(volumePercent, 0, 100) / 100.0;
+                    _mediaPlayer.Play();
+                });
+            }
         }
 
         private void AppendActivityLog(string message)
@@ -1914,7 +2128,7 @@ namespace PosSystem.Main
                             _ = LoadTablesAsync();
                             _ = LoadOrderDetailsAsync(_selectedTableId);
                             ShowToast("✅ Đã hủy món & Trả bàn trống");
-                            BtnBackToTables_Click(null, null);
+                            if (_autoReturnKitchen) BtnBackToTables_Click(null, null);
                         }));
                     }
                     else
@@ -1923,7 +2137,7 @@ namespace PosSystem.Main
                         {
                             _ = LoadOrderDetailsAsync(_selectedTableId);
                             ShowToast($"✅ Đã gửi Đợt {nextBatch}!");
-                            BtnBackToTables_Click(null, null);
+                            if (_autoReturnKitchen) BtnBackToTables_Click(null, null);
                         }));
                     }
                 }
@@ -2202,6 +2416,14 @@ namespace PosSystem.Main
             PrintService.PrintBill(orderId, isProvisional: true);
             ShowToast("🧾 Đã in tạm tính thành công!");
             NotifyTableUpdated(_selectedTableId);
+
+            NotifyTableUpdated(_selectedTableId);
+
+            // [NEW] Check Auto Return (Provisional)
+            if (_autoReturnProvisional)
+            {
+                BtnBackToTables_Click(null, null);
+            }
         }
 
         private void btnCheckout_Click(object sender, RoutedEventArgs e)
@@ -2260,8 +2482,12 @@ namespace PosSystem.Main
                 _tableTimeTimer.Stop();
 
                 LoadTables();
-                // [MODIFIED] Return to Table List after Payment
-                BtnBackToTables_Click(null, null);
+                LoadTables();
+                // [MODIFIED] Return to Table List after Payment (ONLY IF SETTING IS ON)
+                if (_autoReturnPay)
+                {
+                    BtnBackToTables_Click(null, null);
+                }
             }
             else if (payWindow.IsProvisionalSuccess)
             {

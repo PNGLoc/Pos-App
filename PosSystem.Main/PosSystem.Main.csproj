@@ -44,5 +44,9 @@
     <None Include="Assets\app.ico" Condition="Exists('Assets\\app.ico')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- [NEW] Bundle Default Notification Sound -->
+    <Content Include="Assets\notification.wav" Condition="Exists('Assets\\notification.wav')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>
