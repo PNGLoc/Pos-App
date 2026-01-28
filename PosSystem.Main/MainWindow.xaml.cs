@@ -252,8 +252,8 @@ namespace PosSystem.Main
             if (UserSession.IsLoggedIn) lblStaffName.Text = UserSession.AccName;
             if (UserSession.IsLoggedIn && UserSession.AccRole == "Admin") btnBackToAdmin.Visibility = Visibility.Visible;
 
-            // Setup timer to update table time every second
-            _tableTimeTimer.Interval = TimeSpan.FromSeconds(1);
+            // Setup timer to update table time every minute (reduce lag)
+            _tableTimeTimer.Interval = TimeSpan.FromMinutes(1);
             _tableTimeTimer.Tick += TableTimeTimer_Tick;
 
             // Setup timer to refresh table list every second (for displaying elapsed times)
@@ -909,6 +909,7 @@ namespace PosSystem.Main
                     // [MODIFIED] Use OrderTime (Creation Time) immediately
                     _currentOrderTime = order.OrderTime;
                     _tableTimeTimer.Start();
+                    TableTimeTimer_Tick(null, null); // [FIX] Update UI immediately
                 }
             }
 
@@ -3118,12 +3119,14 @@ namespace PosSystem.Main
             if (_currentOrderTime.HasValue)
             {
                 var elapsed = DateTime.Now - _currentOrderTime.Value;
-                if (elapsed.TotalMinutes < 1)
-                    lblTableTime.Text = $"{(int)elapsed.TotalSeconds}s";
-                else if (elapsed.TotalHours < 1)
-                    lblTableTime.Text = $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
+                if (elapsed.TotalMinutes < 60)
+                {
+                    lblTableTime.Text = $"{(int)elapsed.TotalMinutes} phút";
+                }
                 else
-                    lblTableTime.Text = $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
+                {
+                    lblTableTime.Text = $"{(int)elapsed.TotalHours} giờ {elapsed.Minutes} phút";
+                }
             }
         }
         private void BtnTimeKeeping_Click(object sender, RoutedEventArgs e)
