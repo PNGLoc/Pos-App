@@ -1037,13 +1037,13 @@ namespace PosSystem.Main
                 pnlAdjustment.Visibility = Visibility.Visible;
                 if (adjustment > 0)
                 {
-                    lblAdjustmentTitle.Text = "Đã bao gồm tăng giá món: ";
+                    lblAdjustmentTitle.Text = "Tăng giá món: ";
                     lblAdjustment.Text = $"+{adjustment:N0}đ";
                     lblAdjustment.Foreground = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14"); // Orange
                 }
                 else
                 {
-                    lblAdjustmentTitle.Text = "Đã bao gồm giảm giá món: ";
+                    lblAdjustmentTitle.Text = "Giảm giá món: ";
                     lblAdjustment.Text = $"{adjustment:N0}đ";
                     lblAdjustment.Foreground = System.Windows.Media.Brushes.Red;
                 }
@@ -1662,13 +1662,13 @@ namespace PosSystem.Main
                         pnlAdjustment.Visibility = Visibility.Visible;
                         if (adjustment > 0)
                         {
-                            lblAdjustmentTitle.Text = "Đã bao gồm tăng giá món: ";
+                            lblAdjustmentTitle.Text = "Tăng giá món: ";
                             lblAdjustment.Text = $"+{adjustment:N0}đ";
                             lblAdjustment.Foreground = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14");
                         }
                         else
                         {
-                            lblAdjustmentTitle.Text = "Đã bao gồm giảm giá món: ";
+                            lblAdjustmentTitle.Text = "Giảm giá món: ";
                             lblAdjustment.Text = $"{adjustment:N0}đ";
                             lblAdjustment.Foreground = System.Windows.Media.Brushes.Red;
                         }
