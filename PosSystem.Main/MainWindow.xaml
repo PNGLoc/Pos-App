@@ -154,7 +154,7 @@
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="480"/>
+                <ColumnDefinition Width="540"/>
             </Grid.ColumnDefinitions>
 
             <Border Grid.Row="0"
@@ -547,10 +547,16 @@
                                                                 Value="#fff3cd"/>
                                                     </DataTrigger>
 
-                                                    <DataTrigger Binding="{Binding IsRequestingPayment}"
+                                                    <DataTrigger Binding="{Binding HasProvisionalBill}"
                                                                  Value="True">
                                                         <Setter Property="Background"
                                                                 Value="#A7D3F5"/>
+                                                    </DataTrigger>
+
+                                                    <DataTrigger Binding="{Binding IsRequestingPayment}"
+                                                                 Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="#FF746C"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -1489,21 +1495,7 @@
                                                            TextAlignment="Center"
                                                            VerticalAlignment="Center"
                                                            FontWeight="Bold"
-                                                           FontSize="16"
-                                                           Cursor="Hand"
-                                                           MouseLeftButtonDown="TxtQuantity_MouseLeftButtonDown"
-                                                           ToolTip="Nhấn để nhập số lượng trực tiếp"/>
-                                                <TextBox x:Name="txtQuantityInput"
-                                                         Text="{Binding Quantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Tag="{Binding OrderDetailID}"
-                                                         Visibility="Collapsed"
-                                                         Width="30"
-                                                         TextAlignment="Center"
-                                                         MaxLength="3"
-                                                         PreviewTextInput="QuantityInput_PreviewTextInput"
-                                                         LostFocus="TxtQuantityInput_LostFocus"
-                                                         KeyDown="TxtQuantityInput_KeyDown"
-                                                         Padding="2"/>
+                                                           FontSize="16"/>
                                                 <Button Content="+"
                                                         Click="BtnIncrease_Click"
                                                         Tag="{Binding OrderDetailID}"
@@ -1521,35 +1513,43 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="Tiền"
-                                                        Width="80">
+                                <DataGridTextColumn Header="Giá gốc"
+                                                    Binding="{Binding UnitPrice, StringFormat={}{0:N0}}"
+                                                    Width="70"
+                                                    IsReadOnly="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="HorizontalAlignment"
+                                                    Value="Right"/>
+                                            <Setter Property="VerticalAlignment"
+                                                    Value="Center"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTemplateColumn Header="Tiền ✎"
+                                                        Width="75">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding TotalAmount, StringFormat={}{0:N0}}"
-                                                           FontWeight="Bold"
-                                                           HorizontalAlignment="Right"/>
-                                                <TextBlock Text="{Binding DiscountDisplay}"
-                                                           FontSize="10"
-                                                           Foreground="Red"
-                                                           HorizontalAlignment="Right"
-                                                           Visibility="{Binding HasDiscount, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Width="40">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Button Content="✎"
-                                                    Click="BtnEditItem_Click"
+                                            <Button Click="BtnEditItem_Click"
                                                     Tag="{Binding OrderDetailID}"
-                                                    Width="30"
-                                                    Height="30"
                                                     Background="Transparent"
                                                     BorderThickness="0"
-                                                    Foreground="#AAA"
-                                                    ToolTip="Thay đổi giá món"/>
+                                                    Padding="0"
+                                                    HorizontalContentAlignment="Right"
+                                                    VerticalContentAlignment="Center"
+                                                    Cursor="Hand"
+                                                    ToolTip="Nhấn để điều chỉnh giá món">
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding TotalAmount, StringFormat={}{0:N0}}"
+                                                               FontWeight="Bold"
+                                                               HorizontalAlignment="Right"/>
+                                                    <TextBlock Text="{Binding DiscountDisplay}"
+                                                               FontSize="10"
+                                                               Foreground="Red"
+                                                               HorizontalAlignment="Right"
+                                                               Visibility="{Binding HasDiscount, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                </StackPanel>
+                                            </Button>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -1568,10 +1568,20 @@
                                     <Button x:Name="btnDiscountBill"
                                             Content="🎫 Giảm Bill"
                                             HorizontalAlignment="Left"
-                                            Background="Transparent"
-                                            Foreground="#007BFF"
+                                            Height="34"
+                                            Padding="12,4"
+                                            Background="#0D6EFD"
+                                            Foreground="White"
+                                            FontWeight="SemiBold"
                                             BorderThickness="0"
-                                            Click="BtnDiscountBill_Click"/>
+                                            Click="BtnDiscountBill_Click">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius"
+                                                        Value="5"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1"
                                             HorizontalAlignment="Right">
@@ -1622,7 +1632,7 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!-- SendKitchen + Checkout on one row -->
+                            <!-- SendKitchen + Provisional + Checkout layout -->
                             <Grid Margin="0,0,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -1630,22 +1640,32 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <Button Grid.Column="0"
-                                        x:Name="btnSendKitchen"
-                                        Content="👨‍🍳 GỬI BẾP"
-                                        Height="44"
-                                        Background="#FD7E14"
-                                        Foreground="White"
-                                        FontSize="14"
-                                        FontWeight="Bold"
-                                        Click="BtnSendKitchen_Click"/>
+                                <StackPanel Grid.Column="0">
+                                    <Button x:Name="btnSendKitchen"
+                                            Content="👨‍🍳 GỬI BẾP"
+                                            Height="44"
+                                            Background="#fff3cd"
+                                            Foreground="Black"
+                                            FontSize="14"
+                                            FontWeight="Bold"
+                                            Click="BtnSendKitchen_Click"/>
+                                    <Button x:Name="btnProvisional"
+                                            Content="🖨 IN TẠM TÍNH"
+                                            Height="44"
+                                            Margin="0,8,0,0"
+                                            Background="#17A2B8"
+                                            Foreground="Black"
+                                            FontSize="14"
+                                            FontWeight="Bold"
+                                            Click="BtnPrintProvisional_Click"/>
+                                </StackPanel>
 
                                 <Button Grid.Column="2"
                                         x:Name="btnCheckout"
                                         Content="THANH TOÁN"
-                                        Height="44"
-                                        Background="#28A745"
-                                        Foreground="White"
+                                        Height="96"
+                                        Foreground="Black"
+                                        Background="#d4edda"
                                         FontSize="15"
                                         FontWeight="Bold"
                                         IsEnabled="False"

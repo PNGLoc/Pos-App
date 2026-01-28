@@ -258,6 +258,7 @@ namespace PosSystem.Main
 
             // Reset buttons on startup
             btnCheckout.IsEnabled = false;
+            btnProvisional.IsEnabled = false;
             btnSendKitchen.IsEnabled = false;
             btnSendKitchen.Background = new SolidColorBrush(Color.FromRgb(108, 117, 125));  // Màu xám
             btnSendKitchen.Content = "👨‍🍳 GỬI BẾP (In Đợt Mới)";
@@ -727,6 +728,7 @@ namespace PosSystem.Main
 
             // Reset buttons và labels
             btnCheckout.IsEnabled = false;
+            btnProvisional.IsEnabled = false;
             btnSendKitchen.IsEnabled = false;
             btnSendKitchen.Background = new SolidColorBrush(Color.FromRgb(108, 117, 125));  // Màu xám
             lblSubTotal.Text = "0đ";
@@ -803,6 +805,9 @@ namespace PosSystem.Main
             decimal actualTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.TotalAmount);
 
             order.SubTotal = actualTotal;
+
+            // [UPDATE] Show base total (original price) in UI
+            lblSubTotal.Text = baseTotal.ToString("N0") + "đ";
 
             // 3. Display Adjustment (Difference)
             decimal adjustment = actualTotal - baseTotal;
@@ -1035,7 +1040,6 @@ namespace PosSystem.Main
 
                     // --- Tính tổng tiền (Code cũ giữ nguyên) ---
                     RecalculateOrderTotals(order);
-                    lblSubTotal.Text = order.SubTotal.ToString("N0") + "đ";
                     decimal discountValue = (order.DiscountPercent > 0) ? order.SubTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
 
                     if (discountValue > 0)
@@ -1052,9 +1056,10 @@ namespace PosSystem.Main
                     bool hasValidItems = order.OrderDetails.Any(d => d.Quantity > 0);
 
                     btnCheckout.IsEnabled = hasValidItems;
+                    btnProvisional.IsEnabled = hasValidItems;
                     btnSendKitchen.IsEnabled = hasChanges;
                     btnSendKitchen.Content = hasChanges ? "🔔 GỬI BẾP (Cập nhật)" : "👨‍🍳 GỬI BẾP";
-                    btnSendKitchen.Background = hasChanges ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14")
+                    btnSendKitchen.Background = hasChanges ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#fff3cd")
                                                            : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6C757D");
                 }
                 else
@@ -1065,6 +1070,7 @@ namespace PosSystem.Main
                     lblSubTotal.Text = "0đ";
                     pnlDiscount.Visibility = Visibility.Collapsed;
                     btnCheckout.IsEnabled = false;
+                    btnProvisional.IsEnabled = false;
                     btnSendKitchen.IsEnabled = false;
                     _currentOrderTime = null;
                     lblTableTime.Text = "";
@@ -1366,9 +1372,10 @@ namespace PosSystem.Main
                         if (order == null) return null;
 
                         // Calculate totals
-                        decimal subTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.Quantity * d.UnitPrice);
-                        decimal discountVal = (order.DiscountPercent > 0) ? subTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
-                        decimal final = subTotal - discountVal;
+                        decimal baseTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.Quantity * d.UnitPrice);
+                        decimal actualTotal = order.OrderDetails.Where(d => d.Quantity > 0).Sum(d => d.TotalAmount);
+                        decimal discountVal = (order.DiscountPercent > 0) ? actualTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
+                        decimal final = actualTotal - discountVal;
 
                         // Create View Models
                         var vms = order.OrderDetails
@@ -1400,6 +1407,8 @@ namespace PosSystem.Main
                             ViewModels = vms,
                             HasChanges = order.OrderDetails.Any(d => d.Quantity != d.PrintedQuantity),
                             HasValidItems = order.OrderDetails.Any(d => d.Quantity > 0),
+                            BaseTotal = baseTotal,
+                            ActualTotal = actualTotal,
                             Order = new { order.SubTotal, order.FinalAmount, order.DiscountPercent, order.DiscountAmount, order.OrderTime, order.FirstSentTime }
                         };
                     }
@@ -1414,8 +1423,31 @@ namespace PosSystem.Main
                     lstOrderDetails.ItemsSource = result.ViewModels;
 
                     // Update Labels
-                    lblSubTotal.Text = result.Order.SubTotal.ToString("N0") + "đ";
+                    lblSubTotal.Text = result.BaseTotal.ToString("N0") + "đ";
                     lblTotal.Text = result.Order.FinalAmount.ToString("N0") + "đ";
+
+                    // Update Adjustment (Actual - Base)
+                    var adjustment = result.ActualTotal - result.BaseTotal;
+                    if (adjustment != 0)
+                    {
+                        pnlAdjustment.Visibility = Visibility.Visible;
+                        if (adjustment > 0)
+                        {
+                            lblAdjustmentTitle.Text = "Đã bao gồm tăng giá món: ";
+                            lblAdjustment.Text = $"+{adjustment:N0}đ";
+                            lblAdjustment.Foreground = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14");
+                        }
+                        else
+                        {
+                            lblAdjustmentTitle.Text = "Đã bao gồm giảm giá món: ";
+                            lblAdjustment.Text = $"{adjustment:N0}đ";
+                            lblAdjustment.Foreground = System.Windows.Media.Brushes.Red;
+                        }
+                    }
+                    else
+                    {
+                        pnlAdjustment.Visibility = Visibility.Collapsed;
+                    }
 
                     decimal dVal = (result.Order.DiscountPercent > 0) ? result.Order.SubTotal * (result.Order.DiscountPercent / 100) : result.Order.DiscountAmount;
                     if (dVal > 0)
@@ -1427,9 +1459,10 @@ namespace PosSystem.Main
 
                     // Update Buttons
                     btnCheckout.IsEnabled = result.HasValidItems;
+                    btnProvisional.IsEnabled = result.HasValidItems;
                     btnSendKitchen.IsEnabled = result.HasChanges;
                     btnSendKitchen.Content = result.HasChanges ? "🔔 GỬI BẾP (Cập nhật)" : "👨‍🍳 GỬI BẾP";
-                    btnSendKitchen.Background = result.HasChanges ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14") : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6C757D");
+                    btnSendKitchen.Background = result.HasChanges ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#fff3cd") : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6C757D");
 
                     // Timer logic if needed (Assuming timer handles itself or only stopped when leaving table)
                     // [MODIFIED] Start Timer immediately using OrderTime
@@ -1448,6 +1481,7 @@ namespace PosSystem.Main
                     lblSubTotal.Text = "0đ";
                     pnlDiscount.Visibility = Visibility.Collapsed;
                     btnCheckout.IsEnabled = false;
+                    btnProvisional.IsEnabled = false;
                     btnSendKitchen.IsEnabled = false;
                 }
             }
@@ -1707,189 +1741,6 @@ namespace PosSystem.Main
                     LoadOrderDetails(_selectedTableId);
                     NotifyTableUpdated(_selectedTableId);
                 }
-            }
-        }
-
-        // --- NHẬP TRỰC TIẾP SỐ LƯỢNG ---
-        private void TxtQuantity_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (sender is TextBlock txtQuantity &&
-                txtQuantity.Parent is StackPanel stackPanel)
-            {
-                // Tìm TextBlock hiện tại và TextBox tương ứng
-                var textBox = stackPanel.Children.OfType<TextBox>().FirstOrDefault();
-                if (textBox != null)
-                {
-                    txtQuantity.Visibility = Visibility.Collapsed;
-                    textBox.Visibility = Visibility.Visible;
-                    textBox.Focus();
-                    textBox.SelectAll();
-                }
-            }
-        }
-
-        private void QuantityInput_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
-        {
-            // Chỉ cho phép nhập số
-            e.Handled = !int.TryParse(e.Text, out _);
-        }
-
-        private void TxtQuantityInput_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-        {
-            if (e.Key == System.Windows.Input.Key.Return || e.Key == System.Windows.Input.Key.Enter)
-            {
-                // Enter: Lưu thay đổi
-                if (sender is TextBox textBox)
-                {
-                    SaveQuantityChange(textBox);
-                }
-                e.Handled = true;
-            }
-            else if (e.Key == System.Windows.Input.Key.Escape)
-            {
-                // Escape: Hủy bỏ
-                if (sender is TextBox textBox)
-                {
-                    CancelQuantityEdit(textBox);
-                }
-                e.Handled = true;
-            }
-        }
-
-        private void TxtQuantityInput_LostFocus(object sender, RoutedEventArgs e)
-        {
-            // Khi mất focus: Lưu thay đổi
-            if (sender is TextBox textBox)
-            {
-                SaveQuantityChange(textBox);
-            }
-        }
-
-        private void SaveQuantityChange(TextBox textBox)
-        {
-            if (textBox == null || !(textBox.Tag is long detailId)) return;
-
-            if (!int.TryParse(textBox.Text, out int newQuantity) || newQuantity < 0)
-            {
-                newQuantity = 0;
-            }
-
-            using (var db = new AppDbContext())
-            {
-                // [FIX] Load Dish for Log Name
-                var detail = db.OrderDetails.Include(d => d.Dish).FirstOrDefault(d => d.OrderDetailID == detailId);
-                if (detail == null) return;
-
-                // [FIX] DETECT GROUP SIBLINGS & MERGE
-                // Find other items in the same group (Same Order, Dish, Note, and Status Group)
-                bool isTargetNew = detail.ItemStatus == "New";
-                string targetNote = (detail.Note ?? "").Trim();
-
-                var siblings = db.OrderDetails
-                    .Where(d => d.OrderID == detail.OrderID
-                             && d.DishID == detail.DishID
-                             && d.OrderDetailID != detail.OrderDetailID)
-                    .ToList(); // Client-side filtering for Note & Status to be safe
-
-                var siblingsToMerge = siblings.Where(d =>
-                    ((d.Note ?? "").Trim() == targetNote) &&
-                    (isTargetNew ? (d.ItemStatus == "New") : (d.ItemStatus != "New"))
-                ).ToList();
-
-                // Merge logic
-                if (siblingsToMerge.Any())
-                {
-                    foreach (var s in siblingsToMerge)
-                    {
-                        detail.Quantity += s.Quantity;
-                        detail.PrintedQuantity += s.PrintedQuantity;
-                        // If Sent/Modified, maybe keep max Batch?
-                        if (s.KitchenBatch > detail.KitchenBatch) detail.KitchenBatch = s.KitchenBatch;
-
-                        db.OrderDetails.Remove(s);
-                    }
-                    // Save merge first? No, we will modify detail further.
-                }
-
-                long currentOrderId = detail.OrderID;
-                int oldQuantity = detail.Quantity; // This is now the "Group Total" before edit
-
-                // NOW apply the new target quantity
-                detail.Quantity = newQuantity;
-                detail.TotalAmount = detail.Quantity * detail.UnitPrice * (1 - detail.DiscountRate / 100);
-
-                if (newQuantity != oldQuantity && detail.ItemStatus != "New")
-                {
-                    detail.ItemStatus = "Modified";
-
-                    // [NEW] Nếu giảm số lượng món đã gửi bếp -> Ghi log hủy
-                    if (newQuantity < oldQuantity)
-                    {
-                        int cancelQty = oldQuantity - newQuantity;
-                        var log = new CancelledLog
-                        {
-                            TableID = db.Orders.Where(o => o.OrderID == detail.OrderID).Select(o => o.TableID).FirstOrDefault(),
-                            OrderID = detail.OrderID,
-                            DishName = detail.Dish?.DishName ?? "Unknown",
-                            Quantity = cancelQty,
-                            Amount = cancelQty * detail.UnitPrice,
-                            // Reason removed
-                            DeletedBy = UserSession.AccName ?? "Admin",
-                            CancelTime = DateTime.Now
-                        };
-                        db.CancelledLogs.Add(log);
-                    }
-                }
-
-                bool isRemoved = false;
-
-                // Nếu về 0: Xóa hoặc giữ lại để báo hủy
-                // Note: If PrintedQuantity > 0, we keep it to print cancellation ticket
-                if (detail.Quantity == 0 && detail.PrintedQuantity == 0)
-                {
-                    db.OrderDetails.Remove(detail);
-                    isRemoved = true;
-                }
-
-                db.SaveChanges();
-
-                // Kiểm tra xem có xóa dòng hay không
-                if (isRemoved)
-                {
-                    bool hasAnyItem = db.OrderDetails.Any(d => d.OrderID == currentOrderId);
-                    if (!hasAnyItem)
-                    {
-                        var order = db.Orders.Find(currentOrderId);
-                        if (order != null)
-                        {
-                            var table = db.Tables.Find(order.TableID);
-                            if (table != null) table.TableStatus = "Empty";
-                            db.Orders.Remove(order);
-                            db.SaveChanges();
-                            LoadTables();
-                            LoadOrderDetails(_selectedTableId);
-                            NotifyTableUpdated(order.TableID ?? _selectedTableId);
-                            return;
-                        }
-                    }
-                }
-
-                RecalculateOrder(db, detail.OrderID);
-                LoadOrderDetails(_selectedTableId);
-                ShowToast($"Đã cập nhật số lượng");
-            }
-        }
-
-        private void CancelQuantityEdit(TextBox textBox)
-        {
-            if (textBox == null || !(textBox.Parent is StackPanel stackPanel)) return;
-
-            // Tìm TextBlock tương ứng
-            var textBlock = stackPanel.Children.OfType<TextBlock>().FirstOrDefault();
-            if (textBlock != null)
-            {
-                textBox.Visibility = Visibility.Collapsed;
-                textBlock.Visibility = Visibility.Visible;
             }
         }
 
@@ -2319,6 +2170,39 @@ namespace PosSystem.Main
             }
         }
 
+        private void BtnPrintProvisional_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedTableId == 0) return;
+
+            int orderId;
+            using (var db = new AppDbContext())
+            {
+                var order = db.Orders
+                    .Include(o => o.OrderDetails)
+                    .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+
+                if (order == null)
+                {
+                    MessageBox.Show("Không tìm thấy đơn hàng!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (!order.OrderDetails.Any(d => d.Quantity > 0))
+                {
+                    MessageBox.Show("Đơn hàng đang trống!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                order.IsPreCalculated = true;
+                db.SaveChanges();
+                orderId = (int)order.OrderID;
+            }
+
+            PrintService.PrintBill(orderId, isProvisional: true);
+            ShowToast("🧾 Đã in tạm tính thành công!");
+            NotifyTableUpdated(_selectedTableId);
+        }
+
         private void btnCheckout_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedTableId == 0) return;
@@ -2421,7 +2305,7 @@ namespace PosSystem.Main
                             // Lưu ý: Không cần reload lại toàn bộ bảng để tránh bị mất focus hoặc giật
                             // Chỉ cần cập nhật trạng thái nút Gửi bếp nếu cần
                             btnSendKitchen.IsEnabled = true;
-                            btnSendKitchen.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#FD7E14");
+                            btnSendKitchen.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#fff3cd");
                             btnSendKitchen.Content = "🔔 GỬI BẾP (Cập nhật)";
                         }
                     }
