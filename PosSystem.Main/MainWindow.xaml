@@ -365,7 +365,7 @@
                                              GotFocus="TxtTableSearch_GotFocus"
                                              LostFocus="TxtTableSearch_LostFocus"
                                              KeyDown="TxtTableSearch_KeyDown"
-                                             ToolTip="Tìm bàn theo tên"/>
+                                             />
                                 </Border>
 
                                 <!-- Filter Bar -->
