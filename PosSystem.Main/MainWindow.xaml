@@ -991,7 +991,7 @@
                                         BorderBrush="#E0E0E0"
                                         BorderThickness="1"
                                         Padding="12"
-                                        Width="440">
+                                        Width="390">
                                     <Border.Effect>
                                         <DropShadowEffect Color="Black"
                                                           BlurRadius="16"
