@@ -4,6 +4,7 @@
     --secondary-color: #4ecdc4;
     --bg-light: #f8f9fa;
     --text-dark: #2d3436;
+    --safe-top: env(safe-area-inset-top, 0px);
 }
 
 body {
@@ -44,13 +45,13 @@ body {
     position: sticky;
     top: 0;
     z-index: 1000;
-    padding: 10px 15px;
+    padding: calc(10px + var(--safe-top)) 15px 10px;
 }
 
 /* Filter Bàn */
 .table-filter-bar {
     position: sticky;
-    top: 56px;
+    top: calc(56px + var(--safe-top));
     z-index: 900;
     background: #fff;
 }
@@ -96,12 +97,14 @@ body {
 }
 
 .table-card.occupied {
-    background-color: #d1e7dd; /* Pastel Green */
+    background-color: #d1e7dd;
+    /* Pastel Green */
     border-color: #badbcc;
 }
 
 .table-card.ordering {
-    background-color: #fff3cd; /* Pastel Yellow */
+    background-color: #fff3cd;
+    /* Pastel Yellow */
     border-color: #ffc107;
 }
 
@@ -122,14 +125,14 @@ body {
 
 .table-tabs-sticky {
     position: sticky;
-    top: var(--detail-header-height, 56px);
+    top: calc(var(--detail-header-height, 56px) + var(--safe-top));
     z-index: 900;
     background: #fff;
 }
 
 .confirmed-total-bar {
     position: fixed;
-    top: calc(var(--detail-header-height, 56px) + 40px);
+    top: calc(var(--detail-header-height, 56px) + var(--safe-top) + 40px);
     left: 0;
     right: 0;
     z-index: 850;
@@ -151,7 +154,7 @@ body {
 /* Danh sách món (Menu Selection) */
 .category-bar {
     position: sticky;
-    top: 60px;
+    top: calc(60px + var(--safe-top));
     /* Dưới header chính */
     background: #fff;
     z-index: 999;
