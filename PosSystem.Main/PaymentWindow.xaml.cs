@@ -29,16 +29,41 @@ namespace PosSystem.Main
         {
             using (var db = new AppDbContext())
             {
-                var order = db.Orders.Include(o => o.Table).FirstOrDefault(o => o.OrderID == _orderId);
+                var order = db.Orders.Include(o => o.Table).Include(o => o.OrderDetails).FirstOrDefault(o => o.OrderID == _orderId);
                 if (order != null)
                 {
                     _tableId = order.TableID ?? 0;
                     lblOrderInfo.Text = $"Bàn: {order.Table?.TableName} - Đơn: #{order.OrderID}";
 
-                    txtSubTotal.Text = order.SubTotal.ToString("N0") + "đ";
+                    // 1. Tính Tổng Tiền Gốc (Chưa trừ giảm giá món)
+                    // Lưu ý: Cần Include OrderDetails khi query
+                    decimal originalTotal = order.OrderDetails.Sum(d => d.Quantity * d.UnitPrice);
+                    txtOriginalTotal.Text = originalTotal.ToString("N0") + "đ";
 
-                    decimal discountVal = order.SubTotal - order.FinalAmount;
-                    txtDiscount.Text = $"-{discountVal:N0}đ";
+                    // 2. Tính Giảm Giá Món (Original - SubTotal)
+                    // SubTotal là tổng tiền sau khi đã trừ giảm giá món (nhưng chưa trừ giảm bill)
+                    decimal itemDiscount = originalTotal - order.SubTotal;
+                    if (itemDiscount > 0)
+                    {
+                        txtItemDiscount.Text = $"-{itemDiscount:N0}đ";
+                        pnlItemDiscount.Visibility = Visibility.Visible;
+                    }
+                    else
+                    {
+                        pnlItemDiscount.Visibility = Visibility.Collapsed;
+                    }
+
+                    // 3. Tính Giảm Giá Bill (SubTotal - Final)
+                    decimal billDiscount = order.SubTotal - order.FinalAmount;
+                    if (billDiscount > 0)
+                    {
+                         txtBillDiscount.Text = $"-{billDiscount:N0}đ";
+                         pnlBillDiscount.Visibility = Visibility.Visible;
+                    }
+                    else
+                    {
+                         pnlBillDiscount.Visibility = Visibility.Collapsed;
+                    }
 
                     txtFinal.Text = order.FinalAmount.ToString("N0") + "đ";
                 }
