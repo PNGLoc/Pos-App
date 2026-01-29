@@ -1082,6 +1082,10 @@ namespace PosSystem.Main
         private static string FormatElapsedTime(DateTime start)
         {
             var elapsed = DateTime.Now - start;
+            if (elapsed.TotalDays >= 1)
+            {
+                return $"{(int)elapsed.TotalDays} ngày {elapsed.Hours} giờ";
+            }
             if (elapsed.TotalMinutes < 60)
             {
                 return $"{(int)elapsed.TotalMinutes} phút";
@@ -3148,15 +3152,7 @@ namespace PosSystem.Main
         {
             if (_currentOrderTime.HasValue)
             {
-                var elapsed = DateTime.Now - _currentOrderTime.Value;
-                if (elapsed.TotalMinutes < 60)
-                {
-                    lblTableTime.Text = $"{(int)elapsed.TotalMinutes} phút";
-                }
-                else
-                {
-                    lblTableTime.Text = $"{(int)elapsed.TotalHours} giờ {elapsed.Minutes} phút";
-                }
+                lblTableTime.Text = FormatElapsedTime(_currentOrderTime.Value);
             }
         }
         private void BtnTimeKeeping_Click(object sender, RoutedEventArgs e)
