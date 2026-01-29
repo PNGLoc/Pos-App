@@ -80,6 +80,19 @@
             }
         }
     </script>
+    <script>
+        (function initLoginBackLock() {
+            const depth = 3;
+            history.replaceState({ view: 'login', lock: true }, '', '#login');
+            for (let i = 0; i < depth; i++) {
+                history.pushState({ view: 'login', lock: true }, '', '#login');
+            }
+
+            window.addEventListener('popstate', () => {
+                history.pushState({ view: 'login', lock: true }, '', '#login');
+            });
+        })();
+    </script>
 </body>
 
 <script>

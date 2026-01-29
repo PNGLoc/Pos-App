@@ -13,6 +13,7 @@ let appState = {
 };
 
 let suppressPopstate = false;
+const BACK_STACK_DEPTH = 4;
 
 document.addEventListener('DOMContentLoaded', async () => {
     const userStr = localStorage.getItem('posUser');
@@ -41,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function initBackNavigation() {
     // Create a lock state so back gesture won't exit to login
     history.replaceState({ view: 'view-tables', lock: true }, '', '#tables');
-    history.pushState({ view: 'view-tables', lock: true }, '', '#tables');
+    pushLockStates(BACK_STACK_DEPTH);
 
     window.addEventListener('popstate', () => {
         if (suppressPopstate) { suppressPopstate = false; return; }
@@ -61,8 +62,14 @@ function initBackNavigation() {
         }
 
         // Stay on tables view, block leaving to login
-        history.pushState({ view: 'view-tables', lock: true }, '', '#tables');
+        pushLockStates(1);
     });
+}
+
+function pushLockStates(count = 1) {
+    for (let i = 0; i < count; i++) {
+        history.pushState({ view: 'view-tables', lock: true }, '', '#tables');
+    }
 }
 
 function getActiveViewId() {
