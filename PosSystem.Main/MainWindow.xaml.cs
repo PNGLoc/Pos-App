@@ -268,7 +268,7 @@ namespace PosSystem.Main
             btnProvisional.IsEnabled = false;
             btnSendKitchen.IsEnabled = false;
             btnSendKitchen.Background = new SolidColorBrush(Color.FromRgb(108, 117, 125));  // Màu xám
-            btnSendKitchen.Content = "👨‍🍳 GỬI BẾP (In Đợt Mới)";
+            btnSendKitchen.Content = "🔔 GỬI BẾP";
             btnSplitTable.Visibility = Visibility.Collapsed;
             btnMoveTable.Visibility = Visibility.Collapsed;
             lblSubTotal.Text = "0đ";
@@ -1309,7 +1309,7 @@ namespace PosSystem.Main
                                                                : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#E9ECEF"); // Gray
 
                     btnSendKitchen.IsEnabled = hasChanges;
-                    btnSendKitchen.Content = hasChanges ? "🔔 GỬI BẾP (Cập nhật)" : "👨‍🍳 GỬI BẾP";
+                    btnSendKitchen.Content = "🔔 GỬI BẾP";
                     btnSendKitchen.Background = hasChanges ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#fff3cd")
                                                            : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6C757D");
                 }
@@ -1714,7 +1714,7 @@ namespace PosSystem.Main
                     btnCheckout.IsEnabled = result.HasValidItems;
                     btnProvisional.IsEnabled = result.HasValidItems;
                     btnSendKitchen.IsEnabled = result.HasChanges;
-                    btnSendKitchen.Content = result.HasChanges ? "🔔 GỬI BẾP (Cập nhật)" : "👨‍🍳 GỬI BẾP";
+                    btnSendKitchen.Content = "🔔 GỬI BẾP";
                     btnSendKitchen.Background = result.HasChanges ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#fff3cd") : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6C757D");
 
                     // Timer logic if needed (Assuming timer handles itself or only stopped when leaving table)
@@ -2571,7 +2571,7 @@ namespace PosSystem.Main
                             // Chỉ cần cập nhật trạng thái nút Gửi bếp nếu cần
                             btnSendKitchen.IsEnabled = true;
                             btnSendKitchen.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#fff3cd");
-                            btnSendKitchen.Content = "🔔 GỬI BẾP (Cập nhật)";
+                            btnSendKitchen.Content = "🔔 GỬI BẾP";
                         }
                     }
                 }
