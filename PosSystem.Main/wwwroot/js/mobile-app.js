@@ -362,24 +362,45 @@ function renderTables(filterId) {
 
     // [FIXED] Translate Labels
     filtered.forEach(t => {
+        // [NEW] Logic Status & Color
+        let cardClass = '';
+        let statusText = 'Bàn trống';
+        let statusTextClass = 'text-success';
+        const hasNew = t.hasNewItems || t.HasNewItems;
+
+        if (hasNew) {
+            // Có món chưa gửi -> Đang gọi món (Vàng)
+            cardClass = 'ordering';
+            statusText = 'Đang gọi món';
+            statusTextClass = 'text-warning'; // Hoặc text-dark
+        } else if (t.tableStatus === 'Occupied') {
+            // Đã gọi món (đã gửi) -> Xanh
+            cardClass = 'occupied';
+            statusText = 'Đã gọi món';
+            statusTextClass = 'text-success';
+        }
+
         const div = document.createElement('div');
-        div.className = `table-card ${t.tableStatus === 'Occupied' ? 'occupied' : ''}`;
+        div.className = `table-card ${cardClass}`;
 
         // [NEW] Marker for Provisional Bill
         const provMarker = (t.hasProvisionalBill || t.HasProvisionalBill)
-            ? `<div class="position-absolute top-0 end-0 m-1 text-primary"><i class="fas fa-print bg-white rounded-circle p-1 border"></i></div>`
+            ? `<div class="position-absolute end-0 m-1 text-primary" style="top: 22px; right: 5px;"><i class="fas fa-print bg-white rounded-circle p-1 border"></i></div>`
             : '';
 
         // [NEW] Marker for Request Payment
         const payMarker = (t.isRequestingPayment || t.IsRequestingPayment)
-            ? `<div class="position-absolute top-0 start-0 m-1 text-danger"><i class="fas fa-bell bg-white rounded-circle p-1 border"></i></div>`
+            ? `<div class="position-absolute start-0 m-1 text-danger" style="top: 22px; left: 5px;"><i class="fas fa-bell bg-white rounded-circle p-1 border"></i></div>`
             : '';
 
         div.onclick = () => openTableDetail(t);
 
-        // [NEW] Timer Element (Flush Top, Square, No BG, Red Text)
-        const timerHtml = (t.tableStatus === 'Occupied' && t.orderTime)
-            ? `<div class="position-absolute top-0 start-50 translate-middle-x mt-0 px-2 border border-danger text-danger fw-bold table-timer" data-ordertime="${t.orderTime}" style="z-index: 5; font-size: 0.85rem;"><i class="fas fa-clock me-1"></i> ...</div>`
+        // [MODIFIED] Timer Element (Removed Border)
+        // Chỉ hiện Timer nếu là Occupied hoặc Ordering (nếu muốn)
+        // User yêu cầu "bỏ khung viền". GIữ text-danger để nổi bật.
+        const showTimer = (t.tableStatus === 'Occupied' || hasNew) && t.orderTime;
+        const timerHtml = showTimer
+            ? `<div class="position-absolute top-0 start-50 translate-middle-x mt-0 text-danger fw-bold table-timer" data-ordertime="${t.orderTime}" style="z-index: 5; font-size: 0.85rem;"><i class="fas fa-clock me-1"></i> ...</div>`
             : '';
 
         const iconClass = t.categoryIconClass || t.CategoryIconClass || 'fas fa-chair';
@@ -390,8 +411,8 @@ function renderTables(filterId) {
             ${timerHtml}
             <div class="fs-4 mb-1"><i class="${iconClass}"></i></div>
             <div class="fw-bold">${t.tableName}</div>
-            <small class="${t.tableStatus === 'Occupied' ? 'text-danger' : 'text-success'}">
-                ${t.tableStatus === 'Occupied' ? 'Đã gọi món' : 'Bàn trống'}
+            <small class="${statusTextClass} fw-bold">
+                ${statusText}
             </small>
         `;
         grid.appendChild(div);

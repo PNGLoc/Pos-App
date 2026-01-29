@@ -96,8 +96,12 @@ body {
 }
 
 .table-card.occupied {
-    background-color: #fff3cd;
-    /* Màu vàng nhạt cho bàn có khách */
+    background-color: #d1e7dd; /* Pastel Green */
+    border-color: #badbcc;
+}
+
+.table-card.ordering {
+    background-color: #fff3cd; /* Pastel Yellow */
     border-color: #ffc107;
 }
 
