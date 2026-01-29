@@ -7,10 +7,13 @@ using System.Windows.Media.Imaging;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
 using PosSystem.Main.Services;
 using PosSystem.Main.Helpers;
+using PosSystem.Main.Server.Hubs;
 
 namespace PosSystem.Main.Pages
 {
@@ -31,6 +34,20 @@ namespace PosSystem.Main.Pages
             LoadDishes();
 
             DataObject.AddPastingHandler(txtPrice, TxtPrice_Pasting);
+        }
+
+        private void NotifyMenuUpdated()
+        {
+            try
+            {
+                if (App.WebHost == null) return;
+                var hubContext = App.WebHost.Services.GetService<IHubContext<PosHub>>();
+                if (hubContext != null)
+                {
+                    _ = hubContext.Clients.All.SendAsync("MenuUpdated");
+                }
+            }
+            catch { }
         }
 
         // ==========================================
@@ -117,6 +134,7 @@ namespace PosSystem.Main.Pages
                             db.SaveChanges();
                             LoadCats();
                             LoadDishes(); // Refresh dishes too
+                            NotifyMenuUpdated();
                         }
                     }
                 }
@@ -177,6 +195,7 @@ namespace PosSystem.Main.Pages
 
             CloseModal();
             LoadCats();
+            NotifyMenuUpdated();
         }
 
         // ==========================================
@@ -316,6 +335,7 @@ namespace PosSystem.Main.Pages
                             db.Dishes.Remove(item);
                             db.SaveChanges();
                             LoadDishes();
+                            NotifyMenuUpdated();
                         }
                     }
                 }
@@ -334,6 +354,7 @@ namespace PosSystem.Main.Pages
                         db.SaveChanges();
                     }
                     LoadDishes();
+                    NotifyMenuUpdated();
                     MessageBox.Show("Đã xóa toàn bộ món ăn thành công.");
                 }
                 catch (Exception ex)
@@ -405,6 +426,7 @@ namespace PosSystem.Main.Pages
 
             CloseModal();
             LoadDishes();
+            NotifyMenuUpdated();
         }
 
         // ==========================================
@@ -648,10 +670,11 @@ namespace PosSystem.Main.Pages
                 try
                 {
                     var (addedCount, unchangedCount, errors) = ExcelService.ImportDishesFromExcel(openDialog.FileName);
-                    if (addedCount > 0) 
+                    if (addedCount > 0)
                     {
                         LoadDishes();
                         LoadCats(); // [NEW] Refresh categories because import might have created new ones
+                        NotifyMenuUpdated();
                     }
 
                     string msg = $"Import xong: {addedCount} món mới – {unchangedCount} món không thay đổi";

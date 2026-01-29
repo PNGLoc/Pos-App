@@ -4,8 +4,11 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.EntityFrameworkCore; // For DbUpdateException
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
+using PosSystem.Main.Server.Hubs;
 
 namespace PosSystem.Main.Pages
 {
@@ -30,6 +33,20 @@ namespace PosSystem.Main.Pages
             InitIconPicker();
             LoadData();
             LoadTableIconSetting();
+        }
+
+        private void NotifyTablesUpdated()
+        {
+            try
+            {
+                if (App.WebHost == null) return;
+                var hubContext = App.WebHost.Services.GetService<IHubContext<PosHub>>();
+                if (hubContext != null)
+                {
+                    _ = hubContext.Clients.All.SendAsync("TableUpdated", -1);
+                }
+            }
+            catch { }
         }
 
         private void InitIconPicker()
@@ -176,6 +193,7 @@ namespace PosSystem.Main.Pages
                                 db.TableCategories.Remove(item);
                                 db.SaveChanges();
                                 LoadData();
+                                NotifyTablesUpdated();
                             }
                             catch (DbUpdateException)
                             {
@@ -267,6 +285,7 @@ namespace PosSystem.Main.Pages
             }
             modalOverlay.Visibility = Visibility.Collapsed;
             LoadData();
+            NotifyTablesUpdated();
         }
 
         private void TxtBorderColor_TextChanged(object sender, TextChangedEventArgs e)

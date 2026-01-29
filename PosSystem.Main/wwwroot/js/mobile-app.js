@@ -280,6 +280,13 @@ function initSignalR() {
             loadTables(false);
             if (appState.currentTableId == tableId) loadOrderData(tableId);
         });
+
+        conn.on("MenuUpdated", async () => {
+            await loadMenuData();
+            if (getActiveViewId() === 'view-menu') {
+                renderMenuUI();
+            }
+        });
     }
 
     bindSignalREvents(connection);

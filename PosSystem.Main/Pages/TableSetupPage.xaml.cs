@@ -3,8 +3,11 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.EntityFrameworkCore; // For Include
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
+using PosSystem.Main.Server.Hubs;
 
 namespace PosSystem.Main.Pages
 {
@@ -18,6 +21,20 @@ namespace PosSystem.Main.Pages
             InitializeComponent();
             this.DataContext = this; // Set DataContext for Binding
             LoadData();
+        }
+
+        private void NotifyTablesUpdated()
+        {
+            try
+            {
+                if (App.WebHost == null) return;
+                var hubContext = App.WebHost.Services.GetService<IHubContext<PosHub>>();
+                if (hubContext != null)
+                {
+                    _ = hubContext.Clients.All.SendAsync("TableUpdated", -1);
+                }
+            }
+            catch { }
         }
 
         void LoadData()
@@ -112,6 +129,7 @@ namespace PosSystem.Main.Pages
                                 db.Tables.Remove(item);
                                 db.SaveChanges();
                                 LoadData();
+                                NotifyTablesUpdated();
                             }
                             catch (DbUpdateException)
                             {
@@ -183,6 +201,7 @@ namespace PosSystem.Main.Pages
             // Đóng modal và tải lại dữ liệu
             modalOverlay.Visibility = Visibility.Collapsed;
             LoadData();
+            NotifyTablesUpdated();
         }
     }
 }
