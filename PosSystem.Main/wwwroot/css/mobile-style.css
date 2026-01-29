@@ -88,12 +88,25 @@ body {
 .table-card {
     background: white;
     border-radius: 12px;
-    padding: 20px 10px;
+    padding: 20px 10px 30px;
     text-align: center;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     cursor: pointer;
     border: 2px solid transparent;
     position: relative;
+}
+
+.table-card .table-status {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 8px;
+    display: block;
+    line-height: 1.1;
+}
+
+.table-timer {
+    white-space: nowrap;
 }
 
 .table-card.occupied {

@@ -513,7 +513,7 @@ function renderTables(filterId) {
             ${timerHtml}
             <div class="fs-4 mb-1"><i class="${iconClass}"></i></div>
             <div class="fw-bold">${t.tableName}</div>
-            <small class="${statusTextClass} fw-bold">
+            <small class="table-status ${statusTextClass} fw-bold">
                 ${statusText}
             </small>
         `;
