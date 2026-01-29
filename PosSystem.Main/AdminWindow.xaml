@@ -5,156 +5,221 @@
         WindowState="Maximized">
 
     <!-- 1. KHAI BÁO RESOURCES Ở ĐẦU TIÊN -->
+    <!-- 1. KHAI BÁO RESOURCES Ở ĐẦU TIÊN -->
     <Window.Resources>
         <!-- Style cho nút Menu -->
         <Style x:Key="AdminMenuButton"
                TargetType="RadioButton">
             <Setter Property="Foreground"
-                    Value="LightGray"/>
+                    Value="#495057"/>
             <Setter Property="FontSize"
-                    Value="16"/>
+                    Value="15"/>
+            <Setter Property="FontWeight"
+                    Value="SemiBold"/>
             <Setter Property="Margin"
-                    Value="0,5,0,5"/>
+                    Value="10,2"/>
             <Setter Property="Padding"
-                    Value="20,10"/>
+                    Value="15,12"/>
+            <Setter Property="Cursor"
+                    Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border Background="{TemplateBinding Background}"
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="8"
                                 Padding="{TemplateBinding Padding}">
-                            <ContentPresenter/>
+                            <ContentPresenter VerticalAlignment="Center"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                <Setter TargetName="border"
+                                        Property="Background"
+                                        Value="#F1F3F5"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked"
+                                     Value="True">
+                                <Setter TargetName="border"
+                                        Property="Background"
+                                        Value="#47a67f"/>
+                                <Setter Property="Foreground"
+                                        Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsChecked"
-                         Value="True">
-                    <Setter Property="Background"
-                            Value="#007BFF"/>
-                    <Setter Property="Foreground"
-                            Value="White"/>
-                    <Setter Property="FontWeight"
-                            Value="Bold"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
     </Window.Resources>
 
     <!-- 2. GIAO DIỆN CHÍNH (GRID) Ở DƯỚI -->
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"
-                              MinWidth="200"
-                              MaxWidth="280"/>
-            <!-- Menu trái -->
+            <ColumnDefinition Width="260"/>
+            <!-- Menu trái cố định rộng hơn xíu -->
             <ColumnDefinition Width="*"/>
             <!-- Nội dung phải -->
         </Grid.ColumnDefinitions>
 
         <!-- Sidebar Menu -->
-        <Border Background="#343A40">
-            <StackPanel>
-                <TextBlock Text="ADMIN PANEL"
-                           Foreground="White"
-                           FontSize="20"
-                           FontWeight="Bold"
-                           Margin="20"/>
+        <Border Grid.Column="0"
+                Background="White"
+                BorderBrush="#E9ECEF"
+                BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                <!-- IP Address Display -->
-                <Border Background="#555555"
-                        Padding="10"
-                        Margin="10,0,10,15"
-                        CornerRadius="3">
+                <!-- Header Content -->
+                <StackPanel Grid.Row="0"
+                            Margin="20,30,20,20">
+                    <TextBlock Text="ADMIN PANEL"
+                               Foreground="#212529"
+                               FontSize="22"
+                               FontWeight="ExtraBold"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,20"/>
+
+                    <!-- IP Address Display (Modernized) -->
+                    <Border Background="#F8F9FA"
+                            BorderBrush="#DEE2E6"
+                            BorderThickness="1"
+                            Padding="12"
+                            CornerRadius="8">
+                        <StackPanel>
+                            <TextBlock Text="🌐 Web Order IP:"
+                                       Foreground="#6C757D"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,4"/>
+                            <TextBlock x:Name="lblIPAddress"
+                                       Text="Đang tải..."
+                                       Foreground="#0D6EFD"
+                                       FontSize="13"
+                                       FontFamily="Consolas, Courier New"
+                                       FontWeight="Bold"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Scrollable Menu Items -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              Padding="0,0,0,20">
                     <StackPanel>
-                        <TextBlock Text="Đường dẫn web điện thoại:"
-                                   Foreground="#AAA"
-                                   FontSize="12"
-                                   Margin="0,0,0,5"/>
-                        <TextBlock x:Name="lblIPAddress"
-                                   Text="Đang tải..."
-                                   Foreground="#00FF00"
-                                   FontSize="13"
-                                   FontFamily="Courier New"
-                                   FontWeight="Bold"
-                                   TextWrapping="Wrap"/>
-                    </StackPanel>
-                </Border>
-                <!-- NÚT CHUYỂN SANG BÁN HÀNG -->
-                <Button Content="➡ VÀO BÁN HÀNG"
-                        Height="45"
-                        Background="#28A745"
-                        Foreground="White"
-                        FontWeight="Bold"
-                        FontSize="14"
-                        Click="BtnGoToPOS_Click">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius"
-                                    Value="5"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
-                <Separator Background="#555"
-                           Margin="10"/>
-                <!-- Lúc này StaticResource đã được định nghĩa ở trên nên sẽ không lỗi nữa -->
-                <RadioButton Content="🏠 Thống kê"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="Dashboard"
-                             IsChecked="True"/>
-                <Separator Background="#555"
-                           Margin="5"/>
-                <RadioButton Content="🖨 Cấu hình Máy in"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="Printer"/>
-                <RadioButton Content="🏷 Loại bàn"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="TableCategory"/>
-                <RadioButton Content="🍽 Quản lý bàn"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="Table"/>
-                <RadioButton Content="👥 Quản lý tài khoản"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="Account"/>
-                <RadioButton Content="👥 Quản lý chấm công"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="Employee"/>
-                <RadioButton Content="📂 Món ăn / Danh mục"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="Menu"/>
-                <RadioButton Content="💰 Giá lễ / Tết"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="PriceRule"/>
-                <RadioButton Content="📜 Lịch sử đơn hàng"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="OrderHistory"/>
-                <RadioButton Content="💸 Lịch sử Chi tiêu"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="ExpenseHistory"/>
-                <RadioButton Content="⚙️ Cài đặt hệ thống"
-                             Style="{StaticResource AdminMenuButton}"
-                             Click="Menu_Click"
-                             Tag="SystemSetting"/>
+                        <RadioButton Content="🏠 Thống kê tổng quan"
+                                     Style="{StaticResource AdminMenuButton}"
+                                     Click="Menu_Click"
+                                     Tag="Dashboard"
+                                     IsChecked="True"/>
 
-            </StackPanel>
+                        <TextBlock Text="QUẢN LÝ"
+                                   Foreground="#ADB5BD"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Margin="25,20,0,5"/>
+
+                        <RadioButton Content="📂 Món ăn / Menu"
+                                     Style="{StaticResource AdminMenuButton}"
+                                     Click="Menu_Click"
+                                     Tag="Menu"/>
+                        <RadioButton Content="🍽 Sơ đồ bàn"
+                                     Style="{StaticResource AdminMenuButton}"
+                                     Click="Menu_Click"
+                                     Tag="Table"/>
+                        <RadioButton Content="🏷 Loại bàn"
+                                     Style="{StaticResource AdminMenuButton}"
+                                     Click="Menu_Click"
+                                     Tag="TableCategory"/>
+                        <RadioButton Content="💰 Thiết lập giá Lễ/Tết"
+                                     Style="{StaticResource AdminMenuButton}"
+                                     Click="Menu_Click"
+                                     Tag="PriceRule"/>
+
+                        <TextBlock Text="NHÂN SỰ &amp; HỆ THỐNG"
+                                   Foreground="#ADB5BD"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Margin="25,20,0,5"/>
+
+                        <RadioButton Content="👥 Tài khoản"
+                                     Style="{StaticResource AdminMenuButton}"
+                                     Click="Menu_Click"
+                                     Tag="Account"/>
+                        <RadioButton Content="👷 Chấm công"
+                                     Style="{StaticResource AdminMenuButton}"
+                                     Click="Menu_Click"
+                                     Tag="Employee"/>
+                        <RadioButton Content="🧾 Lịch sử đơn hàng"
+                                     Style="{StaticResource AdminMenuButton}"
+                                     Click="Menu_Click"
+                                     Tag="OrderHistory"/>
+                        <RadioButton Content="💸 Lịch sử chi tiêu"
+                                     Style="{StaticResource AdminMenuButton}"
+                                     Click="Menu_Click"
+                                     Tag="ExpenseHistory"/>
+                        <RadioButton Content="🖨 Cấu hình Máy in"
+                                     Style="{StaticResource AdminMenuButton}"
+                                     Click="Menu_Click"
+                                     Tag="Printer"/>
+                        <RadioButton Content="⚙️ Cài đặt chung"
+                                     Style="{StaticResource AdminMenuButton}"
+                                     Click="Menu_Click"
+                                     Tag="SystemSetting"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Footer / Return Button -->
+                <Border Grid.Row="2"
+                        Padding="20"
+                        BorderBrush="#E9ECEF"
+                        BorderThickness="0,1,0,0"
+                        Background="#F8F9FA">
+                    <Button Content="➡ VỀ TRANG BÁN HÀNG"
+                            Height="48"
+                            Background="White"
+                            BorderBrush="#DEE2E6"
+                            BorderThickness="1"
+                            Foreground="#47a67f"
+                            FontWeight="Bold"
+                            FontSize="14"
+                            Cursor="Hand"
+                            Click="BtnGoToPOS_Click">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius"
+                                        Value="8"/>
+                            </Style>
+                        </Button.Resources>
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver"
+                                             Value="True">
+                                        <Setter Property="Background"
+                                                Value="#47a67f"/>
+                                        <Setter Property="Foreground"
+                                                Value="White"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Border>
+            </Grid>
         </Border>
 
         <!-- Content Area -->
         <Border Grid.Column="1"
-                Background="#F4F6F9"
-                Padding="20">
+                Background="#F4F6F9">
             <Frame x:Name="mainFrame"
-                   NavigationUIVisibility="Hidden"/>
+                   NavigationUIVisibility="Hidden"
+                   Margin="0"/>
         </Border>
     </Grid>
 </Window>
