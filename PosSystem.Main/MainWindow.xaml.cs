@@ -506,7 +506,7 @@ namespace PosSystem.Main
                 // [PRIORITY 1] Check for notification.wav
                 if (System.IO.File.Exists(wavPath))
                 {
-                     // [MODIFIED] Use Boosted Playback
+                    // [MODIFIED] Use Boosted Playback
                     PlayCustomWavWithGain(wavPath, volumePercent);
                     return;
                 }
@@ -514,17 +514,17 @@ namespace PosSystem.Main
                 // [PRIORITY 2] Check for notification.mp3
                 if (System.IO.File.Exists(mp3Path))
                 {
-                   Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        try
-                        {
-                            if (_mediaPlayer == null) _mediaPlayer = new MediaPlayer();
-                            _mediaPlayer.Open(new Uri(mp3Path));
-                            _mediaPlayer.Volume = Math.Clamp(volumePercent, 0, 100) / 100.0;
-                            _mediaPlayer.Play();
-                        }
-                        catch { }
-                    });
+                    Application.Current.Dispatcher.Invoke(() =>
+                     {
+                         try
+                         {
+                             if (_mediaPlayer == null) _mediaPlayer = new MediaPlayer();
+                             _mediaPlayer.Open(new Uri(mp3Path));
+                             _mediaPlayer.Volume = Math.Clamp(volumePercent, 0, 100) / 100.0;
+                             _mediaPlayer.Play();
+                         }
+                         catch { }
+                     });
                     return;
                 }
 
@@ -573,11 +573,11 @@ namespace PosSystem.Main
                     }
                 }
             }
-            catch 
+            catch
             {
-                 // Fallback defaults
-                 _notificationSoundEnabled = true;
-                 _notificationSoundVolume = 25;
+                // Fallback defaults
+                _notificationSoundEnabled = true;
+                _notificationSoundVolume = 25;
             }
 
             // Apply settings (e.g. stop player if disabled)
@@ -594,36 +594,36 @@ namespace PosSystem.Main
             const int sampleRate = 44100;
             const double durationSeconds = 1.0; // Long duration
             const double frequency = 2000.0; // High sensitivity range
-            
+
             double volume = Math.Clamp(volumePercent, 0, 100) / 100.0;
-            double maxAmplitude = 32000.0 * volume; 
+            double maxAmplitude = 32000.0 * volume;
 
             int sampleCount = (int)(sampleRate * durationSeconds);
-            
+
             using var ms = new MemoryStream();
             using var bw = new BinaryWriter(ms);
 
             bw.Write(Encoding.ASCII.GetBytes("RIFF"));
-            bw.Write(36 + sampleCount * 2); 
+            bw.Write(36 + sampleCount * 2);
             bw.Write(Encoding.ASCII.GetBytes("WAVE"));
             bw.Write(Encoding.ASCII.GetBytes("fmt "));
             bw.Write(16);
-            bw.Write((short)1); 
-            bw.Write((short)1); 
+            bw.Write((short)1);
+            bw.Write((short)1);
             bw.Write(sampleRate);
-            bw.Write(sampleRate * 2); 
-            bw.Write((short)2); 
-            bw.Write((short)16); 
+            bw.Write(sampleRate * 2);
+            bw.Write((short)2);
+            bw.Write((short)16);
             bw.Write(Encoding.ASCII.GetBytes("data"));
-            bw.Write(sampleCount * 2); 
+            bw.Write(sampleCount * 2);
 
             for (int i = 0; i < sampleCount; i++)
             {
                 double t = (double)i / sampleRate;
-                
+
                 // Delayed Decay: Hold max volume for 0.15s before fading
                 double decay = 1.0;
-                if (t > 0.15) 
+                if (t > 0.15)
                 {
                     decay = Math.Exp(-4.0 * (t - 0.15));
                 }
@@ -636,26 +636,26 @@ namespace PosSystem.Main
                 // Mix: 60% Square (Loudness) + 40% Sine (Tone)
                 // Plus a high-frequency alternating "click" for attack
                 double wave = (0.6 * square) + (0.4 * sine);
-                
+
                 double sample = wave * maxAmplitude * decay;
 
                 bw.Write((short)Math.Clamp((int)sample, -32768, 32767));
             }
 
             return ms.ToArray();
-        } 
+        }
 
         private static void PlayCustomWavWithGain(string filePath, int volumePercent)
         {
             try
             {
                 byte[] fileBytes = System.IO.File.ReadAllBytes(filePath);
-                
+
                 // Simple WAV parsing
                 // Header is 44 bytes minimum. 
                 // We need to find "fmt " to get BitsPerSample
                 // We need to find "data" to get AudioData
-                
+
                 // Helper to find chunk
                 int FindChunk(byte[] src, string chunkName, int startObj)
                 {
@@ -671,11 +671,11 @@ namespace PosSystem.Main
                 // 1. Find fmt chunk
                 int fmtIdx = FindChunk(fileBytes, "fmt ", 12);
                 if (fmtIdx == -1) throw new Exception("No fmt chunk");
-                
+
                 // BitsPerSample is at fmtIdx + 8 (chunk size) + 2 (format) + 2 (channels) + 4 (sample rate) + 4 (byte rate) + 2 (block align)
                 // Offset 22 from Chunk Tag start?
                 // fmt tag (4) + size (4) + format tag (2) + channels (2) + samplerate (4) + byterate (4) + blockalign (2) + BitsPerSample (2)
-                int bitsPerSampleIdx = fmtIdx + 8 + 2 + 2 + 4 + 4 + 2; 
+                int bitsPerSampleIdx = fmtIdx + 8 + 2 + 2 + 4 + 4 + 2;
                 short bitsPerSample = BitConverter.ToInt16(fileBytes, bitsPerSampleIdx);
 
                 // 2. Find data chunk
@@ -684,7 +684,7 @@ namespace PosSystem.Main
 
                 int dataSize = BitConverter.ToInt32(fileBytes, dataIdx + 4);
                 int dataStart = dataIdx + 8;
-                
+
                 // 3. Apply Gain
                 // User wants "Louder" than max. Max slider (100) = 300% Gain.
                 double gain = (volumePercent / 100.0) * 3.0f; // Boost up to 3x
@@ -726,13 +726,13 @@ namespace PosSystem.Main
             catch (Exception)
             {
                 // Fallback if parsing fails: Use standard MediaPlayer without boost
-                 Application.Current.Dispatcher.Invoke(() =>
-                {
-                    if (_mediaPlayer == null) _mediaPlayer = new MediaPlayer();
-                    _mediaPlayer.Open(new Uri(filePath));
-                    _mediaPlayer.Volume = Math.Clamp(volumePercent, 0, 100) / 100.0;
-                    _mediaPlayer.Play();
-                });
+                Application.Current.Dispatcher.Invoke(() =>
+               {
+                   if (_mediaPlayer == null) _mediaPlayer = new MediaPlayer();
+                   _mediaPlayer.Open(new Uri(filePath));
+                   _mediaPlayer.Volume = Math.Clamp(volumePercent, 0, 100) / 100.0;
+                   _mediaPlayer.Play();
+               });
             }
         }
 
