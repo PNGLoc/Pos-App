@@ -105,6 +105,16 @@ namespace PosSystem.Main
         private void TxtPercent_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (_isQuantityMode) return;
+
+            if (decimal.TryParse(txtPercent.Text, out decimal val))
+            {
+                if (val > 100)
+                {
+                    txtPercent.Text = "100";
+                    txtPercent.CaretIndex = 3; // Move cursor to end
+                }
+            }
+
             UpdateBillPreview();
         }
 

@@ -55,7 +55,7 @@ namespace PosSystem.Main.Server.Controllers
             {
                 shown.Add($"+{list.Count - maxItems} món khác");
             }
-            return string.Join(", ", shown);
+            return string.Join("\n", shown);
         }
 
         // 1. MỞ BÀN & TẠO ĐƠN (Chỉ lưu status New, CHƯA IN)
@@ -293,7 +293,7 @@ namespace PosSystem.Main.Server.Controllers
                         string tableName = order.Table?.TableName ?? $"Bàn {tableId}";
                         var items = printQueue.Select(i => (i.Dish?.DishName ?? "Unknown", i.Quantity, i.Note ?? string.Empty));
                         var totalQty = printQueue.Sum(i => i.Quantity);
-                        var notiMsg = $"{senderName} gửi bếp ({tableName}): {totalQty} phần — {SummarizeItems(items)}";
+                        var notiMsg = $"{senderName} gửi bếp ({tableName}): {totalQty} phần:\n{SummarizeItems(items)}";
                         await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", notiMsg);
                     }
                     catch { }
@@ -889,7 +889,7 @@ namespace PosSystem.Main.Server.Controllers
                             var tableName = order.Table?.TableName ?? $"Bàn {tableId}";
                             var items = aggregatedPrintItems.Select(i => (i.Dish?.DishName ?? "Unknown", -i.Quantity, i.Note ?? string.Empty));
                             var totalQty = aggregatedPrintItems.Sum(i => -i.Quantity);
-                            var msg = $"{acc.AccName} hủy món ({tableName}): {totalQty} phần — {SummarizeItems(items)}";
+                            var msg = $"{acc.AccName} hủy món ({tableName}): {totalQty} phần:\n{SummarizeItems(items)}";
                             await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
                         }
                         catch { }

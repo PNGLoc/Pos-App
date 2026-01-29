@@ -185,25 +185,31 @@
                                             Orientation="Horizontal"
                                             HorizontalAlignment="Center">
                                         <TextBlock Text="Tổng tiền: "
-                                                   Foreground="#666"/>
+                                                   Foreground="#666"
+                                                   FontSize="14"/>
                                         <TextBlock x:Name="txtBillTotal"
                                                    Text="0"
                                                    FontWeight="Bold"
-                                                   Foreground="#111"/>
+                                                   Foreground="#111"
+                                                   FontSize="16"/>
                                         <TextBlock Text=" đ"
-                                                   Foreground="#666"/>
+                                                   Foreground="#666"
+                                                   FontSize="14"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="1"
                                             Orientation="Horizontal"
                                             HorizontalAlignment="Center">
                                         <TextBlock Text="Giảm: "
-                                                   Foreground="#666"/>
+                                                   Foreground="#666"
+                                                   FontSize="14"/>
                                         <TextBlock x:Name="txtBillDiscount"
                                                    Text="0"
                                                    FontWeight="Bold"
-                                                   Foreground="#DC3545"/>
+                                                   Foreground="#DC3545"
+                                                   FontSize="16"/>
                                         <TextBlock Text=" đ"
+                                        FontSize="14"
                                                    Foreground="#666"/>
                                 </StackPanel>
                         </Grid>
@@ -313,9 +319,9 @@
                                 Margin="0,0,10,0"
                                 Click="BtnUndo_Click"
                                 FontWeight="Bold"
-                                Background="#FD7E14"
+                                Background="#6c757d"
                                 Foreground="White"
-                                BorderBrush="#FD7E14"/>
+                                BorderBrush="#6c757d"/>
                         <Button Content="XÁC NHẬN"
                                 Width="120"
                                 Height="40"
