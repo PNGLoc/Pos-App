@@ -898,12 +898,12 @@
                                                         Margin="0,0,0,10"
                                                         Padding="12,6"
                                                         CornerRadius="6"
-                                                        Background="#F4F6F8"
+                                                        Background="#47a67f"
                                                         BorderThickness="1"
-                                                        BorderBrush="#E1E5EA">
+                                                       >
                                                     <TextBlock Text="{Binding Price, StringFormat={}{0:N0} đ}"
                                                                TextAlignment="Center"
-                                                               Foreground="#F44336"
+                                                               Foreground="#ffffff"
                                                                FontWeight="Bold"
                                                                FontSize="17"/>
                                                 </Border>
@@ -932,8 +932,8 @@
 
                     <!-- Activity list (moved here from header/left) -->
                     <Border Grid.Row="0"
-                            Background="#FFF8F0"
-                            BorderBrush="#F3D2A6"
+                            Background="#f1f3f5"
+                            BorderBrush="#f1f3f5"
                             BorderThickness="0,0,0,1">
                         <Grid>
                             <ToggleButton x:Name="tglActivityPopup"
@@ -946,7 +946,7 @@
                                     <StackPanel>
                                         <TextBlock Text="🔔 HOẠT ĐỘNG MỚI"
                                                    FontWeight="Bold"
-                                                   Foreground="#FFEB3B"
+                                                   Foreground="#495057"
                                                    Margin="0,0,0,4"/>
                                         <!-- Preview list (non-interactive; click opens popup) -->
                                         <ListBox ItemsSource="{Binding NotificationList}"
@@ -1028,7 +1028,7 @@
                                             <TextBlock Grid.Column="0"
                                                        Text="🔔 HOẠT ĐỘNG MỚI"
                                                        FontWeight="Bold"
-                                                       Foreground="#FD7E14"
+                                                       Foreground="#495057"
                                                        VerticalAlignment="Center"/>
                                             <ToggleButton Grid.Column="1"
                                                           IsChecked="{Binding IsChecked, ElementName=tglActivityPopup, Mode=TwoWay}"
