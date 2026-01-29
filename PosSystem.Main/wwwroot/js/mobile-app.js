@@ -12,10 +12,14 @@ let appState = {
     currentMenuCategory: 'All' // [NEW] Filter cho Menu
 };
 
+let suppressPopstate = false;
+
 document.addEventListener('DOMContentLoaded', async () => {
     const userStr = localStorage.getItem('posUser');
     if (!userStr) { window.location.href = 'index.html'; return; }
     currentUser = JSON.parse(userStr);
+
+    initBackNavigation();
 
     updateDetailTabsOffset();
     window.addEventListener('resize', updateDetailTabsOffset);
@@ -33,6 +37,76 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('menuUserAvatar').innerText = firstLetter;
     }
 });
+
+function initBackNavigation() {
+    // Create a lock state so back gesture won't exit to login
+    history.replaceState({ view: 'view-tables', lock: true }, '', '#tables');
+    history.pushState({ view: 'view-tables', lock: true }, '', '#tables');
+
+    window.addEventListener('popstate', () => {
+        if (suppressPopstate) { suppressPopstate = false; return; }
+
+        if (closeAnyOpenModal()) return;
+        if (isActionMenuOpen()) { closeActionMenu(false); return; }
+
+        const active = getActiveViewId();
+        if (active === 'view-menu') {
+            showView('view-detail', { push: false });
+            return;
+        }
+
+        if (active === 'view-detail') {
+            showView('view-tables', { push: false });
+            return;
+        }
+
+        // Stay on tables view, block leaving to login
+        history.pushState({ view: 'view-tables', lock: true }, '', '#tables');
+    });
+}
+
+function getActiveViewId() {
+    const active = document.querySelector('.view-section.active');
+    return active ? active.id : null;
+}
+
+function isActionMenuOpen() {
+    const sheet = document.getElementById('actionSheet');
+    return !!(sheet && sheet.classList.contains('show'));
+}
+
+function closeActionMenu(syncHistory = true) {
+    const sheet = document.getElementById('actionSheet');
+    const overlay = document.getElementById('actionSheetOverlay');
+    if (!sheet || !overlay) return;
+    sheet.classList.remove('show');
+    overlay.style.display = 'none';
+
+    if (syncHistory && history.state && history.state.popup === 'actionSheet') {
+        suppressPopstate = true;
+        history.back();
+    }
+}
+
+function closeAnyOpenModal() {
+    const modalIds = ['confirmModal', 'moveTableModal', 'cancelModal', 'paymentModal'];
+    for (const id of modalIds) {
+        const el = document.getElementById(id);
+        if (el && el.style.display === 'flex') {
+            closeModal(id);
+            return true;
+        }
+    }
+
+    const noteEl = document.getElementById('noteModal');
+    if (noteEl && noteEl.classList.contains('show')) {
+        const instance = bootstrap.Modal.getInstance(noteEl);
+        if (instance) instance.hide();
+        return true;
+    }
+
+    return false;
+}
 
 function updateDetailTabsOffset() {
     const header = document.getElementById('detailHeader');
@@ -253,11 +327,15 @@ function removeAccents(str) {
 function getAcronym(str) { return removeAccents(str).toLowerCase().split(/\s+/).map(w => w[0]).join(''); }
 
 // --- NAV & UI ---
-function showView(viewId) {
+function showView(viewId, options = { push: true }) {
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
     if (viewId === 'view-detail') {
         requestAnimationFrame(() => requestAnimationFrame(updateDetailTabsOffset));
+    }
+
+    if (options.push) {
+        history.pushState({ view: viewId, tableId: appState.currentTableId }, '', `#${viewId.replace('view-', '')}`);
     }
 }
 function showToast(msg, type = 'success') {
@@ -965,13 +1043,14 @@ function toggleActionMenu() {
     const overlay = document.getElementById('actionSheetOverlay');
 
     if (sheet.classList.contains('show')) {
-        sheet.classList.remove('show');
-        overlay.style.display = 'none';
+        closeActionMenu(true);
     } else {
         // Cập nhật quyền trước khi hiện menu
         updateMenuPermissions();
         sheet.classList.add('show');
         overlay.style.display = 'block';
+
+        history.pushState({ popup: 'actionSheet', view: getActiveViewId() }, '', '#action');
     }
 }
 
