@@ -233,6 +233,7 @@ namespace PosSystem.Main
             InitializeComponent();
 
             ReloadTableIconSettings();
+            LoadAutoReturnSettings();
 
             // Defer heavy work until the window is rendered at least once.
             Loaded += MainWindow_Loaded;
@@ -293,6 +294,32 @@ namespace PosSystem.Main
                 _showTableCardIcons = true;
             }
         }
+
+        public static void LoadAutoReturnSettings()
+        {
+            try
+            {
+                using (var db = new AppDbContext())
+                {
+                    var sPay = db.GlobalSettings.FirstOrDefault(s => s.Key == "autoReturnPay");
+                    var sProv = db.GlobalSettings.FirstOrDefault(s => s.Key == "autoReturnProvisional");
+                    var sKitchen = db.GlobalSettings.FirstOrDefault(s => s.Key == "autoReturnKitchen");
+
+                    _autoReturnPay = sPay != null && sPay.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    _autoReturnProvisional = sProv != null && sProv.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    _autoReturnKitchen = sKitchen != null && sKitchen.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            catch
+            {
+                // Default to false if DB error
+                _autoReturnPay = false;
+                _autoReturnProvisional = false;
+                _autoReturnKitchen = false;
+            }
+        }
+
+
 
         public static void ApplyTableIconSettingsToOpenWindows()
         {
@@ -521,16 +548,15 @@ namespace PosSystem.Main
 
         public static void ReloadSystemSettings()
         {
+            // [NEW] Call the shared AutoReturn loader
+            LoadAutoReturnSettings();
+
             try
             {
                 using (var db = new AppDbContext())
                 {
                     var enabledSetting = db.GlobalSettings.FirstOrDefault(s => s.Key == "notificationSoundEnabled");
                     var volumeSetting = db.GlobalSettings.FirstOrDefault(s => s.Key == "notificationSoundVolume");
-                    
-                    var autoReturnPay = db.GlobalSettings.FirstOrDefault(s => s.Key == "autoReturnPay");
-                    var autoReturnProvisional = db.GlobalSettings.FirstOrDefault(s => s.Key == "autoReturnProvisional");
-                    var autoReturnKitchen = db.GlobalSettings.FirstOrDefault(s => s.Key == "autoReturnKitchen");
 
                     _notificationSoundEnabled = enabledSetting == null || enabledSetting.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
                     if (volumeSetting != null && int.TryParse(volumeSetting.Value, out var v))
@@ -541,22 +567,16 @@ namespace PosSystem.Main
                     {
                         _notificationSoundVolume = 25;
                     }
-
-                    // [NEW] Load 3 AutoReturn Settings
-                    _autoReturnPay = autoReturnPay != null && autoReturnPay.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
-                    _autoReturnProvisional = autoReturnProvisional != null && autoReturnProvisional.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
-                    _autoReturnKitchen = autoReturnKitchen != null && autoReturnKitchen.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
                 }
             }
-            catch
+            catch 
             {
-                _notificationSoundEnabled = true;
-                _notificationSoundVolume = 25;
-                _autoReturnPay = false;
-                _autoReturnProvisional = false;
-                _autoReturnKitchen = false;
+                 // Fallback defaults
+                 _notificationSoundEnabled = true;
+                 _notificationSoundVolume = 25;
             }
 
+            // Apply settings (e.g. stop player if disabled)
             if (!_notificationSoundEnabled || _notificationSoundVolume <= 0)
             {
                 try { _notificationPlayer?.Stop(); } catch { }
@@ -3346,4 +3366,5 @@ namespace PosSystem.Main
             return null;
         }
     }
+
 } // End of namespace

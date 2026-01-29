@@ -59,7 +59,8 @@
                             Minimum="0"
                             Maximum="100"
                             Width="260"
-                            ValueChanged="SldVolume_ValueChanged"/>
+                            ValueChanged="SldVolume_ValueChanged"
+                            Thumb.DragCompleted="SldVolume_DragCompleted"/>
                     <TextBlock x:Name="lblVolume"
                                Margin="10,0,10,0"
                                MinWidth="35"
@@ -102,23 +103,30 @@
                           Content="Tự động quay về sau khi Thanh toán"
                           FontSize="14"
                           FontWeight="SemiBold"
-                          Margin="0,0,0,10"/>
+                          Margin="0,0,0,10"
+                          Checked="AutoSave_Changed"
+                          Unchecked="AutoSave_Changed"/>
 
                 <CheckBox x:Name="chkAutoReturnProvisional"
                           Content="Tự động quay về sau khi In tạm tính"
                           FontSize="14"
                           FontWeight="SemiBold"
-                          Margin="0,0,0,10"/>
+                          Margin="0,0,0,10"
+                          Checked="AutoSave_Changed"
+                          Unchecked="AutoSave_Changed"/>
 
                 <CheckBox x:Name="chkAutoReturnKitchen"
                           Content="Tự động quay về sau khi Gửi bếp"
                           FontSize="14"
                           FontWeight="SemiBold"
-                          Margin="0,0,0,15"/>
+                          Margin="0,0,0,15"
+                          Checked="AutoSave_Changed"
+                          Unchecked="AutoSave_Changed"/>
 
                 <StackPanel Orientation="Horizontal"
                             Margin="0,20,0,0"
-                            HorizontalAlignment="Right">
+                            HorizontalAlignment="Right"
+                            Visibility="Collapsed">
                     <Button Content="Lưu lại"
                             Width="120"
                             Height="35"

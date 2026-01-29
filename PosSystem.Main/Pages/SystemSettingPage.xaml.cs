@@ -72,11 +72,13 @@ namespace PosSystem.Main.Pages
         private void ChkEnableSound_Checked(object sender, RoutedEventArgs e)
         {
             if (sldVolume != null) sldVolume.IsEnabled = true;
+            SaveSingleSetting(KeyEnabled, "true");
         }
 
         private void ChkEnableSound_Unchecked(object sender, RoutedEventArgs e)
         {
             if (sldVolume != null) sldVolume.IsEnabled = false;
+            SaveSingleSetting(KeyEnabled, "false");
         }
 
         private void SldVolume_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -87,30 +89,52 @@ namespace PosSystem.Main.Pages
             }
         }
 
-        private void BtnSave_Click(object sender, RoutedEventArgs e)
+        // Save volume only when drag completes to avoid spamming DB
+        private void SldVolume_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+             SaveSingleSetting(KeyVolume, ((int)sldVolume.Value).ToString());
+        }
+
+        // New universal handler for CheckBoxes
+        private void AutoSave_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return; // Prevent triggering during LoadSettings()
+
+            if (sender == chkAutoReturnPay)
+                SaveSingleSetting(KeyAutoReturnPay, (chkAutoReturnPay.IsChecked == true).ToString().ToLower());
+            
+            else if (sender == chkAutoReturnProvisional)
+                SaveSingleSetting(KeyAutoReturnProvisional, (chkAutoReturnProvisional.IsChecked == true).ToString().ToLower());
+            
+            else if (sender == chkAutoReturnKitchen)
+                SaveSingleSetting(KeyAutoReturnKitchen, (chkAutoReturnKitchen.IsChecked == true).ToString().ToLower());
+        }
+
+        private void SaveSingleSetting(string key, string value)
         {
             try
             {
                 using (var db = new AppDbContext())
                 {
-                    UpsertSetting(db, KeyEnabled, (chkEnableSound.IsChecked == true).ToString().ToLower());
-                    UpsertSetting(db, KeyVolume, ((int)sldVolume.Value).ToString());
-                    
-                    UpsertSetting(db, KeyAutoReturnPay, (chkAutoReturnPay.IsChecked == true).ToString().ToLower());
-                    UpsertSetting(db, KeyAutoReturnProvisional, (chkAutoReturnProvisional.IsChecked == true).ToString().ToLower());
-                    UpsertSetting(db, KeyAutoReturnKitchen, (chkAutoReturnKitchen.IsChecked == true).ToString().ToLower());
-                    
+                    UpsertSetting(db, key, value);
                     db.SaveChanges();
                 }
 
-                MainWindow.ReloadNotificationSoundSettings();
-                MainWindow.ReloadSystemSettings(); 
-                MessageBox.Show("Đã lưu cài đặt.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (key == KeyEnabled || key == KeyVolume)
+                    MainWindow.ReloadNotificationSoundSettings();
+                else 
+                    MainWindow.ReloadSystemSettings();
             }
-            catch
+            catch (Exception ex)
             {
-                MessageBox.Show("Không thể lưu cài đặt âm thanh.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                Console.WriteLine($"AutoSave Error [{key}]: {ex.Message}");
             }
+        }
+
+        private void BtnSave_Click(object sender, RoutedEventArgs e)
+        {
+            // Now redundant, kept just in case user unhides button or legacy call
+            MessageBox.Show("Các cài đặt đã được lưu tự động!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void BtnTest_Click(object sender, RoutedEventArgs e)
