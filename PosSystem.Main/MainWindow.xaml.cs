@@ -364,6 +364,16 @@ namespace PosSystem.Main
             }), DispatcherPriority.Background);
 
             try { SetupRealtime(); } catch { }
+
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    txtTableSearch.Focus();
+                    Keyboard.Focus(txtTableSearch);
+                }
+                catch { }
+            }), DispatcherPriority.Input);
         }
 
         private void LoadActivityLogFromDb()
@@ -1008,6 +1018,16 @@ namespace PosSystem.Main
 
             LoadTables();
             lstTables.SelectedItem = null;
+
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    txtTableSearch.Focus();
+                    Keyboard.Focus(txtTableSearch);
+                }
+                catch { }
+            }), DispatcherPriority.Input);
         }
 
         // Helper method to switch to a specific table

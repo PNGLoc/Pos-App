@@ -329,12 +329,28 @@
                                            VerticalAlignment="Center"/>
 
                                 <Border Grid.Column="1"
+                                        x:Name="bdTableSearch"
                                         Background="#F8F9FA"
-                                        BorderBrush="#D0D7DE"
-                                        BorderThickness="1"
                                         CornerRadius="8"
                                         Margin="12,0,0,0"
                                         VerticalAlignment="Center">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="BorderBrush"
+                                                    Value="#D0D7DE"/>
+                                            <Setter Property="BorderThickness"
+                                                    Value="1"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ElementName=txtTableSearch, Path=IsKeyboardFocusWithin}"
+                                                             Value="True">
+                                                    <Setter Property="BorderBrush"
+                                                            Value="#007BFF"/>
+                                                    <Setter Property="BorderThickness"
+                                                            Value="1"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                     <TextBox x:Name="txtTableSearch"
                                              Width="220"
                                              Height="34"
@@ -885,8 +901,7 @@
                                                         Padding="12,6"
                                                         CornerRadius="6"
                                                         Background="#f5f6f8"
-                                                        BorderThickness="1"
-                                                       >
+                                                        BorderThickness="1">
                                                     <TextBlock Text="{Binding Price, StringFormat={}{0:N0} đ}"
                                                                TextAlignment="Center"
                                                                Foreground="#333"
@@ -1575,7 +1590,7 @@
                                     <StackPanel Orientation="Horizontal"
                                                 HorizontalAlignment="Right">
                                         <TextBlock Text="Tổng (gốc): "
-                                        FontSize="14"/>
+                                                   FontSize="14"/>
                                         <TextBlock x:Name="lblSubTotal"
                                                    Text="0đ"
                                                    FontWeight="Bold"
