@@ -287,11 +287,21 @@ async function loadTables(renderFilter = true) {
             if (currentTable) {
                 const badge = document.getElementById('detailTableStatus');
                 if (badge) {
-                    // Translate status
-                    const statusText = currentTable.tableStatus === 'Occupied' ? 'Đã gọi món' : 'Bàn trống';
-                    const statusClass = currentTable.tableStatus === 'Occupied' ? 'bg-danger' : 'bg-success';
+                    // [MODIFIED] Logic Status & Color (Detail Badge)
+                    const hasNew = currentTable.hasNewItems || currentTable.HasNewItems;
+                    let statusText = 'Bàn trống';
+                    let statusClass = 'text-dark fw-bold'; // Mặc định đen
+
+                    if (hasNew) {
+                        statusText = 'Đang gọi món';
+                        statusClass = 'text-warning fw-bold';
+                    } else if (currentTable.tableStatus === 'Occupied') {
+                        statusText = 'Đã gọi món';
+                        statusClass = 'text-success fw-bold';
+                    }
+
                     badge.innerText = statusText;
-                    badge.className = `badge ${statusClass}`;
+                    badge.className = statusClass; // Bỏ class 'badge'
                 }
             }
         }
@@ -334,7 +344,7 @@ function updateTableTimers() {
         } else {
             const h = Math.floor(diff / 3600);
             const m = Math.floor((diff % 3600) / 60);
-            display = `${h}h${m}`;
+            display = `${h}giờ ${m}p`;
         }
         el.innerText = display;
     });
@@ -452,13 +462,22 @@ function filterTables(type) { appState.currentFilter = type; renderTables(type);
 function openTableDetail(table) {
     appState.currentTableId = table.tableID;
     document.getElementById('detailTableName').innerText = table.tableName;
-    // [FIXED] Translate badge
-    const statusText = table.tableStatus === 'Occupied' ? 'Đã gọi món' : 'Bàn trống';
-    const statusClass = table.tableStatus === 'Occupied' ? 'bg-danger' : 'bg-success';
+    // [MODIFIED] Translate badge (Detail View)
+    const hasNew = table.hasNewItems || table.HasNewItems;
+    let statusText = 'Bàn trống';
+    let statusClass = 'text-dark fw-bold';
+
+    if (hasNew) {
+        statusText = 'Đang gọi món';
+        statusClass = 'text-warning fw-bold';
+    } else if (table.tableStatus === 'Occupied') {
+        statusText = 'Đã gọi món';
+        statusClass = 'text-success fw-bold';
+    }
 
     const badge = document.getElementById('detailTableStatus');
     badge.innerText = statusText;
-    badge.className = `badge ${statusClass}`;
+    badge.className = statusClass;
 
     loadOrderData(table.tableID);
     showView('view-detail');
