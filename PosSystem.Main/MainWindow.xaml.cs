@@ -194,6 +194,10 @@ namespace PosSystem.Main
         private static int _notificationSoundVolumeApplied = -1;
         private static DateTime _notificationSettingsLastRead = DateTime.MinValue;
         private static DateTime _lastNotificationSoundAt = DateTime.MinValue;
+        private static DateTime _lastActivitySoundAt = DateTime.MinValue;
+        private static string _lastActivitySoundMessage = string.Empty;
+        private static readonly TimeSpan _activitySoundCooldown = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan _activitySoundSameMessageWindow = TimeSpan.FromSeconds(5);
         private static bool _showTableCardIcons = true;
         // [NEW] 3 separate settings (Default: false)
         private static bool _autoReturnPay = false;
@@ -775,13 +779,39 @@ namespace PosSystem.Main
                         while (NotificationList.Count > 200) NotificationList.RemoveAt(NotificationList.Count - 1);
                         try
                         {
-                            PlayNotificationSound();
+                            if (ShouldPlayActivitySound(message))
+                            {
+                                PlayNotificationSound();
+                            }
                         }
                         catch { }
                     });
                 }
                 catch { }
             });
+        }
+
+        private static bool ShouldPlayActivitySound(string message)
+        {
+            var now = DateTime.Now;
+            var msg = (message ?? string.Empty).Trim();
+
+            if (!string.IsNullOrEmpty(msg) && msg.Equals(_lastActivitySoundMessage, StringComparison.OrdinalIgnoreCase))
+            {
+                if ((now - _lastActivitySoundAt) < _activitySoundSameMessageWindow)
+                {
+                    return false;
+                }
+            }
+
+            if ((now - _lastActivitySoundAt) < _activitySoundCooldown)
+            {
+                return false;
+            }
+
+            _lastActivitySoundAt = now;
+            _lastActivitySoundMessage = msg;
+            return true;
         }
 
 
