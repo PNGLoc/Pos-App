@@ -568,6 +568,12 @@
                                                         <Setter Property="Background"
                                                                 Value="#FF746C"/>
                                                     </DataTrigger>
+
+                                                    <DataTrigger Binding="{Binding IsGrayedOut}"
+                                                                 Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="#E0E0E0"/>
+                                                    </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>

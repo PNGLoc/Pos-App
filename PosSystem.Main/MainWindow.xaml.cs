@@ -1564,7 +1564,7 @@ namespace PosSystem.Main
                         TimeDisplay = pendingTime.HasValue ? FormatElapsedTime(pendingTime.Value) : "",
                         HasProvisionalBill = t.PendingOrder?.IsPreCalculated ?? false,
                         IsRequestingPayment = t.PendingOrder?.IsRequestingPayment ?? false,
-                        IsGrayedOut = ((_isWaitingForTargetTable || _isWaitingForMoveTargetTable) && t.TableID == _selectedTableId),
+                        IsGrayedOut = (_isWaitingForTargetTable || _isWaitingForMoveTargetTable),
                         CategoryBorderBrush = ParseHexBrush(t.CategoryBorderColorHex, Color.FromRgb(208, 208, 208)),
                         CategoryIconGlyph = GetCategoryIconGlyph(t.CategoryIconClass),
                         IsCategoryIconVisible = _showTableCardIcons,
