@@ -322,7 +322,7 @@
 
                                 <!-- Title -->
                                 <TextBlock Grid.Column="0"
-                                           Text="SƠ ĐỒ PHÒNG BÀN"
+                                           Text="SƠ ĐỒ BÀN"
                                            FontSize="22"
                                            FontWeight="Bold"
                                            Foreground="#333"
@@ -551,16 +551,16 @@
                                                                 Value="#2196F3"/>
                                                     </Trigger>
 
-                                                    <DataTrigger Binding="{Binding HasUnsentItems}"
-                                                                 Value="True">
-                                                        <Setter Property="Background"
-                                                                Value="#fff3cd"/>
-                                                    </DataTrigger>
-
                                                     <DataTrigger Binding="{Binding HasProvisionalBill}"
                                                                  Value="True">
                                                         <Setter Property="Background"
                                                                 Value="#A7D3F5"/>
+                                                    </DataTrigger>
+
+                                                    <DataTrigger Binding="{Binding HasUnsentItems}"
+                                                                 Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="#fff3cd"/>
                                                     </DataTrigger>
 
                                                     <DataTrigger Binding="{Binding IsRequestingPayment}"
@@ -692,40 +692,54 @@
                             <!-- Search on the same row with title -->
                             <Grid Grid.Column="2"
                                   VerticalAlignment="Center">
-                                <TextBox x:Name="txtDishSearch"
-                                         Padding="10"
-                                         FontSize="14"
-                                         Height="40"
-                                         VerticalContentAlignment="Center"
-                                         MinWidth="240"
-                                         MaxWidth="520"
-                                         TextChanged="TxtDishSearch_TextChanged"/>
-                                <TextBlock Text="🔍 Search món (tên hoặc viết tắt)..."
-                                           FontSize="14"
-                                           Foreground="#999"
-                                           Margin="0"
-                                           IsHitTestVisible="False"
-                                           TextAlignment="Center"
-                                           VerticalAlignment="Center">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Opacity"
-                                                    Value="0"/>
+                                <Border Background="White"
+                                        CornerRadius="8"
+                                        MinWidth="240"
+                                        MaxWidth="520"
+                                        Height="40">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="BorderBrush" Value="#D0D7DE"/>
+                                            <Setter Property="BorderThickness" Value="1"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}"
-                                                             Value="">
-                                                    <Setter Property="Opacity"
-                                                            Value="0.5"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}"
-                                                             Value="{x:Null}">
-                                                    <Setter Property="Opacity"
-                                                            Value="0.5"/>
-                                                </DataTrigger>
+                                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                                    <Setter Property="BorderBrush" Value="#6c757d"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                </Trigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
+                                    </Border.Style>
+                                    <Grid>
+                                        <TextBox x:Name="txtDishSearch"
+                                                 Padding="10,0"
+                                                 FontSize="14"
+                                                 VerticalContentAlignment="Center"
+                                                 BorderThickness="0"
+                                                 Background="Transparent"
+                                                 TextChanged="TxtDishSearch_TextChanged"/>
+                                        <TextBlock Text="🔍 Search món (tên hoặc viết tắt)..."
+                                                   FontSize="14"
+                                                   Foreground="#999"
+                                                   Margin="0"
+                                                   IsHitTestVisible="False"
+                                                   TextAlignment="Center"
+                                                   VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Opacity" Value="0"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}" Value="">
+                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}" Value="{x:Null}">
+                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
                             </Grid>
 
                             <StackPanel Grid.Column="4"
