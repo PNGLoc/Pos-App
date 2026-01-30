@@ -551,16 +551,16 @@
                                                                 Value="#2196F3"/>
                                                     </Trigger>
 
-                                                    <DataTrigger Binding="{Binding HasUnsentItems}"
-                                                                 Value="True">
-                                                        <Setter Property="Background"
-                                                                Value="#fff3cd"/>
-                                                    </DataTrigger>
-
                                                     <DataTrigger Binding="{Binding HasProvisionalBill}"
                                                                  Value="True">
                                                         <Setter Property="Background"
                                                                 Value="#A7D3F5"/>
+                                                    </DataTrigger>
+
+                                                    <DataTrigger Binding="{Binding HasUnsentItems}"
+                                                                 Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="#fff3cd"/>
                                                     </DataTrigger>
 
                                                     <DataTrigger Binding="{Binding IsRequestingPayment}"

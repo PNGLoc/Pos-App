@@ -2718,6 +2718,9 @@ namespace PosSystem.Main
                             {
                                 detail.OrderID = targetOrder.OrderID;
                             }
+
+                            // [FIX] Delete source order so the table becomes Empty
+                           db.Orders.Remove(sourceOrder);
                         }
                         else
                         {
