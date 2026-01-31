@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
-
+using System.Windows.Media;
 namespace PosSystem.Main
 {
     public partial class TimeKeepingWindow : Window
@@ -115,48 +115,56 @@ namespace PosSystem.Main
             pnlResult.Visibility = Visibility.Visible;
         }
 
+       
+        private System.Windows.Media.MediaPlayer _mediaPlayer = new System.Windows.Media.MediaPlayer();
+
         private void PlaySound(string fileName)
         {
             try
             {
+                string path = "";
+                
                 // 1. Try local Assets folder first
                 string localPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", fileName);
                 if (System.IO.File.Exists(localPath))
                 {
-                    using (var player = new System.Media.SoundPlayer(localPath))
+                    path = localPath;
+                }
+                else
+                {
+                    // 2. Fallback to Windows System Sounds
+                    string winMediaPath = @"C:\Windows\Media";
+                    string systemSoundFile = "";
+
+                    switch (fileName.ToLower())
                     {
-                        player.Play();
+                        case "insert.wav":
+                            systemSoundFile = "Windows Hardware Insert.wav";
+                            break;
+                        case "remove.wav":
+                            systemSoundFile = "Windows Hardware Remove.wav";
+                            break;
+                        case "fail.wav":
+                            systemSoundFile = "Windows Hardware Fail.wav";
+                            break;
                     }
-                    return;
-                }
 
-                // 2. Fallback to Windows System Sounds
-                string winMediaPath = @"C:\Windows\Media";
-                string systemSoundFile = "";
-
-                switch (fileName.ToLower())
-                {
-                    case "insert.wav":
-                        systemSoundFile = "Windows Hardware Insert.wav";
-                        break;
-                    case "remove.wav":
-                        systemSoundFile = "Windows Hardware Remove.wav";
-                        break;
-                    case "fail.wav":
-                        systemSoundFile = "Windows Critical Stop.wav"; // or "Windows Foreground.wav"
-                        break;
-                }
-
-                if (!string.IsNullOrEmpty(systemSoundFile))
-                {
-                    string sysPath = System.IO.Path.Combine(winMediaPath, systemSoundFile);
-                    if (System.IO.File.Exists(sysPath))
+                    if (!string.IsNullOrEmpty(systemSoundFile))
                     {
-                        using (var player = new System.Media.SoundPlayer(sysPath))
+                        string sysPath = System.IO.Path.Combine(winMediaPath, systemSoundFile);
+                        if (System.IO.File.Exists(sysPath))
                         {
-                            player.Play();
+                            path = sysPath;
                         }
                     }
+                }
+
+                if (!string.IsNullOrEmpty(path))
+                {
+                    // Use MediaPlayer for volume control
+                    _mediaPlayer.Open(new Uri(path, UriKind.Absolute));
+                    _mediaPlayer.Volume = 1.0; // Max volume
+                    _mediaPlayer.Play();
                 }
             }
             catch (Exception ex)
