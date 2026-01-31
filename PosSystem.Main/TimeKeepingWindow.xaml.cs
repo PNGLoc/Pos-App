@@ -116,8 +116,6 @@ namespace PosSystem.Main
         }
 
        
-        private System.Windows.Media.MediaPlayer _mediaPlayer = new System.Windows.Media.MediaPlayer();
-
         private void PlaySound(string fileName)
         {
             try
@@ -161,10 +159,11 @@ namespace PosSystem.Main
 
                 if (!string.IsNullOrEmpty(path))
                 {
-                    // Use MediaPlayer for volume control
-                    _mediaPlayer.Open(new Uri(path, UriKind.Absolute));
-                    _mediaPlayer.Volume = 1.0; // Max volume
-                    _mediaPlayer.Play();
+                    // Revert to SoundPlayer for native system volume alignment
+                    using (var player = new System.Media.SoundPlayer(path))
+                    {
+                        player.Play();
+                    }
                 }
             }
             catch (Exception ex)
