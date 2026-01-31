@@ -43,6 +43,7 @@ namespace PosSystem.Main
                 if (emp == null)
                 {
                     ShowError($"Thẻ lạ: {cardCode}");
+                    PlaySound("fail.wav");
                     return;
                 }
 
@@ -58,6 +59,7 @@ namespace PosSystem.Main
                     // Check In
                     db.TimeLogs.Add(new TimeLog { EmpID = emp.EmpID, CheckInTime = now });
                     ShowSuccess("XIN CHÀO (CHECK-IN)", emp.FullName, now, true);
+                    PlaySound("insert.wav");
                 }
                 else
                 {
@@ -67,21 +69,40 @@ namespace PosSystem.Main
                     {
                         int remaining = MIN_SECONDS_WAIT - (int)elapsed.TotalSeconds;
                         ShowError($"Vừa checkin, thử lại sau {remaining}s!");
+                        PlaySound("fail.wav");
                         return;
                     }
                     lastLog.CheckOutTime = now;
-                    ShowSuccess("TẠM BIỆT (CHECK-OUT)", emp.FullName, now, false);
+                    
+                    // Format duration string
+                    string durationStr = "";
+                    if (elapsed.TotalHours >= 1)
+                        durationStr = $"{(int)elapsed.TotalHours} giờ {elapsed.Minutes} phút";
+                    else
+                        durationStr = $"{elapsed.Minutes} phút";
+
+                    ShowSuccess("TẠM BIỆT (CHECK-OUT)", emp.FullName, now, false, durationStr);
+                    PlaySound("remove.wav");
                 }
                 db.SaveChanges();
             }
         }
 
-        private void ShowSuccess(string title, string name, DateTime time, bool isCheckIn)
+        private void ShowSuccess(string title, string name, DateTime time, bool isCheckIn, string duration = "")
         {
             lblStatus.Text = title;
             lblStatus.Foreground = isCheckIn ? System.Windows.Media.Brushes.Green : System.Windows.Media.Brushes.Orange;
             lblName.Text = name;
-            lblTime.Text = time.ToString("dd/MM/yyyy HH:mm:ss");
+            
+            if (!string.IsNullOrEmpty(duration))
+            {
+                lblTime.Text = $"{time:dd/MM/yyyy HH:mm:ss}\nThời gian làm: {duration}";
+            }
+            else
+            {
+                lblTime.Text = time.ToString("dd/MM/yyyy HH:mm:ss");
+            }
+            
             pnlResult.Visibility = Visibility.Visible;
         }
 
@@ -92,6 +113,56 @@ namespace PosSystem.Main
             lblName.Text = msg;
             lblTime.Text = "";
             pnlResult.Visibility = Visibility.Visible;
+        }
+
+        private void PlaySound(string fileName)
+        {
+            try
+            {
+                // 1. Try local Assets folder first
+                string localPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", fileName);
+                if (System.IO.File.Exists(localPath))
+                {
+                    using (var player = new System.Media.SoundPlayer(localPath))
+                    {
+                        player.Play();
+                    }
+                    return;
+                }
+
+                // 2. Fallback to Windows System Sounds
+                string winMediaPath = @"C:\Windows\Media";
+                string systemSoundFile = "";
+
+                switch (fileName.ToLower())
+                {
+                    case "insert.wav":
+                        systemSoundFile = "Windows Hardware Insert.wav";
+                        break;
+                    case "remove.wav":
+                        systemSoundFile = "Windows Hardware Remove.wav";
+                        break;
+                    case "fail.wav":
+                        systemSoundFile = "Windows Critical Stop.wav"; // or "Windows Foreground.wav"
+                        break;
+                }
+
+                if (!string.IsNullOrEmpty(systemSoundFile))
+                {
+                    string sysPath = System.IO.Path.Combine(winMediaPath, systemSoundFile);
+                    if (System.IO.File.Exists(sysPath))
+                    {
+                        using (var player = new System.Media.SoundPlayer(sysPath))
+                        {
+                            player.Play();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error playing sound {fileName}: {ex.Message}");
+            }
         }
         // Đảm bảo đoạn này vẫn có trong TimeKeepingWindow.xaml.cs
         protected override void OnContentRendered(EventArgs e)
