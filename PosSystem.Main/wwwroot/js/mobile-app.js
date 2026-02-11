@@ -1633,3 +1633,21 @@ async function submitCancelItem() {
 function closeModal(id) {
     document.getElementById(id).style.display = 'none';
 }
+
+async function clearCacheAndReload() {
+    try {
+        if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(key => caches.delete(key)));
+        }
+
+        if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(reg => reg.unregister()));
+        }
+    } catch { }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('v', Date.now().toString());
+    window.location.replace(url.toString());
+}
