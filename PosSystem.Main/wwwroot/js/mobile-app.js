@@ -570,7 +570,11 @@ function showView(viewId, options = { push: true }) {
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
     if (viewId === 'view-detail') {
-        requestAnimationFrame(() => requestAnimationFrame(updateDetailTabsOffset));
+        requestAnimationFrame(() => {
+            requestAnimationFrame(updateDetailTabsOffset);
+            resetDetailTabScroll();
+        });
+        resetPageScroll();
     }
 
     if (options.push) {
@@ -911,6 +915,11 @@ function renderCartTab() {
     });
     document.getElementById('cartTotalMoney').innerText = total.toLocaleString() + 'đ';
     actionBar.classList.remove('d-none'); actionBar.classList.add('d-flex');
+    requestAnimationFrame(() => {
+        const tabPane = document.getElementById('tab-cart');
+        if (tabPane) tabPane.scrollTop = 0;
+        container.scrollTop = 0;
+    });
 }
 
 async function updateCartItem(detailId, newQty, note) {
@@ -997,6 +1006,11 @@ function renderConfirmedTab() {
 
         // Chèn biến ${cancelBtn} vào cuối div
         container.innerHTML += `<div class="d-flex justify-content-between p-2 border-bottom"><div><span class="fw-bold">${d.dishName}</span> <br><small class="text-muted">${d.quantity} x ${(d.totalAmount / d.quantity).toLocaleString()}</small>${d.note ? `<br><small class="text-warning fst-italic">"${d.note}"</small>` : ''}</div><div class="text-end"><div class="fw-bold">${d.totalAmount.toLocaleString()}</div><span class="badge ${badge}">${txt}</span>${cancelBtn}</div></div>`;
+    });
+    requestAnimationFrame(() => {
+        const tabPane = document.getElementById('tab-confirmed');
+        if (tabPane) tabPane.scrollTop = 0;
+        container.scrollTop = 0;
     });
 }
 // --- MENU & SELECTION ---
@@ -1667,4 +1681,26 @@ async function forceRefreshData() {
     } catch {
         showToast('Không thể tải lại dữ liệu', 'danger');
     }
+}
+
+function resetDetailTabScroll() {
+    const tabContent = document.querySelector('#view-detail .tab-content');
+    const tabCart = document.getElementById('tab-cart');
+    const tabConfirmed = document.getElementById('tab-confirmed');
+    const cartList = document.getElementById('cartList');
+    const confirmedList = document.getElementById('confirmedList');
+
+    if (tabContent) tabContent.scrollTop = 0;
+    if (tabCart) tabCart.scrollTop = 0;
+    if (tabConfirmed) tabConfirmed.scrollTop = 0;
+    if (cartList) cartList.scrollTop = 0;
+    if (confirmedList) confirmedList.scrollTop = 0;
+}
+
+function resetPageScroll() {
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+        window.scrollTo(0, 0);
+    }
+    if (document && document.documentElement) document.documentElement.scrollTop = 0;
+    if (document && document.body) document.body.scrollTop = 0;
 }
