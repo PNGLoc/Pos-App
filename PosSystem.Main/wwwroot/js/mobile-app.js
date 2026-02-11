@@ -569,6 +569,7 @@ function getAcronym(str) { return removeAccents(str).toLowerCase().split(/\s+/).
 function showView(viewId, options = { push: true }) {
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
+    resetViewScroll(viewId);
     if (viewId === 'view-detail') {
         requestAnimationFrame(() => {
             requestAnimationFrame(updateDetailTabsOffset);
@@ -1703,4 +1704,9 @@ function resetPageScroll() {
     }
     if (document && document.documentElement) document.documentElement.scrollTop = 0;
     if (document && document.body) document.body.scrollTop = 0;
+}
+
+function resetViewScroll(viewId) {
+    const view = document.getElementById(viewId);
+    if (view) view.scrollTop = 0;
 }

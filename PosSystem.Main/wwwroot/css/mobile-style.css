@@ -7,20 +7,29 @@
     --safe-top: env(safe-area-inset-top, 0px);
 }
 
+html,
+body {
+    height: 100%;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: var(--bg-light);
     color: var(--text-dark);
     -webkit-tap-highlight-color: transparent;
-    padding-bottom: 80px;
-    /* Chừa chỗ cho bottom bar */
+    overflow: hidden;
 }
 
 /* Các màn hình (Views) */
 .view-section {
     display: none;
     /* Mặc định ẩn, JS sẽ bật lên */
-    min-height: 100vh;
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-bottom: 80px;
+    /* Chừa chỗ cho bottom bar */
 }
 
 .view-section.active {
