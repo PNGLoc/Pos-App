@@ -58,6 +58,7 @@ function saveOfflineQueue(queue) {
     updateSyncQueueBadge(queue.length);
 }
 
+
 function enqueueOfflineRequest(entry) {
     const queue = loadOfflineQueue();
     if (queue.some(item => item.idempotencyKey === entry.idempotencyKey)) return;
@@ -83,6 +84,7 @@ async function flushOfflineQueue() {
         let queue = loadOfflineQueue();
         if (queue.length === 0) return;
 
+        const hadPending = queue.length > 0;
         const remaining = [];
         for (const entry of queue) {
             try {
@@ -126,6 +128,9 @@ async function flushOfflineQueue() {
         }
 
         saveOfflineQueue(remaining);
+        if (hadPending && remaining.length === 0) {
+            await forceRefreshData();
+        }
     } finally {
         offlineFlushInProgress = false;
     }
@@ -1124,7 +1129,6 @@ async function confirmMenuSelection() {
     // Nếu chưa có đơn -> Create, ngược lại -> Add
     let url = appState.orderDetails.length === 0 ? `${API_URL}/Order/create` : `${API_URL}/Order/${appState.currentTableId}/add`;
     let payload = appState.orderDetails.length === 0 ? { tableID: appState.currentTableId, accID: currentUser.accID || 1, items: itemsToAdd } : { accID: currentUser.accID || 1, details: itemsToAdd };
-
     try {
         const res = await apiRequest(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), queueOnFail: true });
         if (res.ok) {
@@ -1650,4 +1654,17 @@ async function clearCacheAndReload() {
     const url = new URL(window.location.href);
     url.searchParams.set('v', Date.now().toString());
     window.location.replace(url.toString());
+}
+
+async function forceRefreshData() {
+    try {
+        await loadTables();
+        await loadMenuData();
+        if (appState.currentTableId) {
+            await loadOrderData(appState.currentTableId);
+        }
+        showToast('Đã tải lại dữ liệu', 'success');
+    } catch {
+        showToast('Không thể tải lại dữ liệu', 'danger');
+    }
 }
