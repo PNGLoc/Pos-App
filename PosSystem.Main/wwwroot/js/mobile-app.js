@@ -825,6 +825,10 @@ function renderMenuUI() {
         });
     });
     updateMenuActionBar();
+    const searchInput = document.getElementById('searchDish');
+    if (searchInput && searchInput.value.trim()) {
+        searchMenu();
+    }
 }
 
 function updateTempQty(id, delta) {
@@ -879,6 +883,13 @@ function updateMenuActionBar() {
     if (total > 0) { bar.style.display = 'flex'; bar.style.setProperty('display', 'flex', 'important'); document.getElementById('selectedCount').innerText = total; } else { bar.style.display = 'none'; }
 }
 
+function clearMenuSearch() {
+    const searchInput = document.getElementById('searchDish');
+    if (!searchInput) return;
+    searchInput.value = '';
+    searchMenu();
+}
+
 async function confirmMenuSelection() {
     const itemsToAdd = []; for (const [idStr, data] of Object.entries(appState.tempMenuSelection)) { itemsToAdd.push({ dishID: parseInt(idStr), quantity: data.qty, note: data.note || "" }); }
     if (itemsToAdd.length === 0) return;
@@ -892,6 +903,7 @@ async function confirmMenuSelection() {
         if (res.ok) {
             showToast("Đã thêm vào giỏ");
             appState.tempMenuSelection = {};
+            clearMenuSearch();
             showView('view-detail');
             document.querySelector('a[href="#tab-cart"]').click();
             loadOrderData(appState.currentTableId);
