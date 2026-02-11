@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using PosSystem.Main.Database; // <--- QUAN TRỌNG: Phải using thư mục Database
 using PosSystem.Main.Helpers;
 using PosSystem.Main.Server.Hubs;
+using PosSystem.Main.Server;
 using System;
 
 namespace PosSystem.Main.Server
@@ -45,6 +46,7 @@ namespace PosSystem.Main.Server
                         // --- [SỬA LỖI TẠI ĐÂY] ---
                         // Đăng ký AppDbContext để Controller có thể sử dụng
                         services.AddDbContext<AppDbContext>();
+                        services.AddHostedService<IdempotencyCleanupService>();
                         // -------------------------
                     });
 

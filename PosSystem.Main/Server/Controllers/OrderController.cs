@@ -9,6 +9,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR; // Import SignalR
 using PosSystem.Main.Server.Hubs;   // Import Hub của bạn
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using PosSystem.Main.Server;
 
 namespace PosSystem.Main.Server.Controllers
 {
@@ -19,10 +22,161 @@ namespace PosSystem.Main.Server.Controllers
         private readonly AppDbContext _context;
         private readonly IHubContext<PosHub> _hubContext;
 
+        private const string IdempotencyHeaderName = "X-Idempotency-Key";
+        private static readonly TimeSpan IdempotencyTtl = TimeSpan.FromMinutes(10);
+        private const string IdempotencyInProgressCode = "IDEMPOTENCY_IN_PROGRESS";
+        private static readonly JsonSerializerOptions IdempotencyJsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+
         public OrderController(AppDbContext context, IHubContext<PosHub> hubContext)
         {
             _context = context;
             _hubContext = hubContext;
+        }
+
+        private string? BuildIdempotencyKey()
+        {
+            if (!Request.Headers.TryGetValue(IdempotencyHeaderName, out var headerValue)) return null;
+
+            var raw = headerValue.ToString();
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+
+            return $"{Request.Path}:{raw}";
+        }
+
+        private IActionResult BuildIdempotencyResult(IdempotencyRecord record)
+        {
+            if (!record.Completed)
+            {
+                return BuildIdempotencyInProgressResult();
+            }
+
+            if (string.IsNullOrWhiteSpace(record.ResponseBody))
+            {
+                return StatusCode(record.StatusCode > 0 ? record.StatusCode : 200);
+            }
+
+            var contentType = string.IsNullOrWhiteSpace(record.ContentType)
+                ? "text/plain"
+                : record.ContentType;
+
+            var response = Content(record.ResponseBody, contentType, System.Text.Encoding.UTF8);
+            response.StatusCode = record.StatusCode > 0 ? record.StatusCode : 200;
+            return response;
+        }
+
+        private IActionResult BuildIdempotencyInProgressResult()
+        {
+            return ApiError.Result(409, IdempotencyInProgressCode, "Request is already in progress");
+        }
+
+        private IActionResult BuildErrorResult(int statusCode, string errorCode, string message)
+        {
+            return ApiError.Result(statusCode, errorCode, message);
+        }
+
+        private string? TryBeginIdempotent(out IActionResult? earlyResult)
+        {
+            earlyResult = null;
+            var key = BuildIdempotencyKey();
+            if (string.IsNullOrWhiteSpace(key)) return null;
+
+            CleanupIdempotency();
+
+            var existing = _context.IdempotencyRecords.AsNoTracking().FirstOrDefault(r => r.Key == key);
+            if (existing != null)
+            {
+                earlyResult = BuildIdempotencyResult(existing);
+                return null;
+            }
+
+            _context.IdempotencyRecords.Add(new IdempotencyRecord
+            {
+                Key = key,
+                CreatedAt = DateTime.UtcNow,
+                Completed = false,
+                StatusCode = 0,
+                ContentType = null,
+                ResponseBody = null
+            });
+            try
+            {
+                _context.SaveChanges();
+            }
+            catch (DbUpdateException)
+            {
+                earlyResult = BuildIdempotencyInProgressResult();
+                return null;
+            }
+
+            return key;
+        }
+
+        private IActionResult FinishIdempotent(string? key, IActionResult result)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return result;
+
+            var record = _context.IdempotencyRecords.FirstOrDefault(r => r.Key == key);
+            if (record == null)
+            {
+                record = new IdempotencyRecord { Key = key, CreatedAt = DateTime.UtcNow };
+                _context.IdempotencyRecords.Add(record);
+            }
+
+            if (result is ObjectResult objectResult)
+            {
+                record.StatusCode = objectResult.StatusCode ?? 200;
+                if (objectResult.Value is string textValue)
+                {
+                    record.ContentType = "text/plain";
+                    record.ResponseBody = textValue;
+                }
+                else
+                {
+                    record.ContentType = "application/json";
+                    record.ResponseBody = JsonSerializer.Serialize(objectResult.Value, IdempotencyJsonOptions);
+                }
+            }
+            else if (result is StatusCodeResult statusResult)
+            {
+                record.StatusCode = statusResult.StatusCode;
+                record.ContentType = null;
+                record.ResponseBody = null;
+            }
+            else
+            {
+                record.StatusCode = 200;
+                record.ContentType = null;
+                record.ResponseBody = null;
+            }
+
+            record.Completed = true;
+            _context.SaveChanges();
+
+            return result;
+        }
+
+        private void AbandonIdempotent(string? key)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return;
+            var record = _context.IdempotencyRecords.FirstOrDefault(r => r.Key == key);
+            if (record != null)
+            {
+                _context.IdempotencyRecords.Remove(record);
+                _context.SaveChanges();
+            }
+        }
+
+        private void CleanupIdempotency()
+        {
+            var threshold = DateTime.UtcNow - IdempotencyTtl;
+            var stale = _context.IdempotencyRecords.Where(r => r.CreatedAt < threshold).ToList();
+            if (stale.Count == 0) return;
+            _context.IdempotencyRecords.RemoveRange(stale);
+            _context.SaveChanges();
         }
 
         private async Task<string> GetAccountNameAsync(int accId, string fallback = "Admin")
@@ -62,68 +216,88 @@ namespace PosSystem.Main.Server.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> CreateOrder([FromBody] OrderRequest request)
         {
-            if (request.Items.Count == 0) return BadRequest("Chưa chọn món nào!");
+            var idempotencyKey = TryBeginIdempotent(out var idempotentResult);
+            if (idempotentResult != null) return idempotentResult;
 
-            // Kiểm tra bàn có đơn chưa
-            var currentOrder = await _context.Orders
-                .Include(o => o.OrderDetails)
-                .FirstOrDefaultAsync(o => o.TableID == request.TableID && o.OrderStatus == "Pending");
-
-            if (currentOrder == null)
+            try
             {
-                currentOrder = new Order
+                if (request.Items.Count == 0)
                 {
-                    TableID = request.TableID,
-                    AccID = request.AccID,
-                    OrderTime = DateTime.Now,
-                    OrderStatus = "Pending",
-                    PaymentMethod = "Cash"
-                };
-                _context.Orders.Add(currentOrder);
-            }
-
-            // [FIX] Có món trong cart => bàn phải được xem là có khách
-            var table = await _context.Tables.FindAsync(request.TableID);
-            if (table != null && table.TableStatus == "Empty")
-            {
-                table.TableStatus = "Occupied";
-            }
-
-            foreach (var itemDto in request.Items)
-            {
-                var dish = await _context.Dishes.FindAsync(itemDto.DishID);
-                if (dish != null)
-                {
-                    currentOrder.OrderDetails.Add(new OrderDetail
-                    {
-                        DishID = dish.DishID,
-                        Quantity = itemDto.Quantity,
-                        UnitPrice = dish.Price,
-                        Note = itemDto.Note,
-                        ItemStatus = "New",      // ⭐ Quan trọng: Mới chỉ là New
-                        PrintedQuantity = 0,     // ⭐ Chưa in
-                        DiscountRate = 0,
-                        TotalAmount = itemDto.Quantity * dish.Price
-                    });
+                    return FinishIdempotent(idempotencyKey, BuildErrorResult(400, "NO_ITEMS_SELECTED", "Chưa chọn món nào!"));
                 }
+
+                // Kiểm tra bàn có đơn chưa
+                var currentOrder = await _context.Orders
+                    .Include(o => o.OrderDetails)
+                    .FirstOrDefaultAsync(o => o.TableID == request.TableID && o.OrderStatus == "Pending");
+
+                if (currentOrder == null)
+                {
+                    currentOrder = new Order
+                    {
+                        TableID = request.TableID,
+                        AccID = request.AccID,
+                        OrderTime = DateTime.Now,
+                        OrderStatus = "Pending",
+                        PaymentMethod = "Cash"
+                    };
+                    _context.Orders.Add(currentOrder);
+                }
+
+                // [FIX] Có món trong cart => bàn phải được xem là có khách
+                var table = await _context.Tables.FindAsync(request.TableID);
+                if (table != null && table.TableStatus == "Empty")
+                {
+                    table.TableStatus = "Occupied";
+                }
+
+                foreach (var itemDto in request.Items)
+                {
+                    var dish = await _context.Dishes.FindAsync(itemDto.DishID);
+                    if (dish != null)
+                    {
+                        currentOrder.OrderDetails.Add(new OrderDetail
+                        {
+                            DishID = dish.DishID,
+                            Quantity = itemDto.Quantity,
+                            UnitPrice = dish.Price,
+                            Note = itemDto.Note,
+                            ItemStatus = "New",      // ⭐ Quan trọng: Mới chỉ là New
+                            PrintedQuantity = 0,     // ⭐ Chưa in
+                            DiscountRate = 0,
+                            TotalAmount = itemDto.Quantity * dish.Price
+                        });
+                    }
+                }
+
+                currentOrder.SubTotal = currentOrder.OrderDetails.Sum(d => d.TotalAmount);
+                currentOrder.FinalAmount = currentOrder.SubTotal;
+
+                await _context.SaveChangesAsync();
+
+                // Bắn SignalR: WPF sẽ thấy bàn chuyển màu đỏ và hiện món màu vàng
+                await _hubContext.Clients.All.SendAsync("TableUpdated", request.TableID);
+
+                return FinishIdempotent(idempotencyKey, Ok(new { Message = "Đã mở bàn (chưa gửi bếp)", OrderID = currentOrder.OrderID }));
             }
-
-            currentOrder.SubTotal = currentOrder.OrderDetails.Sum(d => d.TotalAmount);
-            currentOrder.FinalAmount = currentOrder.SubTotal;
-
-            await _context.SaveChangesAsync();
-
-            // Bắn SignalR: WPF sẽ thấy bàn chuyển màu đỏ và hiện món màu vàng
-            await _hubContext.Clients.All.SendAsync("TableUpdated", request.TableID);
-
-            return Ok(new { Message = "Đã mở bàn (chưa gửi bếp)", OrderID = currentOrder.OrderID });
+            catch (Exception ex)
+            {
+                AbandonIdempotent(idempotencyKey);
+                return BuildErrorResult(500, "ORDER_CREATE_FAILED", "Lỗi tạo đơn");
+            }
         }
 
         // 2. THÊM MÓN VÀO ĐƠN (Lưu vào giỏ chung, CHƯA IN)
         [HttpPost("{tableId}/add")]
         public async Task<IActionResult> AddOrderItems(int tableId, [FromBody] AddOrderItemsRequest request)
         {
-            if (request?.Details == null || request.Details.Count == 0) return BadRequest("Chưa chọn món!");
+            var idempotencyKey = TryBeginIdempotent(out var idempotentResult);
+            if (idempotentResult != null) return idempotentResult;
+
+            if (request?.Details == null || request.Details.Count == 0)
+            {
+                return FinishIdempotent(idempotencyKey, BuildErrorResult(400, "NO_ITEMS_SELECTED", "Chưa chọn món!"));
+            }
 
             using (var transaction = _context.Database.BeginTransaction())
             {
@@ -133,7 +307,10 @@ namespace PosSystem.Main.Server.Controllers
                         .Include(o => o.OrderDetails)
                         .FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
 
-                    if (currentOrder == null) return BadRequest("Bàn chưa mở, vui lòng mở bàn trước!");
+                    if (currentOrder == null)
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(400, "TABLE_NOT_OPEN", "Bàn chưa mở, vui lòng mở bàn trước!"));
+                    }
 
                     // [NEW] Cập nhật nhân viên phục vụ nếu có gửi AccID lên
                     if (request.AccID > 0)
@@ -192,12 +369,13 @@ namespace PosSystem.Main.Server.Controllers
                     // SignalR after commit
                     await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
 
-                    return Ok(new { Message = "Đã thêm vào giỏ hàng chung" });
+                    return FinishIdempotent(idempotencyKey, Ok(new { Message = "Đã thêm vào giỏ hàng chung" }));
                 }
                 catch (Exception ex)
                 {
                     transaction.Rollback();
-                    return StatusCode(500, "Lỗi khi thêm món: " + ex.Message);
+                    AbandonIdempotent(idempotencyKey);
+                    return BuildErrorResult(500, "ORDER_ADD_ITEMS_FAILED", "Lỗi khi thêm món");
                 }
             }
         }
@@ -209,6 +387,9 @@ namespace PosSystem.Main.Server.Controllers
         [HttpPost("{tableId}/send")]
         public async Task<IActionResult> SendToKitchen(int tableId, [FromQuery] int accID = 0)
         {
+            var idempotencyKey = TryBeginIdempotent(out var idempotentResult);
+            if (idempotentResult != null) return idempotentResult;
+
             using (var transaction = _context.Database.BeginTransaction())
             {
                 try
@@ -219,7 +400,10 @@ namespace PosSystem.Main.Server.Controllers
                         .Include(o => o.Account)
                         .FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
 
-                    if (order == null) return BadRequest("Bàn này không có đơn hàng!");
+                    if (order == null)
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(400, "ORDER_NOT_FOUND", "Bàn này không có đơn hàng!"));
+                    }
 
                     // [NEW] Lấy tên người gửi (Sender)
                     string senderName = "Admin";
@@ -239,7 +423,7 @@ namespace PosSystem.Main.Server.Controllers
                         .Where(d => d.Quantity > d.PrintedQuantity)
                         .ToList();
 
-                    if (!itemsToPrint.Any()) return Ok(new { Message = "Không có món mới cần gửi bếp" });
+                    if (!itemsToPrint.Any()) return FinishIdempotent(idempotencyKey, Ok(new { Message = "Không có món mới cần gửi bếp" }));
 
                     // Tăng Batch Number
                     var batchNumber = order.OrderDetails.Max(d => (int?)d.KitchenBatch) ?? 0;
@@ -298,12 +482,13 @@ namespace PosSystem.Main.Server.Controllers
                     }
                     catch { }
 
-                    return Ok(new { Message = $"Đã gửi {printQueue.Count} món xuống bếp!" });
+                    return FinishIdempotent(idempotencyKey, Ok(new { Message = $"Đã gửi {printQueue.Count} món xuống bếp!" }));
                 }
                 catch (Exception ex)
                 {
                     transaction.Rollback();
-                    return StatusCode(500, "Lỗi gửi bếp: " + ex.Message);
+                    AbandonIdempotent(idempotencyKey);
+                    return BuildErrorResult(500, "ORDER_SEND_KITCHEN_FAILED", "Lỗi gửi bếp");
                 }
             }
         }
@@ -311,61 +496,78 @@ namespace PosSystem.Main.Server.Controllers
         [HttpPost("{tableId}/update-item")]
         public async Task<IActionResult> UpdateItem(int tableId, [FromBody] UpdateItemRequest req)
         {
-            var orderDetail = await _context.OrderDetails
-                .Include(od => od.Dish)
-                .Include(od => od.Order)
-                .FirstOrDefaultAsync(od => od.OrderDetailID == req.OrderDetailID && od.Order.TableID == tableId);
+            var idempotencyKey = TryBeginIdempotent(out var idempotentResult);
+            if (idempotentResult != null) return idempotentResult;
 
-            if (orderDetail == null) return NotFound("Món không tồn tại");
-
-            // Chỉ cho phép sửa món trạng thái "New" (chưa gửi bếp)
-            if (orderDetail.ItemStatus != "New") return BadRequest("Chỉ sửa được món chưa gửi bếp");
-
-            if (req.Quantity <= 0)
+            try
             {
-                _context.OrderDetails.Remove(orderDetail); // Xóa nếu số lượng = 0
-            }
-            else
-            {
-                orderDetail.Quantity = req.Quantity;
-                orderDetail.TotalAmount = orderDetail.Quantity * orderDetail.UnitPrice;
-                orderDetail.Note = req.Note;
-            }
+                var orderDetail = await _context.OrderDetails
+                    .Include(od => od.Dish)
+                    .Include(od => od.Order)
+                    .FirstOrDefaultAsync(od => od.OrderDetailID == req.OrderDetailID && od.Order.TableID == tableId);
 
-            // Lưu tạm để cập nhật dòng chi tiết
-            await _context.SaveChangesAsync();
-
-            // Tính lại tổng tiền đơn hàng
-            var order = orderDetail.Order;
-            var remainingItems = await _context.OrderDetails.Where(d => d.OrderID == order.OrderID).ToListAsync();
-
-            if (remainingItems.Count == 0)
-            {
-                // Nếu không còn món nào -> Xóa đơn & Trả bàn
-                _context.Orders.Remove(order);
-                var table = await _context.Tables.FindAsync(order.TableID);
-                if (table != null) table.TableStatus = "Empty";
-            }
-            else
-            {
-                // Còn món -> Tính lại tiền
-                order.SubTotal = remainingItems.Sum(d => d.TotalAmount);
-                order.FinalAmount = order.SubTotal;
-
-                // [FIX] Còn món trong cart => bàn phải Occupied
-                var table = await _context.Tables.FindAsync(order.TableID);
-                if (table != null && table.TableStatus == "Empty")
+                if (orderDetail == null)
                 {
-                    table.TableStatus = "Occupied";
+                    return FinishIdempotent(idempotencyKey, BuildErrorResult(404, "ORDER_DETAIL_NOT_FOUND", "Món không tồn tại"));
                 }
+
+                // Chỉ cho phép sửa món trạng thái "New" (chưa gửi bếp)
+                if (orderDetail.ItemStatus != "New")
+                {
+                    return FinishIdempotent(idempotencyKey, BuildErrorResult(400, "ITEM_NOT_EDITABLE", "Chỉ sửa được món chưa gửi bếp"));
+                }
+
+                if (req.Quantity <= 0)
+                {
+                    _context.OrderDetails.Remove(orderDetail); // Xóa nếu số lượng = 0
+                }
+                else
+                {
+                    orderDetail.Quantity = req.Quantity;
+                    orderDetail.TotalAmount = orderDetail.Quantity * orderDetail.UnitPrice;
+                    orderDetail.Note = req.Note;
+                }
+
+                // Lưu tạm để cập nhật dòng chi tiết
+                await _context.SaveChangesAsync();
+
+                // Tính lại tổng tiền đơn hàng
+                var order = orderDetail.Order;
+                var remainingItems = await _context.OrderDetails.Where(d => d.OrderID == order.OrderID).ToListAsync();
+
+                if (remainingItems.Count == 0)
+                {
+                    // Nếu không còn món nào -> Xóa đơn & Trả bàn
+                    _context.Orders.Remove(order);
+                    var table = await _context.Tables.FindAsync(order.TableID);
+                    if (table != null) table.TableStatus = "Empty";
+                }
+                else
+                {
+                    // Còn món -> Tính lại tiền
+                    order.SubTotal = remainingItems.Sum(d => d.TotalAmount);
+                    order.FinalAmount = order.SubTotal;
+
+                    // [FIX] Còn món trong cart => bàn phải Occupied
+                    var table = await _context.Tables.FindAsync(order.TableID);
+                    if (table != null && table.TableStatus == "Empty")
+                    {
+                        table.TableStatus = "Occupied";
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Báo cho mọi người biết để cập nhật giao diện
+                await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+
+                return FinishIdempotent(idempotencyKey, Ok(new { Message = "Cập nhật thành công" }));
             }
-
-            await _context.SaveChangesAsync();
-
-            // Báo cho mọi người biết để cập nhật giao diện
-            await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
-
-            return Ok(new { Message = "Cập nhật thành công" });
+            catch (Exception ex)
+            {
+                AbandonIdempotent(idempotencyKey);
+                return BuildErrorResult(500, "ORDER_UPDATE_ITEM_FAILED", "Lỗi cập nhật món");
+            }
         }
 
         // GET: api/order/{tableId} (API lấy dữ liệu cho Mobile)
@@ -420,19 +622,32 @@ namespace PosSystem.Main.Server.Controllers
         [HttpPost("checkout-mobile")]
         public async Task<IActionResult> CheckoutMobile([FromBody] MobileCheckoutRequest request)
         {
+            var idempotencyKey = TryBeginIdempotent(out var idempotentResult);
+            if (idempotentResult != null) return idempotentResult;
+
             using (var transaction = _context.Database.BeginTransaction())
             {
                 try
                 {
                     // 1. Check quyền
                     var acc = await _context.Accounts.FindAsync(request.AccID);
-                    if (acc == null || !acc.CanPayment) return StatusCode(403, "Bạn không có quyền thanh toán!");
+                    if (acc == null || !acc.CanPayment)
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(403, "PAYMENT_NOT_ALLOWED", "Bạn không có quyền thanh toán!"));
+                    }
 
                     // 2. Logic thanh toán
                     var order = await _context.Orders.Include(o => o.Table).Include(o => o.OrderDetails).ThenInclude(d => d.Dish)
                         .FirstOrDefaultAsync(o => o.OrderID == request.OrderID);
 
-                    if (order == null || order.OrderStatus == "Paid") return BadRequest("Đơn lỗi");
+                    if (order == null)
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(404, "ORDER_NOT_FOUND", "Đơn không tồn tại"));
+                    }
+                    if (order.OrderStatus == "Paid")
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(409, "ORDER_ALREADY_PAID", "Đơn đã thanh toán"));
+                    }
 
                     order.PaymentMethod = request.PaymentMethod;
                     order.DiscountPercent = request.DiscountPercent;
@@ -473,12 +688,13 @@ namespace PosSystem.Main.Server.Controllers
                     }
                     catch { }
 
-                    return Ok(new { Message = "Đã thanh toán & In hóa đơn!" });
+                    return FinishIdempotent(idempotencyKey, Ok(new { Message = "Đã thanh toán & In hóa đơn!" }));
                 }
                 catch (Exception ex)
                 {
                     transaction.Rollback();
-                    return StatusCode(500, "Lỗi thanh toán: " + ex.Message);
+                    AbandonIdempotent(idempotencyKey);
+                    return BuildErrorResult(500, "PAYMENT_FAILED", "Lỗi thanh toán");
                 }
             }
         }
@@ -491,67 +707,96 @@ namespace PosSystem.Main.Server.Controllers
         [HttpPost("{tableId}/print-provisional")]
         public async Task<IActionResult> PrintProvisional(int tableId, [FromBody] PrintProvisionalRequest req)
         {
-            // 1. Check quyền (Dùng quyền riêng)
-            var acc = await _context.Accounts.FindAsync(req.AccID);
-            if (acc == null || !acc.CanPrintProvisional) return StatusCode(403, "Bạn không có quyền in tạm tính!");
+            var idempotencyKey = TryBeginIdempotent(out var idempotentResult);
+            if (idempotentResult != null) return idempotentResult;
 
-            var order = await _context.Orders.FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
-            if (order == null) return BadRequest("Bàn không có đơn!");
-
-            // 2. Cập nhật cờ
-            order.IsPreCalculated = true;
-            await _context.SaveChangesAsync();
-
-            // 3. Gọi in (IsProvisional = true)
             try
             {
-                Services.PrintService.PrintBill(order.OrderID, true);
+                // 1. Check quyền (Dùng quyền riêng)
+                var acc = await _context.Accounts.FindAsync(req.AccID);
+                if (acc == null || !acc.CanPrintProvisional)
+                {
+                    return FinishIdempotent(idempotencyKey, BuildErrorResult(403, "PROVISIONAL_NOT_ALLOWED", "Bạn không có quyền in tạm tính!"));
+                }
+
+                var order = await _context.Orders.FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
+                if (order == null)
+                {
+                    return FinishIdempotent(idempotencyKey, BuildErrorResult(404, "ORDER_NOT_FOUND", "Bàn không có đơn!"));
+                }
+
+                // 2. Cập nhật cờ
+                order.IsPreCalculated = true;
+                await _context.SaveChangesAsync();
+
+                // 3. Gọi in (IsProvisional = true)
+                try
+                {
+                    Services.PrintService.PrintBill(order.OrderID, true);
+                }
+                catch { }
+
+                // 4. Bắn SignalR
+                await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+
+                // Activity log
+                try
+                {
+                    var tableName = await GetTableNameAsync(tableId);
+                    var msg = $"{acc.AccName} in tạm tính ({tableName})";
+                    await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+                }
+                catch { }
+
+                return FinishIdempotent(idempotencyKey, Ok(new { Message = "Đã in tạm tính!" }));
             }
-            catch { }
-
-            // 4. Bắn SignalR
-            await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
-
-            // Activity log
-            try
+            catch (Exception ex)
             {
-                var tableName = await GetTableNameAsync(tableId);
-                var msg = $"{acc.AccName} in tạm tính ({tableName})";
-                await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+                AbandonIdempotent(idempotencyKey);
+                return BuildErrorResult(500, "PRINT_PROVISIONAL_FAILED", "Lỗi in tạm tính");
             }
-            catch { }
-
-            return Ok(new { Message = "Đã in tạm tính!" });
         }
 
         // [POST] api/Order/{tableId}/request-payment
         [HttpPost("{tableId}/request-payment")]
         public async Task<IActionResult> RequestPayment(int tableId, [FromQuery] int accID = 0)
         {
-            // [FIX] Cập nhật vào DB
-            var order = await _context.Orders.FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
-            if (order != null)
-            {
-                order.IsRequestingPayment = true;
-                await _context.SaveChangesAsync();
-            }
+            var idempotencyKey = TryBeginIdempotent(out var idempotentResult);
+            if (idempotentResult != null) return idempotentResult;
 
-            // Gửi tín hiệu SignalR tên là "TableRequestPayment"
-            // Desktop sẽ lắng nghe sự kiện này để đổi màu bàn
-            await _hubContext.Clients.All.SendAsync("TableRequestPayment", tableId);
-            // [FIX] Gửi thêm TableUpdated để Mobile reload lại list và hiện icon Chuông
-            await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
-
-            // Activity log
             try
             {
-                var accName = await GetAccountNameAsync(accID, "Admin");
-                var tableName = await GetTableNameAsync(tableId);
-                var msg = $"{accName} yêu cầu thanh toán ({tableName})";
-                await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+                // [FIX] Cập nhật vào DB
+                var order = await _context.Orders.FirstOrDefaultAsync(o => o.TableID == tableId && o.OrderStatus == "Pending");
+                if (order != null)
+                {
+                    order.IsRequestingPayment = true;
+                    await _context.SaveChangesAsync();
+                }
+
+                // Gửi tín hiệu SignalR tên là "TableRequestPayment"
+                // Desktop sẽ lắng nghe sự kiện này để đổi màu bàn
+                await _hubContext.Clients.All.SendAsync("TableRequestPayment", tableId);
+                // [FIX] Gửi thêm TableUpdated để Mobile reload lại list và hiện icon Chuông
+                await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+
+                // Activity log
+                try
+                {
+                    var accName = await GetAccountNameAsync(accID, "Admin");
+                    var tableName = await GetTableNameAsync(tableId);
+                    var msg = $"{accName} yêu cầu thanh toán ({tableName})";
+                    await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+                }
+                catch { }
+
+                return FinishIdempotent(idempotencyKey, Ok(new { Message = "Đã gửi yêu cầu thanh toán!" }));
             }
-            catch { }
-            return Ok(new { Message = "Đã gửi yêu cầu thanh toán!" });
+            catch (Exception ex)
+            {
+                AbandonIdempotent(idempotencyKey);
+                return BuildErrorResult(500, "REQUEST_PAYMENT_FAILED", "Lỗi yêu cầu thanh toán");
+            }
         }
         // DTO nhận dữ liệu chuyển bàn
         public class MoveTableRequest
@@ -564,13 +809,19 @@ namespace PosSystem.Main.Server.Controllers
 
         public async Task<IActionResult> MoveTable(int sourceTableId, [FromBody] MoveTableRequest req)
         {
+            var idempotencyKey = TryBeginIdempotent(out var idempotentResult);
+            if (idempotentResult != null) return idempotentResult;
+
             using (var transaction = _context.Database.BeginTransaction())
             {
                 try
                 {
                     // 1. Check quyền
                     var acc = await _context.Accounts.FindAsync(req.AccID);
-                    if (acc == null || !acc.CanMoveTable) return StatusCode(403, "Bạn không có quyền chuyển bàn!");
+                    if (acc == null || !acc.CanMoveTable)
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(403, "MOVE_NOT_ALLOWED", "Bạn không có quyền chuyển bàn!"));
+                    }
 
                     // 2. Lấy đơn gốc
                     var sourceOrder = await _context.Orders
@@ -578,8 +829,14 @@ namespace PosSystem.Main.Server.Controllers
                         .Include(o => o.Table)
                         .FirstOrDefaultAsync(o => o.TableID == sourceTableId && o.OrderStatus == "Pending");
 
-                    if (sourceOrder == null) return BadRequest("Bàn gốc không có đơn!");
-                    if (sourceTableId == req.TargetTableID) return BadRequest("Trùng bàn đích!");
+                    if (sourceOrder == null)
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(404, "ORDER_NOT_FOUND", "Bàn gốc không có đơn!"));
+                    }
+                    if (sourceTableId == req.TargetTableID)
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(409, "TABLE_SAME", "Trùng bàn đích!"));
+                    }
 
                     string oldTableName = sourceOrder.Table?.TableName ?? sourceTableId.ToString();
                     string newTableName = "";
@@ -644,12 +901,13 @@ namespace PosSystem.Main.Server.Controllers
                     }
                     catch { }
 
-                    return Ok(new { Message = "Chuyển bàn thành công!" });
+                    return FinishIdempotent(idempotencyKey, Ok(new { Message = "Chuyển bàn thành công!" }));
                 }
                 catch (Exception ex)
                 {
                     transaction.Rollback();
-                    return StatusCode(500, "Lỗi chuyển bàn: " + ex.Message);
+                    AbandonIdempotent(idempotencyKey);
+                    return BuildErrorResult(500, "MOVE_TABLE_FAILED", "Lỗi chuyển bàn");
                 }
             }
         }
@@ -664,22 +922,34 @@ namespace PosSystem.Main.Server.Controllers
         [HttpPost("cancel-item")]
         public async Task<IActionResult> CancelItem([FromBody] CancelItemRequest req)
         {
+            var idempotencyKey = TryBeginIdempotent(out var idempotentResult);
+            if (idempotentResult != null) return idempotentResult;
+
             using (var transaction = _context.Database.BeginTransaction())
             {
                 try
                 {
                     // 1. Check quyền
                     var acc = await _context.Accounts.FindAsync(req.AccID);
-                    if (acc == null || !acc.CanCancelItem) return StatusCode(403, "Bạn không có quyền hủy món!");
+                    if (acc == null || !acc.CanCancelItem)
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(403, "CANCEL_NOT_ALLOWED", "Bạn không có quyền hủy món!"));
+                    }
 
                     var detail = await _context.OrderDetails
                         .Include(d => d.Dish).ThenInclude(c => c.Category)
                         .Include(d => d.Order).ThenInclude(o => o.Table)
                         .FirstOrDefaultAsync(d => d.OrderDetailID == req.OrderDetailID);
 
-                    if (detail == null) return NotFound();
+                    if (detail == null)
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(404, "ORDER_DETAIL_NOT_FOUND", "Món không tồn tại"));
+                    }
 
-                    if (req.Quantity > detail.Quantity) return BadRequest("Không thể hủy quá số lượng hiện có");
+                    if (req.Quantity > detail.Quantity)
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(400, "CANCEL_QTY_EXCEEDED", "Không thể hủy quá số lượng hiện có"));
+                    }
 
                     // 2. Giảm số lượng
                     detail.Quantity -= req.Quantity;
@@ -761,19 +1031,26 @@ namespace PosSystem.Main.Server.Controllers
                     }
                     catch { }
 
-                    return Ok(new { Message = "Đã hủy món & Báo bếp" });
+                    return FinishIdempotent(idempotencyKey, Ok(new { Message = "Đã hủy món & Báo bếp" }));
                 }
                 catch (Exception ex)
                 {
                     transaction.Rollback();
-                    return StatusCode(500, "Lỗi hủy món: " + ex.Message);
+                    AbandonIdempotent(idempotencyKey);
+                    return BuildErrorResult(500, "CANCEL_ITEM_FAILED", "Lỗi hủy món");
                 }
             }
         }
         [HttpPost("cancel-multiple")]
         public async Task<IActionResult> CancelMultipleItems([FromBody] List<CancelItemRequest> requests)
         {
-            if (requests == null || requests.Count == 0) return BadRequest("Danh sách trống");
+            var idempotencyKey = TryBeginIdempotent(out var idempotentResult);
+            if (idempotentResult != null) return idempotentResult;
+
+            if (requests == null || requests.Count == 0)
+            {
+                return FinishIdempotent(idempotencyKey, BuildErrorResult(400, "REQUEST_EMPTY", "Danh sách trống"));
+            }
 
             using (var transaction = _context.Database.BeginTransaction())
             {
@@ -782,7 +1059,10 @@ namespace PosSystem.Main.Server.Controllers
                     // 1. Check quyền (Lấy request đầu tiên để check acc)
                     int accId = requests[0].AccID;
                     var acc = await _context.Accounts.FindAsync(accId);
-                    if (acc == null || !acc.CanCancelItem) return StatusCode(403, "Bạn không có quyền hủy món!");
+                    if (acc == null || !acc.CanCancelItem)
+                    {
+                        return FinishIdempotent(idempotencyKey, BuildErrorResult(403, "CANCEL_NOT_ALLOWED", "Bạn không có quyền hủy món!"));
+                    }
 
                     // Group prints
                     var aggregatedPrintItems = new List<OrderDetail>();
@@ -895,12 +1175,13 @@ namespace PosSystem.Main.Server.Controllers
                         catch { }
                     }
 
-                    return Ok(new { Message = $"Đã hủy {requests.Count} yêu cầu thành công" });
+                    return FinishIdempotent(idempotencyKey, Ok(new { Message = $"Đã hủy {requests.Count} yêu cầu thành công" }));
                 }
                 catch (Exception ex)
                 {
                     transaction.Rollback();
-                    return StatusCode(500, "Lỗi hủy món: " + ex.Message);
+                    AbandonIdempotent(idempotencyKey);
+                    return BuildErrorResult(500, "CANCEL_ITEMS_FAILED", "Lỗi hủy món");
                 }
             }
         }

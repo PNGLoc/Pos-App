@@ -25,6 +25,7 @@ namespace PosSystem.Main.Database
         public DbSet<TimeLog> TimeLogs { get; set; }
         public DbSet<ActivityLogEntry> ActivityLogs { get; set; }
         public DbSet<Expense> Expenses { get; set; } // [NEW] Expense Table
+        public DbSet<IdempotencyRecord> IdempotencyRecords { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             AppPaths.EnsureInitialized();
@@ -162,6 +163,12 @@ namespace PosSystem.Main.Database
                     IsActive = true
                 }
             );
+
+            modelBuilder.Entity<IdempotencyRecord>(entity =>
+            {
+                entity.HasKey(e => e.Key);
+                entity.HasIndex(e => e.CreatedAt);
+            });
 
         }
 

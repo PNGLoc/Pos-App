@@ -5,6 +5,7 @@ using PosSystem.Main.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using PosSystem.Main.Server;
 
 namespace PosSystem.Main.Server.Controllers
 {
@@ -33,10 +34,17 @@ namespace PosSystem.Main.Server.Controllers
         [HttpPost]
         public async Task<ActionResult<TableCategory>> PostTableCategory(TableCategory category)
         {
-            _context.TableCategories.Add(category);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.TableCategories.Add(category);
+                await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetTableCategories", new { id = category.CategoryID }, category);
+                return CreatedAtAction("GetTableCategories", new { id = category.CategoryID }, category);
+            }
+            catch
+            {
+                return ApiError.Result(500, "TABLE_CATEGORY_CREATE_FAILED", "Lỗi tạo loại bàn");
+            }
         }
 
         // PUT: api/TableCategory/5
@@ -45,7 +53,7 @@ namespace PosSystem.Main.Server.Controllers
         {
             if (id != category.CategoryID)
             {
-                return BadRequest();
+                return ApiError.Result(400, "TABLE_CATEGORY_ID_MISMATCH", "Id không khớp");
             }
 
             _context.Entry(category).State = EntityState.Modified;
@@ -58,12 +66,16 @@ namespace PosSystem.Main.Server.Controllers
             {
                 if (!TableCategoryExists(id))
                 {
-                    return NotFound();
+                    return ApiError.Result(404, "TABLE_CATEGORY_NOT_FOUND", "Không tìm thấy loại bàn");
                 }
                 else
                 {
-                    throw;
+                    return ApiError.Result(409, "TABLE_CATEGORY_CONFLICT", "Dữ liệu đã thay đổi, vui lòng tải lại");
                 }
+            }
+            catch
+            {
+                return ApiError.Result(500, "TABLE_CATEGORY_UPDATE_FAILED", "Lỗi cập nhật loại bàn");
             }
 
             return NoContent();
@@ -76,13 +88,20 @@ namespace PosSystem.Main.Server.Controllers
             var category = await _context.TableCategories.FindAsync(id);
             if (category == null)
             {
-                return NotFound();
+                return ApiError.Result(404, "TABLE_CATEGORY_NOT_FOUND", "Không tìm thấy loại bàn");
             }
 
-            _context.TableCategories.Remove(category);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.TableCategories.Remove(category);
+                await _context.SaveChangesAsync();
 
-            return NoContent();
+                return NoContent();
+            }
+            catch
+            {
+                return ApiError.Result(500, "TABLE_CATEGORY_DELETE_FAILED", "Lỗi xoá loại bàn");
+            }
         }
 
         private bool TableCategoryExists(int id)

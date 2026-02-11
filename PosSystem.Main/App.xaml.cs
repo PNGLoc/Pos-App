@@ -69,6 +69,18 @@ namespace PosSystem.Main
             using (var db = new AppDbContext())
             {
                 db.Database.EnsureCreated();
+                // Ensure new tables exist on existing databases (SQLite EnsureCreated doesn't add new tables)
+                db.Database.ExecuteSqlRaw(@"
+CREATE TABLE IF NOT EXISTS IdempotencyRecords (
+    Key TEXT PRIMARY KEY,
+    CreatedAt TEXT NOT NULL,
+    Completed INTEGER NOT NULL,
+    StatusCode INTEGER NOT NULL,
+    ContentType TEXT NULL,
+    ResponseBody TEXT NULL
+);
+CREATE INDEX IF NOT EXISTS IX_IdempotencyRecords_CreatedAt ON IdempotencyRecords (CreatedAt);
+");
             }
 
             // Mở màn hình đăng nhập

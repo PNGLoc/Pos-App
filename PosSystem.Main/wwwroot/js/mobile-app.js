@@ -12,6 +12,222 @@ let appState = {
     currentMenuCategory: 'All' // [NEW] Filter cho Menu
 };
 
+const API_DEFAULT_TIMEOUT_MS = 12000;
+const API_WRITE_TIMEOUT_MS = 20000;
+const API_GET_RETRIES = 2;
+const API_WRITE_RETRIES = 1;
+const OFFLINE_QUEUE_KEY = 'posOfflineQueue';
+
+let offlineFlushInProgress = false;
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+function createIdempotencyKey() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function createQueuedError() {
+    const err = new Error('QUEUED_OFFLINE');
+    err.queued = true;
+    return err;
+}
+
+function isNetworkError(err) {
+    if (!err) return false;
+    if (err.name === 'AbortError') return true;
+    const msg = (err.message || '').toLowerCase();
+    return msg.includes('offline') || msg.includes('network') || msg.includes('failed to fetch');
+}
+
+function loadOfflineQueue() {
+    try {
+        const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveOfflineQueue(queue) {
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+    updateSyncQueueBadge(queue.length);
+}
+
+function enqueueOfflineRequest(entry) {
+    const queue = loadOfflineQueue();
+    if (queue.some(item => item.idempotencyKey === entry.idempotencyKey)) return;
+    queue.push(entry);
+    saveOfflineQueue(queue);
+}
+
+function updateSyncQueueBadge(count) {
+    const badge = document.getElementById('syncQueueBadge');
+    if (!badge) return;
+    const total = typeof count === 'number' ? count : loadOfflineQueue().length;
+    badge.innerText = total;
+    if (total > 0) badge.classList.remove('d-none');
+    else badge.classList.add('d-none');
+}
+
+async function flushOfflineQueue() {
+    if (offlineFlushInProgress) return;
+    if (navigator && navigator.onLine === false) return;
+
+    offlineFlushInProgress = true;
+    try {
+        let queue = loadOfflineQueue();
+        if (queue.length === 0) return;
+
+        const remaining = [];
+        for (const entry of queue) {
+            try {
+                const res = await apiRequest(entry.url, {
+                    method: entry.method,
+                    headers: entry.headers,
+                    body: entry.body,
+                    idempotencyKey: entry.idempotencyKey,
+                    retries: API_WRITE_RETRIES,
+                    timeoutMs: API_WRITE_TIMEOUT_MS,
+                    skipQueue: true
+                });
+
+                if (!res.ok) {
+                    let shouldKeep = false;
+                    if (res.status === 409) {
+                        try {
+                            const data = await res.clone().json();
+                            if (data && data.errorCode === 'IDEMPOTENCY_IN_PROGRESS') {
+                                shouldKeep = true;
+                            }
+                        } catch { }
+                    }
+
+                    if (shouldKeep) {
+                        remaining.push(entry);
+                        break;
+                    }
+
+                    // Drop non-retryable queued request
+                    showToast('Không thể đồng bộ một thao tác. Vui lòng kiểm tra lại.', 'warning');
+                }
+            } catch (err) {
+                if (isNetworkError(err)) {
+                    remaining.push(entry);
+                    remaining.push(...queue.slice(queue.indexOf(entry) + 1));
+                    break;
+                }
+                showToast('Không thể đồng bộ một thao tác. Vui lòng kiểm tra lại.', 'warning');
+            }
+        }
+
+        saveOfflineQueue(remaining);
+    } finally {
+        offlineFlushInProgress = false;
+    }
+}
+
+function shouldRetryStatus(status) {
+    return status === 408 || status === 429 || status >= 500;
+}
+
+async function apiRequest(url, options = {}) {
+    const method = (options.method || 'GET').toUpperCase();
+    const isWrite = !['GET', 'HEAD'].includes(method);
+    const retries = options.retries ?? (isWrite ? API_WRITE_RETRIES : API_GET_RETRIES);
+    const timeoutMs = options.timeoutMs ?? (isWrite ? API_WRITE_TIMEOUT_MS : API_DEFAULT_TIMEOUT_MS);
+    const queueOnFail = options.queueOnFail === true;
+    const skipQueue = options.skipQueue === true;
+
+    const headers = new Headers(options.headers || {});
+    if (isWrite) {
+        const idempotencyKey = options.idempotencyKey || createIdempotencyKey();
+        headers.set('X-Idempotency-Key', idempotencyKey);
+    }
+
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        if (navigator && navigator.onLine === false) {
+            lastError = new Error('OFFLINE');
+            break;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            const res = await fetch(url, { ...options, headers, signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (!res.ok && attempt < retries) {
+                let shouldRetry = shouldRetryStatus(res.status);
+
+                if (!shouldRetry && isWrite && res.status === 409) {
+                    try {
+                        const data = await res.clone().json();
+                        if (data && data.errorCode === 'IDEMPOTENCY_IN_PROGRESS') {
+                            shouldRetry = true;
+                        }
+                    } catch { }
+                }
+
+                if (shouldRetry) {
+                    await sleep(300 * Math.pow(2, attempt) + Math.random() * 200);
+                    continue;
+                }
+            }
+
+            return res;
+        } catch (err) {
+            clearTimeout(timeoutId);
+            lastError = err;
+            if (attempt >= retries) break;
+            await sleep(300 * Math.pow(2, attempt) + Math.random() * 200);
+        }
+    }
+
+    if (queueOnFail && isWrite && !skipQueue && isNetworkError(lastError)) {
+        const entry = {
+            url,
+            method,
+            headers: Object.fromEntries(headers.entries()),
+            body: options.body || null,
+            idempotencyKey: headers.get('X-Idempotency-Key') || createIdempotencyKey(),
+            createdAt: Date.now()
+        };
+        enqueueOfflineRequest(entry);
+        throw createQueuedError();
+    }
+
+    throw lastError || new Error('Request failed');
+}
+
+async function readErrorMessage(res) {
+    try {
+        const data = await res.clone().json();
+        if (data && data.message) return data.message;
+    } catch { }
+    try {
+        return await res.text();
+    } catch { }
+    return 'Có lỗi xảy ra';
+}
+
+function handleRequestError(err, fallbackMessage) {
+    if (err && err.queued) {
+        showToast('Mất kết nối. Lệnh đã lưu, sẽ gửi lại khi có mạng.', 'warning');
+        flushOfflineQueue();
+        return true;
+    }
+    showToast(fallbackMessage, 'danger');
+    return false;
+}
+
 let suppressPopstate = false;
 const BACK_STACK_DEPTH = 4;
 
@@ -28,6 +244,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTables();
     await loadMenuData();
     setTimeout(() => initSignalR(), 500);
+    updateSyncQueueBadge();
+    flushOfflineQueue();
 
     // [NEW] Hiển thị thông tin user lên Menu
     if (currentUser) {
@@ -38,6 +256,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('menuUserAvatar').innerText = firstLetter;
     }
 });
+
+window.addEventListener('online', flushOfflineQueue);
 
 function initBackNavigation() {
     // Create a lock state so back gesture won't exit to login
@@ -366,11 +586,11 @@ function showToast(msg, type = 'success') {
 async function loadTables(renderFilter = true) {
     try {
         // Load Table Categories
-        const catRes = await fetch(`${API_URL}/TableCategory`);
+        const catRes = await apiRequest(`${API_URL}/TableCategory`);
         if (catRes.ok) appState.tableCategories = await catRes.json();
 
         // Load Tables (Cache-busting)
-        const res = await fetch(`${API_URL}/Table?t=${new Date().getTime()}`);
+        const res = await apiRequest(`${API_URL}/Table?t=${new Date().getTime()}`);
         appState.tables = await res.json();
 
         // [NEW] Update Detail Badge if we are currently viewing a table
@@ -581,7 +801,7 @@ async function loadOrderData(tableId) {
     appState.currentTableId = tableId;
 
     try {
-        const res = await fetch(`${API_URL}/Order/${tableId}?t=${new Date().getTime()}`);
+        const res = await apiRequest(`${API_URL}/Order/${tableId}?t=${new Date().getTime()}`);
         if (res.ok) {
             const data = await res.json();
 
@@ -648,7 +868,9 @@ function renderCartTab() {
     const container = document.getElementById('cartList');
     const actionBar = document.getElementById('cartActionBar');
     container.innerHTML = '';
-    const cartItems = appState.orderDetails.filter(d => d.itemStatus === 'New');
+    const cartItems = appState.orderDetails
+        .filter(d => d.itemStatus === 'New')
+        .sort((a, b) => b.orderDetailID - a.orderDetailID);
 
     if (cartItems.length === 0) {
         container.innerHTML = `<div class="text-center text-muted mt-5"><i class="fas fa-shopping-basket fs-1 mb-3"></i><br>Giỏ hàng trống</div>`;
@@ -688,13 +910,14 @@ function renderCartTab() {
 
 async function updateCartItem(detailId, newQty, note) {
     try {
-        const res = await fetch(`${API_URL}/Order/${appState.currentTableId}/update-item`, {
+        const res = await apiRequest(`${API_URL}/Order/${appState.currentTableId}/update-item`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accID: (currentUser && currentUser.accID) ? currentUser.accID : 0, orderDetailID: detailId, quantity: newQty, note: note })
+            body: JSON.stringify({ accID: (currentUser && currentUser.accID) ? currentUser.accID : 0, orderDetailID: detailId, quantity: newQty, note: note }),
+            queueOnFail: true
         });
         if (res.ok) loadOrderData(appState.currentTableId);
-        else showToast(await res.text(), 'danger');
-    } catch (e) { showToast("Lỗi kết nối", 'danger'); }
+        else showToast(await readErrorMessage(res), 'danger');
+    } catch (e) { handleRequestError(e, "Lỗi kết nối"); }
 }
 
 // --- CART: CONFIRM DELETE ---
@@ -738,13 +961,17 @@ function renderConfirmedTab() {
             // Gom các ID con vào mảng để xử lý hủy sau này
             if (!exist.subIds) exist.subIds = [item.orderDetailID];
             else exist.subIds.push(item.orderDetailID);
+            exist.maxOrderDetailId = Math.max(exist.maxOrderDetailId || 0, item.orderDetailID);
         } else {
             // Clone object để không ảnh hưởng dữ liệu gốc
             let clone = { ...item };
             clone.subIds = [item.orderDetailID];
+            clone.maxOrderDetailId = item.orderDetailID;
             grouped.push(clone);
         }
     });
+
+    grouped.sort((a, b) => (b.maxOrderDetailId || 0) - (a.maxOrderDetailId || 0));
 
     grouped.forEach(d => {
         let badge = 'bg-secondary', txt = d.itemStatus;
@@ -768,7 +995,7 @@ function renderConfirmedTab() {
     });
 }
 // --- MENU & SELECTION ---
-async function loadMenuData() { const res = await fetch(`${API_URL}/Menu`); appState.categories = await res.json(); }
+async function loadMenuData() { const res = await apiRequest(`${API_URL}/Menu`); appState.categories = await res.json(); }
 function openMenuSelection() { appState.tempMenuSelection = {}; appState.currentMenuCategory = 'All'; renderMenuUI(); showView('view-menu'); }
 
 function renderMenuUI() {
@@ -899,7 +1126,7 @@ async function confirmMenuSelection() {
     let payload = appState.orderDetails.length === 0 ? { tableID: appState.currentTableId, accID: currentUser.accID || 1, items: itemsToAdd } : { accID: currentUser.accID || 1, details: itemsToAdd };
 
     try {
-        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const res = await apiRequest(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), queueOnFail: true });
         if (res.ok) {
             showToast("Đã thêm vào giỏ");
             appState.tempMenuSelection = {};
@@ -917,13 +1144,24 @@ async function confirmMenuSelection() {
             //     badge.className = 'badge bg-danger';
             // }
 
-        } else { showToast("Lỗi: " + await res.text(), 'danger'); }
-    } catch (e) { showToast("Lỗi kết nối", 'danger'); }
+        } else { showToast(await readErrorMessage(res), 'danger'); }
+    } catch (e) { handleRequestError(e, "Lỗi kết nối"); }
 }
 
 async function sendOrderToKitchen() {
     const btn = document.querySelector('#cartActionBar button'); btn.disabled = true;
-    try { const res = await fetch(`${API_URL}/Order/${appState.currentTableId}/send?accID=${currentUser.accID || 0}`, { method: 'POST' }); if (res.ok) { showToast('Đã gửi bếp thành công!'); document.querySelector('a[href="#tab-confirmed"]').click(); loadOrderData(appState.currentTableId); } else { showToast('Không có món mới để gửi', 'warning'); } } catch (e) { showToast('Lỗi kết nối!', 'danger'); } finally { btn.disabled = false; }
+    try {
+        const res = await apiRequest(`${API_URL}/Order/${appState.currentTableId}/send?accID=${currentUser.accID || 0}`, { method: 'POST', queueOnFail: true });
+        if (res.ok) {
+            showToast('Đã gửi bếp thành công!');
+            document.querySelector('a[href="#tab-confirmed"]').click();
+            loadOrderData(appState.currentTableId);
+        } else {
+            showToast(await readErrorMessage(res), 'warning');
+        }
+    } catch (e) {
+        handleRequestError(e, 'Lỗi kết nối!');
+    } finally { btn.disabled = false; }
 }
 
 function cancelMenuSelection() { appState.tempMenuSelection = {}; showView('view-detail'); }
@@ -933,9 +1171,9 @@ function logout() { localStorage.removeItem('posUser'); window.location.href = '
 async function requestBillMobile() {
     if (!confirm("Gửi yêu cầu in bill cho thu ngân?")) return;
     try {
-        await fetch(`${API_URL}/Order/${appState.currentTableId}/request-payment?accID=${(currentUser && currentUser.accID) ? currentUser.accID : 0}`, { method: 'POST' });
+        await apiRequest(`${API_URL}/Order/${appState.currentTableId}/request-payment?accID=${(currentUser && currentUser.accID) ? currentUser.accID : 0}`, { method: 'POST', queueOnFail: true });
         showToast("Đã gửi yêu cầu!");
-    } catch (e) { showToast("Lỗi mạng", "danger"); }
+    } catch (e) { handleRequestError(e, "Lỗi mạng"); }
 }
 
 // --- 2. Chuyển bàn ---
@@ -947,19 +1185,20 @@ async function moveTableMobile() {
     if (!targetId) return;
 
     try {
-        const res = await fetch(`${API_URL}/Order/${appState.currentTableId}/move`, {
+        const res = await apiRequest(`${API_URL}/Order/${appState.currentTableId}/move`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accID: currentUser.accID, targetTableID: parseInt(targetId) })
+            body: JSON.stringify({ accID: currentUser.accID, targetTableID: parseInt(targetId) }),
+            queueOnFail: true
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (res.ok) {
-            showToast(data.Message);
+            showToast(data.Message || 'Chuyển bàn thành công!');
             showView('view-tables'); // Quay về danh sách bàn
         } else {
-            showToast(data.Message || await res.text(), "danger");
+            showToast(await readErrorMessage(res), "danger");
         }
-    } catch (e) { showToast("Lỗi kết nối", "danger"); }
+    } catch (e) { handleRequestError(e, "Lỗi kết nối"); }
 }
 
 // --- 3. Thanh toán ---
@@ -1004,7 +1243,7 @@ async function cancelItemMobile(detailId, maxQty) {
 
     // 3. Gọi API (Lý do mặc định là "Hủy từ Mobile")
     try {
-        const res = await fetch(`${API_URL}/Order/cancel-item`, {
+        const res = await apiRequest(`${API_URL}/Order/cancel-item`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1012,17 +1251,18 @@ async function cancelItemMobile(detailId, maxQty) {
                 orderDetailID: detailId,
                 quantity: qty,
                 reason: "Hủy từ Mobile" // <--- Hardcode lý do tại đây
-            })
+            }),
+            queueOnFail: true
         });
 
         if (res.ok) {
             showToast(`Đã hủy ${qty} món thành công`);
             loadOrderData(appState.currentTableId); // Reload lại dữ liệu
         } else {
-            showToast(await res.text(), "danger");
+            showToast(await readErrorMessage(res), "danger");
         }
     } catch (e) {
-        showToast("Lỗi kết nối server", "danger");
+        handleRequestError(e, "Lỗi kết nối server");
     }
 }
 // Thêm hàm này vào cuối file hoặc chỗ nào tiện quản lý
@@ -1161,9 +1401,9 @@ function openConfirmModal(type, payload = null) {
 async function executeRequestBill() {
     closeModal('confirmModal');
     try {
-        await fetch(`${API_URL}/Order/${appState.currentTableId}/request-payment?accID=${(currentUser && currentUser.accID) ? currentUser.accID : 0}`, { method: 'POST' });
+        await apiRequest(`${API_URL}/Order/${appState.currentTableId}/request-payment?accID=${(currentUser && currentUser.accID) ? currentUser.accID : 0}`, { method: 'POST', queueOnFail: true });
         showToast("Đã gửi yêu cầu!");
-    } catch (e) { showToast("Lỗi kết nối", "danger"); }
+    } catch (e) { handleRequestError(e, "Lỗi kết nối"); }
 }
 
 async function executePayment(method = 'Cash') {
@@ -1182,8 +1422,8 @@ async function executePayment(method = 'Cash') {
         discountAmount: 0
     };
     try {
-        const res = await fetch(`${API_URL}/Order/checkout-mobile`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        const res = await apiRequest(`${API_URL}/Order/checkout-mobile`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), queueOnFail: true
         });
         if (res.ok) {
             showToast("Thanh toán thành công!");
@@ -1194,26 +1434,27 @@ async function executePayment(method = 'Cash') {
             updateTabBadges();
             showView('view-tables');
         } else {
-            showToast(await res.text(), "danger");
+            showToast(await readErrorMessage(res), "danger");
         }
-    } catch (e) { showToast("Lỗi kết nối", "danger"); }
+    } catch (e) { handleRequestError(e, "Lỗi kết nối"); }
 }
 
 async function executePrintProvisional() {
     closeModal('confirmModal');
     try {
-        const res = await fetch(`${API_URL}/Order/${appState.currentTableId}/print-provisional`, {
+        const res = await apiRequest(`${API_URL}/Order/${appState.currentTableId}/print-provisional`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accID: currentUser.accID })
+            body: JSON.stringify({ accID: currentUser.accID }),
+            queueOnFail: true
         });
         if (res.ok) {
             showToast("Đã in tạm tính!");
             // loadTables(false) sẽ tự chạy do SignalR
         } else {
-            showToast(await res.text(), "danger");
+            showToast(await readErrorMessage(res), "danger");
         }
-    } catch (e) { showToast("Lỗi kết nối", "danger"); }
+    } catch (e) { handleRequestError(e, "Lỗi kết nối"); }
 }
 
 // --- 3. XỬ LÝ CHUYỂN BÀN (HIỆN DANH SÁCH) ---
@@ -1225,7 +1466,7 @@ async function openMoveTableModal() {
     grid.innerHTML = '<div class="text-center w-100">Đang tải...</div>';
 
     try {
-        const res = await fetch(`${API_URL}/Table`); // Lấy danh sách bàn
+        const res = await apiRequest(`${API_URL}/Table`); // Lấy danh sách bàn
         const tables = await res.json();
 
         grid.innerHTML = '';
@@ -1265,23 +1506,24 @@ async function executeMoveTableAction() {
     if (!moveTarget) return;
 
     try {
-        const res = await fetch(`${API_URL}/Order/${appState.currentTableId}/move`, {
+        const res = await apiRequest(`${API_URL}/Order/${appState.currentTableId}/move`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 accID: currentUser.accID,
                 targetTableID: moveTarget.tableID
-            })
+            }),
+            queueOnFail: true
         });
 
         if (res.ok) {
             showToast("Chuyển bàn thành công!");
             showView('view-tables'); // Quay về trang chủ
         } else {
-            showToast(await res.text(), "danger");
+            showToast(await readErrorMessage(res), "danger");
         }
     } catch (e) {
-        showToast("Lỗi kết nối", "danger");
+        handleRequestError(e, "Lỗi kết nối");
     }
 }
 
@@ -1357,10 +1599,11 @@ async function submitCancelItem() {
     if (requests.length > 0) {
         try {
             // Gọi API Bulk Cancel
-            const res = await fetch(`${API_URL}/Order/cancel-multiple`, {
+            const res = await apiRequest(`${API_URL}/Order/cancel-multiple`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requests)
+                body: JSON.stringify(requests),
+                queueOnFail: true
             });
 
             if (res.ok) {
@@ -1379,9 +1622,9 @@ async function submitCancelItem() {
                     badge.className = `badge ${statusClass}`;
                 }
             } else {
-                showToast(await res.text(), "warning");
+                showToast(await readErrorMessage(res), "warning");
             }
-        } catch (e) { showToast("Lỗi kết nối server", "danger"); }
+        } catch (e) { handleRequestError(e, "Lỗi kết nối server"); }
     }
 }
 

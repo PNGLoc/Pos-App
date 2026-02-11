@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Database;
 using PosSystem.Main.Server.Dtos;
 using System.Threading.Tasks;
+using PosSystem.Main.Server;
 
 namespace PosSystem.Main.Server.Controllers
 {
@@ -27,7 +28,7 @@ namespace PosSystem.Main.Server.Controllers
 
             if (user == null)
             {
-                return Unauthorized(new { message = "Sai tên đăng nhập hoặc mật khẩu!" });
+                return ApiError.Result(401, "AUTH_INVALID_CREDENTIALS", "Sai tên đăng nhập hoặc mật khẩu!");
             }
 
             return Ok(new

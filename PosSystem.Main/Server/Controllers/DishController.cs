@@ -4,6 +4,7 @@ using PosSystem.Main.Database;
 using PosSystem.Main.Services; // Import
 using System.Linq;
 using System.Threading.Tasks;
+using PosSystem.Main.Server;
 
 namespace PosSystem.Main.Server.Controllers
 {
@@ -23,28 +24,35 @@ namespace PosSystem.Main.Server.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllDishes()
         {
-            var dishes = await _context.Dishes
-                .Include(d => d.Category)
-                .Where(d => d.DishStatus == "Active")
-                .OrderBy(d => d.CategoryID)
-                .ThenBy(d => d.DishName)
-                .ToListAsync();
-
-            var result = dishes.Select(d => new
+            try
             {
-                d.DishID,
-                d.DishName,
-                // [Fix] Dùng PriceService
-                Price = PriceService.GetCurrentPrice(d.DishID, _context),
-                OriginalPrice = d.Price,
-                Category = d.Category != null ? new
-                {
-                    d.Category.CategoryID,
-                    d.Category.CategoryName
-                } : null
-            });
+                var dishes = await _context.Dishes
+                    .Include(d => d.Category)
+                    .Where(d => d.DishStatus == "Active")
+                    .OrderBy(d => d.CategoryID)
+                    .ThenBy(d => d.DishName)
+                    .ToListAsync();
 
-            return Ok(result);
+                var result = dishes.Select(d => new
+                {
+                    d.DishID,
+                    d.DishName,
+                    // [Fix] Dùng PriceService
+                    Price = PriceService.GetCurrentPrice(d.DishID, _context),
+                    OriginalPrice = d.Price,
+                    Category = d.Category != null ? new
+                    {
+                        d.Category.CategoryID,
+                        d.Category.CategoryName
+                    } : null
+                });
+
+                return Ok(result);
+            }
+            catch
+            {
+                return ApiError.Result(500, "DISH_LIST_FAILED", "Lỗi tải danh sách món");
+            }
         }
 
         // GET: api/dish/{id}
@@ -52,26 +60,35 @@ namespace PosSystem.Main.Server.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetDishById(int id)
         {
-            var dish = await _context.Dishes
-                .Include(d => d.Category)
-                .FirstOrDefaultAsync(d => d.DishID == id && d.DishStatus == "Active");
-
-            if (dish == null)
-                return NotFound("Không tìm thấy món ăn");
-
-            return Ok(new
+            try
             {
-                dish.DishID,
-                dish.DishName,
-                // [Fix] Dùng PriceService
-                Price = PriceService.GetCurrentPrice(dish.DishID, _context),
-                OriginalPrice = dish.Price,
-                Category = dish.Category != null ? new
+                var dish = await _context.Dishes
+                    .Include(d => d.Category)
+                    .FirstOrDefaultAsync(d => d.DishID == id && d.DishStatus == "Active");
+
+                if (dish == null)
                 {
-                    dish.Category.CategoryID,
-                    dish.Category.CategoryName
-                } : null
-            });
+                    return ApiError.Result(404, "DISH_NOT_FOUND", "Không tìm thấy món ăn");
+                }
+
+                return Ok(new
+                {
+                    dish.DishID,
+                    dish.DishName,
+                    // [Fix] Dùng PriceService
+                    Price = PriceService.GetCurrentPrice(dish.DishID, _context),
+                    OriginalPrice = dish.Price,
+                    Category = dish.Category != null ? new
+                    {
+                        dish.Category.CategoryID,
+                        dish.Category.CategoryName
+                    } : null
+                });
+            }
+            catch
+            {
+                return ApiError.Result(500, "DISH_GET_FAILED", "Lỗi tải món ăn");
+            }
         }
     }
 }
