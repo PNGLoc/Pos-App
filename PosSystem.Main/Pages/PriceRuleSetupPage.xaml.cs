@@ -107,8 +107,85 @@ namespace PosSystem.Main.Pages
             else
                 PriceService.SetActivePriceRule(selectedRule);
 
+            UpdateSentPricesForPendingOrders();
             NotifyMenuUpdated();
             ShowNotification($"Đã áp dụng: {selectedRule}");
+        }
+
+        private void UpdateSentPricesForPendingOrders()
+        {
+            using (var db = new AppDbContext())
+            {
+                var orders = db.Orders
+                    .Include(o => o.OrderDetails)
+                    .Where(o => o.OrderStatus == "Pending" && o.OrderDetails.Any(d => d.ItemStatus == "Sent" || d.ItemStatus == "New"))
+                    .ToList();
+
+                if (orders.Count == 0) return;
+
+                var updatedTables = new HashSet<int>();
+
+                foreach (var order in orders)
+                {
+                    var hasChanges = false;
+                    foreach (var detail in order.OrderDetails.Where(d => d.ItemStatus == "Sent" || d.ItemStatus == "New"))
+                    {
+                        var newPrice = PriceService.GetCurrentPrice(detail.DishID, db);
+                        if (detail.UnitPrice != newPrice)
+                        {
+                            detail.UnitPrice = newPrice;
+                            detail.TotalAmount = detail.Quantity * newPrice;
+                            hasChanges = true;
+                        }
+                    }
+
+                    if (hasChanges)
+                    {
+                        var subtotal = order.OrderDetails.Sum(d => d.TotalAmount);
+                        order.SubTotal = subtotal;
+                        if (order.DiscountPercent > 0)
+                        {
+                            order.FinalAmount = subtotal - (subtotal * (order.DiscountPercent / 100m));
+                        }
+                        else if (order.DiscountAmount > 0)
+                        {
+                            order.FinalAmount = subtotal - order.DiscountAmount;
+                        }
+                        else
+                        {
+                            order.FinalAmount = subtotal;
+                        }
+
+                        if (order.TableID.HasValue)
+                        {
+                            updatedTables.Add(order.TableID.Value);
+                        }
+                    }
+                }
+
+                db.SaveChanges();
+
+                NotifyTablesUpdated(updatedTables);
+            }
+        }
+
+        private async void NotifyTablesUpdated(IEnumerable<int> tableIds)
+        {
+            try
+            {
+                if (App.WebHost == null) return;
+                var hubContext = App.WebHost.Services.GetService<IHubContext<PosHub>>();
+                if (hubContext == null) return;
+
+                foreach (var tableId in tableIds)
+                {
+                    await hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+                }
+            }
+            catch
+            {
+                // Best-effort notification only.
+            }
         }
 
         private async void NotifyMenuUpdated()
@@ -320,6 +397,13 @@ namespace PosSystem.Main.Pages
 
                 UpdateDetailStats();
                 LoadData();
+
+                var activeRule = db.GlobalSettings.FirstOrDefault(g => g.Key == "activePriceRule")?.Value ?? "";
+                if (!string.IsNullOrEmpty(activeRule) && string.Equals(activeRule, _editingRuleType, StringComparison.OrdinalIgnoreCase))
+                {
+                    UpdateSentPricesForPendingOrders();
+                    NotifyMenuUpdated();
+                }
             }
         }
 

@@ -373,6 +373,7 @@ namespace PosSystem.Main.Pages
             }
 
             var parsedPrice = ParsePriceFromText(txtPrice.Text);
+            int? updatedDishId = null;
 
             using (var db = new AppDbContext())
             {
@@ -419,6 +420,7 @@ namespace PosSystem.Main.Pages
                         item.CategoryID = (int)cboDishCat.SelectedValue;
                         item.DishStatus = chkActive.IsChecked == true ? "Active" : "Inactive";
                         item.ImagePath = _currentImgPath;
+                        updatedDishId = item.DishID;
                     }
                 }
                 db.SaveChanges();
@@ -427,6 +429,87 @@ namespace PosSystem.Main.Pages
             CloseModal();
             LoadDishes();
             NotifyMenuUpdated();
+
+            if (updatedDishId.HasValue)
+            {
+                UpdatePendingOrderPricesForDish(updatedDishId.Value);
+            }
+        }
+
+        private void UpdatePendingOrderPricesForDish(int dishId)
+        {
+            using (var db = new AppDbContext())
+            {
+                var orders = db.Orders
+                    .Include(o => o.OrderDetails)
+                    .Where(o => o.OrderStatus == "Pending" && o.OrderDetails.Any(d => d.DishID == dishId && (d.ItemStatus == "Sent" || d.ItemStatus == "New")))
+                    .ToList();
+
+                if (orders.Count == 0) return;
+
+                var updatedTables = new System.Collections.Generic.HashSet<int>();
+
+                foreach (var order in orders)
+                {
+                    var hasChanges = false;
+                    foreach (var detail in order.OrderDetails.Where(d => d.DishID == dishId && (d.ItemStatus == "Sent" || d.ItemStatus == "New")))
+                    {
+                        var newPrice = PriceService.GetCurrentPrice(detail.DishID, db);
+                        if (detail.UnitPrice != newPrice)
+                        {
+                            detail.UnitPrice = newPrice;
+                            detail.TotalAmount = detail.Quantity * newPrice;
+                            hasChanges = true;
+                        }
+                    }
+
+                    if (hasChanges)
+                    {
+                        var subtotal = order.OrderDetails.Sum(d => d.TotalAmount);
+                        order.SubTotal = subtotal;
+                        if (order.DiscountPercent > 0)
+                        {
+                            order.FinalAmount = subtotal - (subtotal * (order.DiscountPercent / 100m));
+                        }
+                        else if (order.DiscountAmount > 0)
+                        {
+                            order.FinalAmount = subtotal - order.DiscountAmount;
+                        }
+                        else
+                        {
+                            order.FinalAmount = subtotal;
+                        }
+
+                        if (order.TableID.HasValue)
+                        {
+                            updatedTables.Add(order.TableID.Value);
+                        }
+                    }
+                }
+
+                db.SaveChanges();
+
+                NotifyTablesUpdated(updatedTables);
+            }
+        }
+
+        private async void NotifyTablesUpdated(System.Collections.Generic.IEnumerable<int> tableIds)
+        {
+            try
+            {
+                if (App.WebHost == null) return;
+                var hubContext = App.WebHost.Services.GetService<IHubContext<PosHub>>();
+                if (hubContext == null) return;
+
+                foreach (var tableId in tableIds)
+                {
+                    await hubContext.Clients.All.SendAsync("TableUpdated", tableId);
+                }
+            }
+            catch
+            {
+                // Best-effort notification only.
+            }
         }
 
         // ==========================================
