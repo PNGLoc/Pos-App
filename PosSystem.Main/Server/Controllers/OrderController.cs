@@ -12,6 +12,7 @@ using PosSystem.Main.Server.Hubs;   // Import Hub của bạn
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PosSystem.Main.Server;
+using PosSystem.Main.Services;
 
 namespace PosSystem.Main.Server.Controllers
 {
@@ -256,16 +257,17 @@ namespace PosSystem.Main.Server.Controllers
                     var dish = await _context.Dishes.FindAsync(itemDto.DishID);
                     if (dish != null)
                     {
+                        var unitPrice = PriceService.GetCurrentPrice(dish.DishID, _context);
                         currentOrder.OrderDetails.Add(new OrderDetail
                         {
                             DishID = dish.DishID,
                             Quantity = itemDto.Quantity,
-                            UnitPrice = dish.Price,
+                            UnitPrice = unitPrice,
                             Note = itemDto.Note,
                             ItemStatus = "New",      // ⭐ Quan trọng: Mới chỉ là New
                             PrintedQuantity = 0,     // ⭐ Chưa in
                             DiscountRate = 0,
-                            TotalAmount = itemDto.Quantity * dish.Price
+                            TotalAmount = itemDto.Quantity * unitPrice
                         });
                     }
                 }
@@ -327,6 +329,7 @@ namespace PosSystem.Main.Server.Controllers
                     foreach (var itemDto in request.Details)
                     {
                         if (!dishMap.TryGetValue(itemDto.DishID, out var dish)) continue;
+                        var unitPrice = PriceService.GetCurrentPrice(dish.DishID, _context);
 
                         // Gộp vào dòng "New" nếu trùng món và note
                         var existingItem = currentOrder.OrderDetails
@@ -335,7 +338,7 @@ namespace PosSystem.Main.Server.Controllers
                         if (existingItem != null)
                         {
                             existingItem.Quantity += itemDto.Quantity;
-                            existingItem.UnitPrice = dish.Price;
+                            existingItem.UnitPrice = unitPrice;
                             existingItem.TotalAmount = existingItem.Quantity * existingItem.UnitPrice;
                         }
                         else
@@ -344,11 +347,11 @@ namespace PosSystem.Main.Server.Controllers
                             {
                                 DishID = dish.DishID,
                                 Quantity = itemDto.Quantity,
-                                UnitPrice = dish.Price,
+                                UnitPrice = unitPrice,
                                 Note = itemDto.Note ?? "",
                                 ItemStatus = "New",
                                 PrintedQuantity = 0,
-                                TotalAmount = itemDto.Quantity * dish.Price
+                                TotalAmount = itemDto.Quantity * unitPrice
                             });
                         }
                     }

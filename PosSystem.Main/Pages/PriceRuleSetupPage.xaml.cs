@@ -10,6 +10,9 @@ using PosSystem.Main.Models;
 using PosSystem.Main.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
+using PosSystem.Main.Server.Hubs;
 
 namespace PosSystem.Main.Pages
 {
@@ -104,7 +107,23 @@ namespace PosSystem.Main.Pages
             else
                 PriceService.SetActivePriceRule(selectedRule);
 
+            NotifyMenuUpdated();
             ShowNotification($"Đã áp dụng: {selectedRule}");
+        }
+
+        private async void NotifyMenuUpdated()
+        {
+            try
+            {
+                if (App.WebHost == null) return;
+                var hubContext = App.WebHost.Services.GetService<IHubContext<PosHub>>();
+                if (hubContext == null) return;
+                await hubContext.Clients.All.SendAsync("MenuUpdated");
+            }
+            catch
+            {
+                // Best-effort notification only.
+            }
         }
 
         private void dgRuleTypes_SelectionChanged(object sender, SelectionChangedEventArgs e)
