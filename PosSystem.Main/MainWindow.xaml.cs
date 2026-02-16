@@ -2302,6 +2302,7 @@ namespace PosSystem.Main
                     db.SaveChanges();
                     RecalculateOrder(db, order.OrderID);
                     LoadOrderDetails(_selectedTableId);
+                    NotifyTableUpdated(_selectedTableId);
                 }
             }
         }
