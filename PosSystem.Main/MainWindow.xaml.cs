@@ -954,6 +954,8 @@ namespace PosSystem.Main
             btnMoveTable.Visibility = Visibility.Visible;
             btnReprintKitchen.Visibility = Visibility.Visible;
             btnDiscountBill.Visibility = Visibility.Visible; // [FIX] Show when table selected
+            lblItemCount.Visibility = Visibility.Visible;
+            lblItemCount.Text = "Số lượng món: 0";
 
             // Stop timer when entering a table (will start only when sending kitchen)
             _tableTimeTimer.Stop();
@@ -992,6 +994,8 @@ namespace PosSystem.Main
             btnSplitTable.Visibility = Visibility.Collapsed;
             btnMoveTable.Visibility = Visibility.Collapsed;
             btnReprintKitchen.Visibility = Visibility.Collapsed;
+            lblItemCount.Visibility = Visibility.Collapsed;
+            lblItemCount.Text = "Số lượng món: 0";
 
             // Reset split mode when returning to table list
             _isWaitingForTargetTable = false;
@@ -1051,6 +1055,8 @@ namespace PosSystem.Main
             btnMoveTable.Visibility = Visibility.Visible;
             btnReprintKitchen.Visibility = Visibility.Visible;
             btnDiscountBill.Visibility = Visibility.Visible; // [FIX] Show when table loaded
+            lblItemCount.Visibility = Visibility.Visible;
+            lblItemCount.Text = "Số lượng món: 0";
 
             // Stop timer when entering a table
             _tableTimeTimer.Stop();
@@ -1335,6 +1341,9 @@ namespace PosSystem.Main
 
                     lstOrderDetails.ItemsSource = viewModels;
 
+                    var totalQty = order.OrderDetails.Sum(d => d.Quantity);
+                    lblItemCount.Text = $"Số lượng món: {totalQty}";
+
                     // --- Tính tổng tiền (Code cũ giữ nguyên) ---
                     RecalculateOrderTotals(order);
                     decimal discountValue = (order.DiscountPercent > 0) ? order.SubTotal * (order.DiscountPercent / 100) : order.DiscountAmount;
@@ -1367,6 +1376,7 @@ namespace PosSystem.Main
                 {
                     // Reset giao diện khi bàn trống
                     lstOrderDetails.ItemsSource = null;
+                    lblItemCount.Text = "Số lượng món: 0";
                     lblTotal.Text = "0đ";
                     lblSubTotal.Text = "0đ";
                     pnlDiscount.Visibility = Visibility.Collapsed;
@@ -1725,6 +1735,9 @@ namespace PosSystem.Main
                 {
                     lstOrderDetails.ItemsSource = result.ViewModels;
 
+                    var totalQty = result.ViewModels.Sum(vm => vm.Quantity);
+                    lblItemCount.Text = $"Số lượng món: {totalQty}";
+
                     // Update Labels
                     lblSubTotal.Text = result.BaseTotal.ToString("N0") + "đ";
                     lblTotal.Text = result.Order.FinalAmount.ToString("N0") + "đ";
@@ -1780,6 +1793,7 @@ namespace PosSystem.Main
                 {
                     // Empty table logic
                     lstOrderDetails.ItemsSource = null;
+                    lblItemCount.Text = "Số lượng món: 0";
                     lblTotal.Text = "0đ";
                     lblSubTotal.Text = "0đ";
                     pnlDiscount.Visibility = Visibility.Collapsed;
@@ -2720,7 +2734,7 @@ namespace PosSystem.Main
                             }
 
                             // [FIX] Delete source order so the table becomes Empty
-                           db.Orders.Remove(sourceOrder);
+                            db.Orders.Remove(sourceOrder);
                         }
                         else
                         {

@@ -364,8 +364,7 @@
                                              TextChanged="TxtTableSearch_TextChanged"
                                              GotFocus="TxtTableSearch_GotFocus"
                                              LostFocus="TxtTableSearch_LostFocus"
-                                             KeyDown="TxtTableSearch_KeyDown"
-                                             />
+                                             KeyDown="TxtTableSearch_KeyDown"/>
                                 </Border>
 
                                 <!-- Filter Bar -->
@@ -705,12 +704,17 @@
                                         Height="40">
                                     <Border.Style>
                                         <Style TargetType="Border">
-                                            <Setter Property="BorderBrush" Value="#D0D7DE"/>
-                                            <Setter Property="BorderThickness" Value="1"/>
+                                            <Setter Property="BorderBrush"
+                                                    Value="#D0D7DE"/>
+                                            <Setter Property="BorderThickness"
+                                                    Value="1"/>
                                             <Style.Triggers>
-                                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                                    <Setter Property="BorderBrush" Value="#007BFF"/>
-                                                    <Setter Property="BorderThickness" Value="1"/>
+                                                <Trigger Property="IsKeyboardFocusWithin"
+                                                        Value="True">
+                                                    <Setter Property="BorderBrush"
+                                                            Value="#007BFF"/>
+                                                    <Setter Property="BorderThickness"
+                                                            Value="1"/>
                                                 </Trigger>
                                             </Style.Triggers>
                                         </Style>
@@ -732,13 +736,18 @@
                                                    VerticalAlignment="Center">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
-                                                    <Setter Property="Opacity" Value="0"/>
+                                                    <Setter Property="Opacity"
+                                                            Value="0"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}" Value="">
-                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                        <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}"
+                                                                Value="">
+                                                            <Setter Property="Opacity"
+                                                                    Value="0.5"/>
                                                         </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}" Value="{x:Null}">
-                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                        <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}"
+                                                                Value="{x:Null}">
+                                                            <Setter Property="Opacity"
+                                                                    Value="0.5"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -1604,6 +1613,13 @@
                                             </Style>
                                         </Button.Resources>
                                     </Button>
+                                    <TextBlock x:Name="lblItemCount"
+                                               Text="Số lượng món: 0"
+                                               Margin="10,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="#6C757D"
+                                               FontSize="14"
+                                               Visibility="Collapsed"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1"
                                             HorizontalAlignment="Right">
