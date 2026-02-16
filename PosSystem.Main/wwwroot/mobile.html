@@ -125,8 +125,15 @@
 
     <div id="view-menu" class="view-section bg-white">
         <div class="app-header d-flex align-items-center gap-2">
-            <button class="btn btn-light" onclick="cancelMenuSelection()"><i class="fas fa-times"></i></button>
-            <input type="text" class="form-control" id="searchDish" placeholder="Tìm món ăn..." onkeyup="searchMenu()">
+            <button class="btn btn-light menu-back-btn" onclick="cancelMenuSelection()"><i
+                    class="fas fa-arrow-left"></i></button>
+            <div class="search-input-wrap flex-grow-1">
+                <input type="text" class="form-control search-input" id="searchDish" placeholder="Tìm món ăn..."
+                    onkeyup="searchMenu()">
+                <button class="search-clear-btn" type="button" aria-label="Clear search" onclick="clearMenuSearch()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
 
         <div class="category-bar" id="categoryBar">
