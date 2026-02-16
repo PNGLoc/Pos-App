@@ -2108,8 +2108,17 @@ namespace PosSystem.Main
 
                         foreach (var d in groupDetails)
                         {
-                            d.DiscountRate = newRate;
-                            d.TotalAmount = d.Quantity * d.UnitPrice * (1 - d.DiscountRate / 100m);
+                            if (originalPrice <= 0)
+                            {
+                                d.UnitPrice = newPrice;
+                                d.DiscountRate = 0;
+                                d.TotalAmount = d.Quantity * d.UnitPrice;
+                            }
+                            else
+                            {
+                                d.DiscountRate = newRate;
+                                d.TotalAmount = d.Quantity * d.UnitPrice * (1 - d.DiscountRate / 100m);
+                            }
                         }
 
                         db.SaveChanges();
