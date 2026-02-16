@@ -446,6 +446,24 @@ function initSignalR() {
     let reconnectOverlayTimer = null;
     let hadFatalDisconnect = false;
     const RECONNECT_OVERLAY_DELAY_MS = 2500; // chỉ hiện overlay nếu mất kết nối đủ lâu ("mất thật")
+    const AUTO_RELOAD_AFTER_MS = 1000;
+    let autoReloadTimer = null;
+
+    function scheduleAutoReload() {
+        if (autoReloadTimer) clearTimeout(autoReloadTimer);
+        autoReloadTimer = setTimeout(() => {
+            if (document.visibilityState === 'visible') {
+                window.location.reload();
+            }
+        }, AUTO_RELOAD_AFTER_MS);
+    }
+
+    function cancelAutoReload() {
+        if (autoReloadTimer) {
+            clearTimeout(autoReloadTimer);
+            autoReloadTimer = null;
+        }
+    }
 
     function bindSignalREvents(conn) {
         // 1. Đang thử kết nối lại (Mạng chập chờn hoặc Server vừa tắt)
@@ -464,6 +482,8 @@ function initSignalR() {
                 reconnectOverlayShown = true;
                 showOverlay('Mất kết nối!', 'Đang cố gắng tìm máy chủ...', false);
             }, RECONNECT_OVERLAY_DELAY_MS);
+
+            scheduleAutoReload();
         });
 
         // 2. Đã kết nối lại thành công
@@ -471,6 +491,7 @@ function initSignalR() {
             console.log('Đã kết nối lại:', connectionId);
 
             if (reconnectOverlayTimer) { clearTimeout(reconnectOverlayTimer); reconnectOverlayTimer = null; }
+            cancelAutoReload();
 
             const since = reconnectingSince;
             reconnectingSince = null;
@@ -498,6 +519,7 @@ function initSignalR() {
             console.error('Ngắt kết nối hẳn:', error);
             hadFatalDisconnect = true;
             showOverlay('Không tìm thấy máy chủ', 'Vui lòng kiểm tra lại Wifi hoặc Máy tính thu ngân.', true);
+            cancelAutoReload();
         });
 
         // --- LOGIC NGHIỆP VỤ ---
