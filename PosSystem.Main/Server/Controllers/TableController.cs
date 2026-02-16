@@ -48,6 +48,11 @@ namespace PosSystem.Main.Server.Controllers
                             .Select(o => (DateTime?)o.OrderTime)
                             .FirstOrDefault(),
 
+                        PendingTotal = _context.Orders
+                            .Where(o => o.TableID == t.TableID && o.OrderStatus == "Pending")
+                            .Select(o => (decimal?)o.FinalAmount)
+                            .FirstOrDefault(),
+
                         // [NEW] Kiểm tra có món chưa gửi (New) -> Trạng thái Ordering
                         HasNewItems = _context.Orders.Any(o => o.TableID == t.TableID && o.OrderStatus == "Pending" && o.OrderDetails.Any(d => d.ItemStatus == "New"))
                     })

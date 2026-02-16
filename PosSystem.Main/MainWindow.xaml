@@ -161,8 +161,8 @@
                     Grid.Column="0"
                     Background="White"
                     CornerRadius="8"
-                    Padding="15,12"
-                    Margin="0,0,10,10">
+                    Padding="10,4"
+                    Margin="0,0,10,2">
                 <Border.Effect>
                     <DropShadowEffect Color="Gray"
                                       BlurRadius="5"
@@ -172,6 +172,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
@@ -276,7 +277,22 @@
 
                     </StackPanel>
 
-                    <ToggleButton Grid.Column="1"
+                    <Border Grid.Column="1"
+                            Background="#F8F9FA"
+                            BorderBrush="#E0E0E0"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="10,6"
+                            VerticalAlignment="Center"
+                            Margin="0,0,10,0">
+                        <TextBlock x:Name="lblLatestPayment"
+                                   Text="--"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="#495057"/>
+                    </Border>
+
+                    <ToggleButton Grid.Column="2"
                                   x:Name="tglPrintBill"
                                   Style="{StaticResource PrinterToggleStyle}"
                                   IsChecked="True"
@@ -710,7 +726,7 @@
                                                     Value="1"/>
                                             <Style.Triggers>
                                                 <Trigger Property="IsKeyboardFocusWithin"
-                                                        Value="True">
+                                                         Value="True">
                                                     <Setter Property="BorderBrush"
                                                             Value="#007BFF"/>
                                                     <Setter Property="BorderThickness"
@@ -740,12 +756,12 @@
                                                             Value="0"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}"
-                                                                Value="">
+                                                                     Value="">
                                                             <Setter Property="Opacity"
                                                                     Value="0.5"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding Text, ElementName=txtDishSearch}"
-                                                                Value="{x:Null}">
+                                                                     Value="{x:Null}">
                                                             <Setter Property="Opacity"
                                                                     Value="0.5"/>
                                                         </DataTrigger>

@@ -688,6 +688,7 @@ namespace PosSystem.Main.Server.Controllers
                         var method = string.IsNullOrWhiteSpace(order.PaymentMethod) ? "Cash" : order.PaymentMethod;
                         var msg = $"{accName} thanh toán ({tableName}): {total:n0}đ ({method})";
                         await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+                        await _hubContext.Clients.All.SendAsync("PaymentCompleted", tableName, total);
                     }
                     catch { }
 

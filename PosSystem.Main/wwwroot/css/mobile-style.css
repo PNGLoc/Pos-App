@@ -135,14 +135,14 @@ body {
 .table-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 10px;
-    padding: 15px;
+    gap: 8px;
+    padding: 10px;
 }
 
 .table-card {
     background: white;
     border-radius: 12px;
-    padding: 20px 10px 30px;
+    padding: 14px 8px 22px;
     text-align: center;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     cursor: pointer;
@@ -150,11 +150,29 @@ body {
     position: relative;
 }
 
+.table-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+
+.table-name {
+    font-size: 18px;
+    line-height: 1.1;
+    margin-bottom: 2px;
+}
+
+.table-total {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 2px;
+}
+
 .table-card .table-status {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 8px;
+    bottom: 6px;
     display: block;
     line-height: 1.1;
 }

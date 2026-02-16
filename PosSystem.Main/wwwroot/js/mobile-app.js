@@ -736,13 +736,20 @@ function renderTables(filterId) {
             : '';
 
         const iconClass = t.categoryIconClass || t.CategoryIconClass || 'fas fa-chair';
+        const pendingTotalRaw = (t.pendingTotal ?? t.PendingTotal);
+        const hasPendingTotal = pendingTotalRaw !== null && pendingTotalRaw !== undefined;
+        const pendingTotal = hasPendingTotal ? pendingTotalRaw : 0;
+        const totalHtml = hasPendingTotal
+            ? `<div class="table-total text-primary">${pendingTotal.toLocaleString()}đ</div>`
+            : '';
 
         div.innerHTML = `
             ${provMarker}
             ${payMarker}
             ${timerHtml}
-            <div class="fs-4 mb-1"><i class="${iconClass}"></i></div>
-            <div class="fw-bold">${t.tableName}</div>
+            <div class="table-icon"><i class="${iconClass}"></i></div>
+            <div class="fw-bold table-name">${t.tableName}</div>
+            ${totalHtml}
             <small class="table-status ${statusTextClass} fw-bold">
                 ${statusText}
             </small>

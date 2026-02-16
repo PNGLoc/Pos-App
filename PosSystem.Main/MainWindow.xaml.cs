@@ -2432,6 +2432,14 @@ namespace PosSystem.Main
                 AppendActivityLog(msg);
             });
 
+            connection.On<string, decimal>("PaymentCompleted", (tableName, total) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    lblLatestPayment.Text = $"{tableName}: {total:N0}đ";
+                });
+            });
+
             return connection;
         }
 
@@ -2533,16 +2541,19 @@ namespace PosSystem.Main
             if (_selectedTableId == 0) return;
             int orderId = 0;
             decimal finalAmount = 0;
+            string tableName = string.Empty;
 
             using (var db = new AppDbContext())
             {
                 var order = db.Orders.Include(o => o.OrderDetails)
+                                     .Include(o => o.Table)
                                      .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
 
                 if (order != null)
                 {
                     orderId = (int)order.OrderID;
                     finalAmount = order.FinalAmount;
+                    tableName = order.Table?.TableName ?? $"Bàn {_selectedTableId}";
 
                     bool hasValidItems = order.OrderDetails.Any(d => d.Quantity > 0);
                     if (!hasValidItems)
@@ -2567,6 +2578,7 @@ namespace PosSystem.Main
 
             if (payWindow.IsPaidSuccess)
             {
+                UpdateLatestPaymentLabel(orderId, tableName, finalAmount);
                 // --- SỬA: Kiểm tra ToggleButton (tglPrintBill) VÀ lựa chọn từ PaymentWindow ---
                 if (tglPrintBill.IsChecked == true && payWindow.ShouldPrint)
                 {
@@ -2595,6 +2607,33 @@ namespace PosSystem.Main
             {
                 LoadTables(); // Update icon
                 ShowToast("🧾 Đã in tạm tính thành công!");
+            }
+        }
+
+        private void UpdateLatestPaymentLabel(int orderId, string fallbackTableName, decimal fallbackAmount)
+        {
+            try
+            {
+                using (var db = new AppDbContext())
+                {
+                    var order = db.Orders
+                        .Include(o => o.Table)
+                        .FirstOrDefault(o => o.OrderID == orderId);
+
+                    var tableName = order?.Table?.TableName ?? fallbackTableName;
+                    var amount = order?.FinalAmount ?? fallbackAmount;
+                    if (!string.IsNullOrWhiteSpace(tableName))
+                    {
+                        lblLatestPayment.Text = $"{tableName}: {amount:N0}đ";
+                    }
+                }
+            }
+            catch
+            {
+                if (!string.IsNullOrWhiteSpace(fallbackTableName))
+                {
+                    lblLatestPayment.Text = $"{fallbackTableName}: {fallbackAmount:N0}đ";
+                }
             }
         }
 
