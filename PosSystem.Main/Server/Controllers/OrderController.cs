@@ -13,6 +13,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using PosSystem.Main.Server;
 using PosSystem.Main.Services;
+using PosSystem.Main.Helpers;
+using System.IO;
+using System.Threading;
 
 namespace PosSystem.Main.Server.Controllers
 {
@@ -26,11 +29,22 @@ namespace PosSystem.Main.Server.Controllers
         private const string IdempotencyHeaderName = "X-Idempotency-Key";
         private static readonly TimeSpan IdempotencyTtl = TimeSpan.FromMinutes(10);
         private const string IdempotencyInProgressCode = "IDEMPOTENCY_IN_PROGRESS";
+        private static readonly SemaphoreSlim MoveTableLock = new SemaphoreSlim(1, 1);
         private static readonly JsonSerializerOptions IdempotencyJsonOptions = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
+
+        private static void LogMoveTable(string message)
+        {
+            try
+            {
+                var path = Path.Combine(AppPaths.DataRoot, "move_table.log");
+                System.IO.File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} | API | {message}{Environment.NewLine}");
+            }
+            catch { }
+        }
 
         public OrderController(AppDbContext context, IHubContext<PosHub> hubContext)
         {
@@ -823,6 +837,8 @@ namespace PosSystem.Main.Server.Controllers
             var idempotencyKey = TryBeginIdempotent(out var idempotentResult);
             if (idempotentResult != null) return idempotentResult;
 
+            await MoveTableLock.WaitAsync();
+
             using (var transaction = _context.Database.BeginTransaction())
             {
                 try
@@ -864,15 +880,34 @@ namespace PosSystem.Main.Server.Controllers
                     if (targetOrder != null)
                     {
                         // TRƯỜNG HỢP GỘP BÀN
-                        foreach (var detail in sourceOrder.OrderDetails.ToList())
+                        var sourceOrderId = sourceOrder.OrderID;
+                        var targetOrderId = targetOrder.OrderID;
+                        var sourceDetailCount = await _context.OrderDetails.CountAsync(d => d.OrderID == sourceOrderId);
+
+                        var movedRows = await _context.Database.ExecuteSqlInterpolatedAsync(
+                            $"UPDATE OrderDetails SET OrderID = {targetOrderId} WHERE OrderID = {sourceOrderId}");
+
+                        LogMoveTable($"Move merge sourceTable={sourceTableId} targetTable={req.TargetTableID} sourceOrder={sourceOrderId} targetOrder={targetOrderId} sourceDetailCount={sourceDetailCount} movedRows={movedRows}");
+
+                        if (sourceDetailCount != movedRows)
                         {
-                            detail.OrderID = targetOrder.OrderID;
-                            detail.Order = targetOrder;
-                            sourceOrder.OrderDetails.Remove(detail);
+                            transaction.Rollback();
+                            AbandonIdempotent(idempotencyKey);
+                            LogMoveTable($"Move merge rollback mismatch sourceOrder={sourceOrderId} sourceDetailCount={sourceDetailCount} movedRows={movedRows}");
+                            return BuildErrorResult(500, "MOVE_TABLE_FAILED", "Không thể chuyển món, vui lòng thử lại");
                         }
-                        await _context.SaveChangesAsync();
+
+                        // Preserve old behavior: keep bill-level discounts as-is and cộng dồn tổng tiền
                         targetOrder.SubTotal += sourceOrder.SubTotal;
                         targetOrder.FinalAmount += sourceOrder.FinalAmount;
+
+                        // Safety recompute if target total becomes invalid
+                        var targetDetails = await _context.OrderDetails.Where(d => d.OrderID == targetOrder.OrderID).ToListAsync();
+                        if (targetOrder.SubTotal <= 0 || targetDetails.Count == 0)
+                        {
+                            targetOrder.SubTotal = targetDetails.Sum(d => d.TotalAmount);
+                            targetOrder.FinalAmount = targetOrder.SubTotal;
+                        }
 
                         _context.Orders.Remove(sourceOrder);
                     }
@@ -889,12 +924,14 @@ namespace PosSystem.Main.Server.Controllers
 
                     await _context.SaveChangesAsync();
                     transaction.Commit();
+                    LogMoveTable($"Move success sourceTable={sourceTableId} targetTable={req.TargetTableID} sourceOrder={(sourceOrder?.OrderID ?? 0)} targetOrder={(targetOrder?.OrderID ?? sourceOrder?.OrderID ?? 0)}");
 
                     // --- POST COMMIT ---
 
                     // 4. Cập nhật UI trước để phản hồi nhanh
                     await _hubContext.Clients.All.SendAsync("TableUpdated", sourceTableId);
                     await _hubContext.Clients.All.SendAsync("TableUpdated", req.TargetTableID);
+                    await _hubContext.Clients.All.SendAsync("TableMoved", sourceTableId, req.TargetTableID);
 
                     // 5. IN PHIẾU BÁO BẾP (chạy nền để không chặn response)
                     _ = Task.Run(() =>
@@ -921,7 +958,12 @@ namespace PosSystem.Main.Server.Controllers
                 {
                     transaction.Rollback();
                     AbandonIdempotent(idempotencyKey);
+                    LogMoveTable($"Move exception sourceTable={sourceTableId} targetTable={req.TargetTableID} error={ex.Message}");
                     return BuildErrorResult(500, "MOVE_TABLE_FAILED", "Lỗi chuyển bàn");
+                }
+                finally
+                {
+                    MoveTableLock.Release();
                 }
             }
         }

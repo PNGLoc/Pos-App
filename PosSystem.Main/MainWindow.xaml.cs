@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.SignalR;        // Cho Server (Gửi đi)
 using Microsoft.Extensions.DependencyInjection;
 using PosSystem.Main.Server.Hubs;
 using System.Threading;
+using PosSystem.Main.Helpers;
 namespace PosSystem.Main
 {
     // ViewModels
@@ -232,6 +233,18 @@ namespace PosSystem.Main
         // Move table mode variables
         private bool _isWaitingForMoveTargetTable = false;  // True when waiting for user to click target table for move
         private const int MIN_SECONDS_WAIT = 10; // Thời gian chờ giữa Check-in và Check-out chấm công
+        private static readonly SemaphoreSlim _moveTableLock = new SemaphoreSlim(1, 1);
+
+        private static void LogMoveTableDesktop(string message)
+        {
+            try
+            {
+                var path = Path.Combine(AppPaths.DataRoot, "move_table.log");
+                File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} | WPF | {message}{Environment.NewLine}");
+            }
+            catch { }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -2455,6 +2468,25 @@ namespace PosSystem.Main
                 QueueRealtimeTableUpdate(id);
             });
 
+            connection.On<int, int>("TableMoved", (sourceTableId, targetTableId) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    QueueRealtimeTableUpdate(sourceTableId);
+                    QueueRealtimeTableUpdate(targetTableId);
+
+                    if (_selectedTableId == sourceTableId)
+                    {
+                        SelectAndLoadTable(targetTableId);
+                        ShowToast($"🔄 Đơn đã chuyển sang bàn {targetTableId}", 2000);
+                    }
+                    else if (_selectedTableId == targetTableId)
+                    {
+                        _ = LoadOrderDetailsAsync(targetTableId);
+                    }
+                });
+            });
+
             // [NEW] Listen for Order Notifications
             connection.On<string>("ReceiveOrderNotification", (msg) =>
             {
@@ -2521,6 +2553,31 @@ namespace PosSystem.Main
             catch (Exception ex)
             {
                 Console.WriteLine($"SignalR send error: {ex.Message}");
+            }
+        }
+
+        private async void NotifyTableMoved(int sourceTableId, int targetTableId)
+        {
+            try
+            {
+                if (App.WebHost != null)
+                {
+                    var hubContext = App.WebHost.Services.GetService<IHubContext<PosHub>>();
+                    if (hubContext != null)
+                    {
+                        await hubContext.Clients.All.SendAsync("TableMoved", sourceTableId, targetTableId);
+                        return;
+                    }
+                }
+
+                if (_connection != null && _connection.State == HubConnectionState.Connected)
+                {
+                    await _connection.SendAsync("TableMoved", sourceTableId, targetTableId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SignalR send move error: {ex.Message}");
             }
         }
 
@@ -2761,7 +2818,8 @@ namespace PosSystem.Main
 
         private async Task ExecuteMoveTableAsync(int targetTableId)
         {
-            if (targetTableId == _selectedTableId)
+            var sourceTableId = _selectedTableId;
+            if (targetTableId == sourceTableId)
             {
                 ShowToast("❌ Vui lòng chọn bàn khác!", 2000);
                 _isWaitingForMoveTargetTable = false;
@@ -2774,12 +2832,13 @@ namespace PosSystem.Main
             {
                 try
                 {
+                    _moveTableLock.Wait();
                     using (var db = new AppDbContext())
                     {
+                        using var transaction = db.Database.BeginTransaction();
                         var sourceOrder = db.Orders
-                            .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
                             .Include(o => o.Table)
-                            .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+                            .FirstOrDefault(o => o.TableID == sourceTableId && o.OrderStatus == "Pending");
 
                         var targetOrder = db.Orders
                             .FirstOrDefault(o => o.TableID == targetTableId && o.OrderStatus == "Pending");
@@ -2790,19 +2849,28 @@ namespace PosSystem.Main
                         }
 
                         // Lưu tên bàn cũ trước khi cập nhật
-                        string oldTableName = sourceOrder.Table?.TableName ?? $"Bàn {_selectedTableId}";
+                        string oldTableName = sourceOrder.Table?.TableName ?? $"Bàn {sourceTableId}";
 
                         // If target table already has an order, merge them
                         if (targetOrder != null)
                         {
-                            // Move all order details from source to target
-                            foreach (var detail in sourceOrder.OrderDetails.ToList())
+                            var sourceOrderId = sourceOrder.OrderID;
+                            var targetOrderId = targetOrder.OrderID;
+                            var sourceDetailCount = db.OrderDetails.Count(d => d.OrderID == sourceOrderId);
+                            var movedRows = db.Database.ExecuteSqlInterpolated(
+                                $"UPDATE OrderDetails SET OrderID = {targetOrderId} WHERE OrderID = {sourceOrderId}");
+
+                            LogMoveTableDesktop($"Move merge sourceTable={sourceTableId} targetTable={targetTableId} sourceOrder={sourceOrderId} targetOrder={targetOrderId} sourceDetailCount={sourceDetailCount} movedRows={movedRows}");
+
+                            if (sourceDetailCount != movedRows)
                             {
-                                detail.OrderID = targetOrder.OrderID;
-                                detail.Order = targetOrder;
-                                sourceOrder.OrderDetails.Remove(detail);
+                                transaction.Rollback();
+                                LogMoveTableDesktop($"Move merge rollback mismatch sourceOrder={sourceOrderId} sourceDetailCount={sourceDetailCount} movedRows={movedRows}");
+                                return (Success: false, Error: "❌ Không thể chuyển món. Vui lòng thử lại.", TargetTableId: targetTableId, OrderIdToNotify: 0L, OldName: "", NewName: "");
                             }
-                            db.SaveChanges();
+
+                            targetOrder.SubTotal += sourceOrder.SubTotal;
+                            targetOrder.FinalAmount += sourceOrder.FinalAmount;
 
                             // [FIX] Delete source order so the table becomes Empty
                             db.Orders.Remove(sourceOrder);
@@ -2814,7 +2882,7 @@ namespace PosSystem.Main
                         }
 
                         // Update source table status to empty
-                        var sourceTable = db.Tables.FirstOrDefault(t => t.TableID == _selectedTableId);
+                        var sourceTable = db.Tables.FirstOrDefault(t => t.TableID == sourceTableId);
                         if (sourceTable != null)
                         {
                             sourceTable.TableStatus = "Empty";
@@ -2828,6 +2896,9 @@ namespace PosSystem.Main
                         }
 
                         db.SaveChanges();
+
+                        transaction.Commit();
+                        LogMoveTableDesktop($"Move success sourceTable={sourceTableId} targetTable={targetTableId} sourceOrder={(sourceOrder?.OrderID ?? 0)} targetOrder={(targetOrder?.OrderID ?? sourceOrder?.OrderID ?? 0)}");
 
                         // Recalculate totals
                         if (targetOrder != null)
@@ -2847,9 +2918,14 @@ namespace PosSystem.Main
                         return (Success: true, Error: (string?)null, TargetTableId: targetTableId, OrderIdToNotify: orderIdToNotify, OldName: oldTableName, NewName: newTableName);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    LogMoveTableDesktop($"Move exception sourceTable={sourceTableId} targetTable={targetTableId} error={ex.Message}");
                     return (Success: false, Error: "❌ Không thể chuyển bàn. Vui lòng thử lại.", TargetTableId: targetTableId, OrderIdToNotify: 0L, OldName: "", NewName: "");
+                }
+                finally
+                {
+                    _moveTableLock.Release();
                 }
             });
 
@@ -2863,6 +2939,7 @@ namespace PosSystem.Main
                 {
                     LoadTables();
                     SelectAndLoadTable(result.TargetTableId);
+                    NotifyTableMoved(sourceTableId, result.TargetTableId);
                     ShowToast("✅ Chuyển bàn thành công!", 2000);
 
                     if (result.OrderIdToNotify > 0 && !string.IsNullOrWhiteSpace(result.OldName) && !string.IsNullOrWhiteSpace(result.NewName))

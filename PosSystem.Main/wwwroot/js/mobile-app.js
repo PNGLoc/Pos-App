@@ -527,6 +527,26 @@ function initSignalR() {
             if (appState.currentTableId == tableId) loadOrderData(tableId);
         });
 
+        conn.on("TableMoved", async (sourceTableId, targetTableId) => {
+            await loadTables(false);
+
+            if (appState.currentTableId == sourceTableId) {
+                const targetTable = appState.tables.find(t => t.tableID === targetTableId);
+                if (targetTable) {
+                    openTableDetail(targetTable);
+                    showToast(`Đơn đã chuyển sang ${targetTable.tableName}`, 'info');
+                } else {
+                    appState.currentTableId = null;
+                    showView('view-tables');
+                }
+                return;
+            }
+
+            if (appState.currentTableId == targetTableId) {
+                loadOrderData(targetTableId);
+            }
+        });
+
         conn.on("MenuUpdated", async () => {
             await loadMenuData();
             if (getActiveViewId() === 'view-menu') {
