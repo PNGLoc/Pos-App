@@ -710,7 +710,13 @@ namespace PosSystem.Main.Server.Controllers
                         var accName = acc?.AccName ?? "Admin";
                         var total = order.FinalAmount;
                         var method = string.IsNullOrWhiteSpace(order.PaymentMethod) ? "Cash" : order.PaymentMethod;
-                        var msg = $"{accName} thanh toán ({tableName}): {total:n0}đ ({method})";
+                        var methodLabel = method.Equals("Cash", StringComparison.OrdinalIgnoreCase)
+                            ? "Tiền mặt"
+                            : method.Equals("Transfer", StringComparison.OrdinalIgnoreCase)
+                                ? "Chuyển khoản"
+                                : method;
+                        var printNote = request.ShouldPrintBill ? string.Empty : ", Không in";
+                        var msg = $"{accName} thanh toán ({tableName}): {total:n0}đ ({methodLabel}){printNote}";
                         await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
                         await _hubContext.Clients.All.SendAsync("PaymentCompleted", tableName, total);
                     }
