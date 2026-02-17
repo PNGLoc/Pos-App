@@ -450,11 +450,6 @@ namespace PosSystem.Main.Server.Controllers
                             KitchenBatch = batchNumber
                         };
                         printQueue.Add(printItem);
-
-                        // Cập nhật DB
-                        item.PrintedQuantity = item.Quantity;
-                        item.ItemStatus = "Sent";
-                        item.KitchenBatch = batchNumber;
                     }
 
                     // [NEW] Cập nhật trạng thái bàn thành Occupied nếu chưa
@@ -463,13 +458,25 @@ namespace PosSystem.Main.Server.Controllers
                         order.Table.TableStatus = "Occupied";
                     }
 
+                    var printOk = Services.PrintService.PrintKitchen(order, printQueue, batchNumber, senderName);
+                    if (!printOk)
+                    {
+                        transaction.Rollback();
+                        AbandonIdempotent(idempotencyKey);
+                        return BuildErrorResult(500, "PRINT_KITCHEN_FAILED", "Lỗi in bếp, vui lòng thử lại");
+                    }
+
+                    foreach (var item in itemsToPrint)
+                    {
+                        item.PrintedQuantity = item.Quantity;
+                        item.ItemStatus = "Sent";
+                        item.KitchenBatch = batchNumber;
+                    }
+
                     await _context.SaveChangesAsync();
                     transaction.Commit();
 
                     // --- NON DUPLICATE ACTIONS (Post Commit) ---
-
-                    // Gọi Service In Bếp 
-                    Services.PrintService.PrintKitchen(order, printQueue, batchNumber, senderName);
 
                     // Bắn SignalR
                     await _hubContext.Clients.All.SendAsync("TableUpdated", tableId);
@@ -960,7 +967,7 @@ namespace PosSystem.Main.Server.Controllers
 
                     // 2. Giảm số lượng
                     detail.Quantity -= req.Quantity;
-                    detail.PrintedQuantity -= req.Quantity;
+                    detail.PrintedQuantity = Math.Max(0, detail.PrintedQuantity - req.Quantity);
                     detail.TotalAmount = detail.Quantity * detail.UnitPrice;
 
                     // Nếu giảm về 0 thì xóa luôn dòng
@@ -1094,7 +1101,7 @@ namespace PosSystem.Main.Server.Controllers
 
                         // Update DB
                         detail.Quantity -= req.Quantity;
-                        detail.PrintedQuantity -= req.Quantity;
+                        detail.PrintedQuantity = Math.Max(0, detail.PrintedQuantity - req.Quantity);
                         detail.TotalAmount = detail.Quantity * detail.UnitPrice;
 
                         // Log

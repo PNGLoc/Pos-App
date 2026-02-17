@@ -275,9 +275,9 @@ namespace PosSystem.Main.Services
         }
 
         // 2. HÀM IN BẾP - ĐÃ SỬA GỘP MÓN
-        public static void PrintKitchen(Order orderInfo, List<OrderDetail> itemsToPrint, int batchNumber, string senderName = "")
+        public static bool PrintKitchen(Order orderInfo, List<OrderDetail> itemsToPrint, int batchNumber, string senderName = "")
         {
-            if (itemsToPrint == null || !itemsToPrint.Any()) return;
+            if (itemsToPrint == null || !itemsToPrint.Any()) return true;
 
             using (var db = new AppDbContext())
             {
@@ -309,26 +309,37 @@ namespace PosSystem.Main.Services
                     .ToList();
                 // ----------------------------------------
 
-                // Gom nhóm theo Máy in (Dựa vào PrinterID của Danh mục món)
-                var printerGroups = groupedItemsToPrint
+                var assignedItems = groupedItemsToPrint
                     .Where(d => d.Dish?.Category?.PrinterID != null)
+                    .ToList();
+                var unassignedItems = groupedItemsToPrint
+                    .Where(d => d.Dish?.Category?.PrinterID == null)
+                    .ToList();
+
+                // Gom nhóm theo Máy in (Dựa vào PrinterID của Danh mục món)
+                var printerGroups = assignedItems
                     .GroupBy(d => d.Dish!.Category!.PrinterID)
                     .ToList();
 
+                var fallbackPrinters = db.Printers.Where(p => p.IsActive && !p.IsBillPrinter).ToList();
+                bool allOk = true;
+
                 if (!printerGroups.Any())
                 {
-                    var fallbackPrinters = db.Printers.Where(p => p.IsActive && !p.IsBillPrinter).ToList();
                     if (!fallbackPrinters.Any())
                     {
                         LogPrintFailure($"PrintKitchen:{orderInfo.OrderID}", new Printer { PrinterName = "(none)", ConnectionType = "N/A" }, "No active kitchen printer");
-                        return;
+                        return false;
                     }
 
                     foreach (var printer in fallbackPrinters)
                     {
-                        PrintKitchenToPrinter(orderInfo, groupedItemsToPrint, batchNumber, elements, senderName, printer);
+                        if (!PrintKitchenToPrinter(orderInfo, groupedItemsToPrint, batchNumber, elements, senderName, printer))
+                        {
+                            allOk = false;
+                        }
                     }
-                    return;
+                    return allOk;
                 }
 
                 foreach (var group in printerGroups)
@@ -337,25 +348,45 @@ namespace PosSystem.Main.Services
                     int printerId = group.Key.Value;
 
                     var printer = db.Printers.Find(printerId);
-                    if (printer == null || !printer.IsActive) continue;
-
-                    // Tạo Order ảo chỉ chứa các món của máy in này
-                    var filteredOrder = new Order
+                    if (printer == null || !printer.IsActive)
                     {
-                        OrderID = orderInfo.OrderID,
-                        Table = orderInfo.Table, // Lấy tên bàn
-                        OrderTime = DateTime.Now,
-                        OrderDetails = group.ToList() // Danh sách món CẦN IN (Đã gộp)
-                    };
+                        LogPrintFailure($"PrintKitchen:{orderInfo.OrderID}", new Printer { PrinterName = "(missing)", ConnectionType = "N/A" }, $"Inactive printer {printerId}");
+                        allOk = false;
+                        continue;
+                    }
 
-                    PrintKitchenToPrinter(filteredOrder, group.ToList(), batchNumber, elements, senderName, printer);
+                    if (!PrintKitchenToPrinter(orderInfo, group.ToList(), batchNumber, elements, senderName, printer))
+                    {
+                        allOk = false;
+                    }
                 }
+
+                if (unassignedItems.Any())
+                {
+                    if (!fallbackPrinters.Any())
+                    {
+                        LogPrintFailure($"PrintKitchen:{orderInfo.OrderID}", new Printer { PrinterName = "(none)", ConnectionType = "N/A" }, "No fallback printer for unassigned items");
+                        allOk = false;
+                    }
+                    else
+                    {
+                        foreach (var printer in fallbackPrinters)
+                        {
+                            if (!PrintKitchenToPrinter(orderInfo, unassignedItems, batchNumber, elements, senderName, printer))
+                            {
+                                allOk = false;
+                            }
+                        }
+                    }
+                }
+
+                return allOk;
             }
         }
 
-        private static void PrintKitchenToPrinter(Order orderInfo, List<OrderDetail> items, int batchNumber, List<PrintElement>? elements, string senderName, Printer printer)
+        private static bool PrintKitchenToPrinter(Order orderInfo, List<OrderDetail> items, int batchNumber, List<PrintElement>? elements, string senderName, Printer printer)
         {
-            if (items == null || items.Count == 0) return;
+            if (items == null || items.Count == 0) return true;
 
             var filteredOrder = new Order
             {
@@ -379,7 +410,11 @@ namespace PosSystem.Main.Services
                 catch (Exception ex) { Console.WriteLine("Lỗi render bếp: " + ex.Message); }
             });
 
-            if (rendered == null) return;
+            if (rendered == null)
+            {
+                LogPrintFailure($"PrintKitchen:{orderInfo.OrderID}", printer, "Render failed");
+                return false;
+            }
 
             try
             {
@@ -392,12 +427,14 @@ namespace PosSystem.Main.Services
                     cmd.AddRange(imgBytes);
                     cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
                     cmd.AddRange(EscPos.CutPaper);
-                    SendBytesToPrinter(printer, cmd, $"PrintKitchen:{orderInfo.OrderID}");
+                    var ok = SendBytesToPrinter(printer, cmd, $"PrintKitchen:{orderInfo.OrderID}");
+                    return ok;
                 }
             }
             catch (Exception ex)
             {
                 LogPrintFailure($"PrintKitchen:{orderInfo.OrderID}", printer, ex.Message);
+                return false;
             }
         }
         // 3. HÀM IN THÔNG BÁO CHUYỂN BÀN

@@ -2189,6 +2189,20 @@ namespace PosSystem.Main
                         itemsToPrint.Add(printItem);
                     }
 
+                    if (itemsToPrint.Any())
+                    {
+                        string senderName = UserSession.AccName ?? "Admin";
+                        var printOk = Services.PrintService.PrintKitchen(order, itemsToPrint, nextBatch, senderName);
+                        if (!printOk)
+                        {
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                ShowToast("❌ In bếp thất bại, vui lòng thử lại", 2500);
+                            }));
+                            return;
+                        }
+                    }
+
                     // --- 2. CẬP NHẬT DATABASE ---
                     // Set FirstSentTime on first send
                     if (isFirstSend)
@@ -2225,13 +2239,7 @@ namespace PosSystem.Main
                             }
                         }));
                     }
-                    if (itemsToPrint.Any())
-                    {
-                        // Gọi hàm PrintKitchen mới (đã sửa ở Bước 2)
-                        // [FIX] Truyền thêm tên người bấm (Sender)
-                        string senderName = UserSession.AccName ?? "Admin";
-                        Services.PrintService.PrintKitchen(order, itemsToPrint, nextBatch, senderName);
-                    }
+                    // In đã xử lý trước khi cập nhật DB
 
                     // ⭐ Notify mobile via SignalR
                     NotifyTableUpdated(_selectedTableId);
