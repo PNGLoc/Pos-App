@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
@@ -10,16 +11,19 @@ using System.Windows;
 using Microsoft.EntityFrameworkCore;
 using PosSystem.Main.Database;
 using PosSystem.Main.Models;
+using PosSystem.Main.Helpers;
 
 namespace PosSystem.Main.Services
 {
     public static class PrintService
     {
+        public static event Action<string>? PrintFailed;
+        private static readonly ConcurrentDictionary<string, object> PrinterLocks = new ConcurrentDictionary<string, object>();
         // ============================================================
         // PHẦN 1: CÁC HÀM GỬI DỮ LIỆU CƠ BẢN (CORE) - GIỮ NGUYÊN
         // ============================================================
 
-        private static bool SendBytesToPrinter(Printer printer, List<byte> byteList)
+        private static bool SendBytesToPrinter(Printer printer, List<byte> byteList, string context)
         {
             try
             {
@@ -54,10 +58,60 @@ namespace PosSystem.Main.Services
                 }
 
                 byte[] data = finalBytes.ToArray();
-                if (printer.ConnectionType == "LAN") return PrintLan(printer.ConnectionString, data);
-                else return PrintUsb(printer.ConnectionString, data);
+                bool success;
+                var lockKey = GetPrinterLockKey(printer);
+                var lockObj = PrinterLocks.GetOrAdd(lockKey, _ => new object());
+                lock (lockObj)
+                {
+                    success = TrySend(printer, data);
+                }
+                if (!success)
+                {
+                    LogPrintFailure(context, printer, "SendBytesToPrinter failed");
+                }
+                return success;
             }
-            catch (Exception ex) { Console.WriteLine(ex.Message); return false; }
+            catch (Exception ex)
+            {
+                LogPrintFailure(context, printer, ex.Message);
+                return false;
+            }
+        }
+
+        private static bool TrySend(Printer printer, byte[] data)
+        {
+            const int maxAttempts = 3;
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                bool ok = printer.ConnectionType == "LAN"
+                    ? PrintLan(printer.ConnectionString, data)
+                    : PrintUsb(printer.ConnectionString, data);
+
+                if (ok) return true;
+                System.Threading.Thread.Sleep(200 * attempt);
+            }
+            return false;
+        }
+
+        private static void LogPrintFailure(string context, Printer printer, string details)
+        {
+            try
+            {
+                var root = AppPaths.DataRoot;
+                var path = System.IO.Path.Combine(root, "print_failures.log");
+                var name = printer.PrinterName ?? "Unknown";
+                var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {context} | {name} | {printer.ConnectionType} | {details}";
+                System.IO.File.AppendAllText(path, line + Environment.NewLine);
+                PrintFailed?.Invoke($"{context} | {name}");
+            }
+            catch { }
+        }
+
+        private static string GetPrinterLockKey(Printer printer)
+        {
+            var type = (printer.ConnectionType ?? string.Empty).Trim();
+            var conn = (printer.ConnectionString ?? string.Empty).Trim();
+            return $"{type}|{conn}".ToLowerInvariant();
         }
 
         public static bool PrintLan(string ipAddress, byte[] data)
@@ -106,7 +160,7 @@ namespace PosSystem.Main.Services
             List<byte> buffer = new List<byte>();
             buffer.AddRange(Encoding.ASCII.GetBytes(content));
             buffer.AddRange(EscPos.CutPaper);
-            SendBytesToPrinter(printer, buffer);
+            SendBytesToPrinter(printer, buffer, "PrintTest");
         }
 
         // 1. HÀM IN BILL (HÓA ĐƠN)
@@ -210,7 +264,7 @@ namespace PosSystem.Main.Services
                         cmd.AddRange(imgBytes);
                         cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
                         cmd.AddRange(EscPos.CutPaper);
-                        SendBytesToPrinter(printer, cmd);
+                        SendBytesToPrinter(printer, cmd, $"PrintBill:{order.OrderID}");
                     }
                 }
                 catch (Exception ex)
@@ -261,6 +315,22 @@ namespace PosSystem.Main.Services
                     .GroupBy(d => d.Dish!.Category!.PrinterID)
                     .ToList();
 
+                if (!printerGroups.Any())
+                {
+                    var fallbackPrinters = db.Printers.Where(p => p.IsActive && !p.IsBillPrinter).ToList();
+                    if (!fallbackPrinters.Any())
+                    {
+                        LogPrintFailure($"PrintKitchen:{orderInfo.OrderID}", new Printer { PrinterName = "(none)", ConnectionType = "N/A" }, "No active kitchen printer");
+                        return;
+                    }
+
+                    foreach (var printer in fallbackPrinters)
+                    {
+                        PrintKitchenToPrinter(orderInfo, groupedItemsToPrint, batchNumber, elements, senderName, printer);
+                    }
+                    return;
+                }
+
                 foreach (var group in printerGroups)
                 {
                     if (group.Key == null) continue;
@@ -278,41 +348,56 @@ namespace PosSystem.Main.Services
                         OrderDetails = group.ToList() // Danh sách món CẦN IN (Đã gộp)
                     };
 
-                    System.Drawing.Bitmap? rendered = null;
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        try
-                        {
-                            var template = new Templates.KitchenTemplate();
-                            template.SetData(filteredOrder, batchNumber, elements, senderName);
-
-                            int width = printer.PaperSize == 58 ? 380 : 550;
-                            rendered = EscPosImageHelper.RenderVisualToBitmap(template, width);
-                        }
-                        catch (Exception ex) { Console.WriteLine("Lỗi render bếp: " + ex.Message); }
-                    });
-
-                    if (rendered == null) continue;
-
-                    try
-                    {
-                        using (rendered)
-                        {
-                            byte[] imgBytes = EscPosImageHelper.ConvertBitmapToEscPosBytes(rendered);
-                            List<byte> cmd = new List<byte>();
-                            cmd.AddRange(EscPos.Init);
-                            cmd.AddRange(EscPos.AlignCenter);
-                            cmd.AddRange(imgBytes);
-                            cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
-                            cmd.AddRange(EscPos.CutPaper);
-                            SendBytesToPrinter(printer, cmd);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("Lỗi in bếp: " + ex.Message);
-                    }
+                    PrintKitchenToPrinter(filteredOrder, group.ToList(), batchNumber, elements, senderName, printer);
                 }
+            }
+        }
+
+        private static void PrintKitchenToPrinter(Order orderInfo, List<OrderDetail> items, int batchNumber, List<PrintElement>? elements, string senderName, Printer printer)
+        {
+            if (items == null || items.Count == 0) return;
+
+            var filteredOrder = new Order
+            {
+                OrderID = orderInfo.OrderID,
+                Table = orderInfo.Table,
+                OrderTime = DateTime.Now,
+                OrderDetails = items
+            };
+
+            System.Drawing.Bitmap? rendered = null;
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    var template = new Templates.KitchenTemplate();
+                    template.SetData(filteredOrder, batchNumber, elements, senderName);
+
+                    int width = printer.PaperSize == 58 ? 380 : 550;
+                    rendered = EscPosImageHelper.RenderVisualToBitmap(template, width);
+                }
+                catch (Exception ex) { Console.WriteLine("Lỗi render bếp: " + ex.Message); }
+            });
+
+            if (rendered == null) return;
+
+            try
+            {
+                using (rendered)
+                {
+                    byte[] imgBytes = EscPosImageHelper.ConvertBitmapToEscPosBytes(rendered);
+                    List<byte> cmd = new List<byte>();
+                    cmd.AddRange(EscPos.Init);
+                    cmd.AddRange(EscPos.AlignCenter);
+                    cmd.AddRange(imgBytes);
+                    cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
+                    cmd.AddRange(EscPos.CutPaper);
+                    SendBytesToPrinter(printer, cmd, $"PrintKitchen:{orderInfo.OrderID}");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogPrintFailure($"PrintKitchen:{orderInfo.OrderID}", printer, ex.Message);
             }
         }
         // 3. HÀM IN THÔNG BÁO CHUYỂN BÀN
@@ -392,7 +477,7 @@ namespace PosSystem.Main.Services
                         cmd.AddRange(imgBytes);
                         cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
                         cmd.AddRange(EscPos.CutPaper);
-                        SendBytesToPrinter(printer, cmd);
+                        SendBytesToPrinter(printer, cmd, "PrintMoveTableNotification");
                     }
                 }
                 catch (Exception ex)

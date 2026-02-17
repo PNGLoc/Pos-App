@@ -236,6 +236,9 @@ namespace PosSystem.Main
         {
             InitializeComponent();
 
+            PrintService.PrintFailed -= OnPrintFailed;
+            PrintService.PrintFailed += OnPrintFailed;
+
             ReloadTableIconSettings();
             LoadAutoReturnSettings();
 
@@ -281,6 +284,14 @@ namespace PosSystem.Main
             btnDiscountBill.Visibility = Visibility.Collapsed; // [FIX] Hide initially
 
             // LoadTables/LoadMenu/SetupRealtime are started in MainWindow_Loaded
+        }
+
+        private void OnPrintFailed(string message)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                ShowToast($"❌ In thất bại: {message}", 2500);
+            }));
         }
 
         public static void ReloadTableIconSettings()
@@ -2777,10 +2788,13 @@ namespace PosSystem.Main
                         if (targetOrder != null)
                         {
                             // Move all order details from source to target
-                            foreach (var detail in sourceOrder.OrderDetails)
+                            foreach (var detail in sourceOrder.OrderDetails.ToList())
                             {
                                 detail.OrderID = targetOrder.OrderID;
+                                detail.Order = targetOrder;
+                                sourceOrder.OrderDetails.Remove(detail);
                             }
+                            db.SaveChanges();
 
                             // [FIX] Delete source order so the table becomes Empty
                             db.Orders.Remove(sourceOrder);

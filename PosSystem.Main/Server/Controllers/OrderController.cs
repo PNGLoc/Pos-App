@@ -857,10 +857,13 @@ namespace PosSystem.Main.Server.Controllers
                     if (targetOrder != null)
                     {
                         // TRƯỜNG HỢP GỘP BÀN
-                        foreach (var detail in sourceOrder.OrderDetails)
+                        foreach (var detail in sourceOrder.OrderDetails.ToList())
                         {
                             detail.OrderID = targetOrder.OrderID;
+                            detail.Order = targetOrder;
+                            sourceOrder.OrderDetails.Remove(detail);
                         }
+                        await _context.SaveChangesAsync();
                         targetOrder.SubTotal += sourceOrder.SubTotal;
                         targetOrder.FinalAmount += sourceOrder.FinalAmount;
 
