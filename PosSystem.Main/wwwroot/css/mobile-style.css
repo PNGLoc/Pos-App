@@ -226,6 +226,72 @@ body {
     border-bottom: 1px solid #eee;
 }
 
+/* Payment modal print toggle (match WPF red style) */
+.payment-print-toggle-wrap {
+    width: 100%;
+}
+
+.payment-print-toggle {
+    display: block;
+    cursor: pointer;
+}
+
+.payment-print-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.payment-print-toggle .toggle-ui {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1.5px solid #e0e0e0;
+    background: #fff;
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.payment-print-toggle .toggle-box {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #bdbdbd;
+    border-radius: 4px;
+    background: #fff;
+    position: relative;
+    flex: 0 0 18px;
+}
+
+.payment-print-toggle .toggle-box::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 6px;
+    height: 11px;
+    border: solid #dc3545;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    opacity: 0;
+}
+
+.payment-print-toggle input:checked+.toggle-ui {
+    background: #fff0f1;
+    border-color: #f5c6cb;
+    color: #b02a37;
+}
+
+.payment-print-toggle input:checked+.toggle-ui .toggle-box {
+    border-color: #dc3545;
+}
+
+.payment-print-toggle input:checked+.toggle-ui .toggle-box::after {
+    opacity: 1;
+}
+
+
 #tab-confirmed {
     padding-top: 44px;
 }

@@ -692,11 +692,14 @@ namespace PosSystem.Main.Server.Controllers
                     // --- POST COMMIT ---
 
                     // 3. GỌI IN HÓA ĐƠN TRÊN SERVER
-                    try
+                    if (request.ShouldPrintBill)
                     {
-                        Services.PrintService.PrintBill(order.OrderID);
+                        try
+                        {
+                            Services.PrintService.PrintBill(order.OrderID);
+                        }
+                        catch { }
                     }
-                    catch { }
 
                     await _hubContext.Clients.All.SendAsync("TableUpdated", order.TableID);
 
@@ -713,7 +716,10 @@ namespace PosSystem.Main.Server.Controllers
                     }
                     catch { }
 
-                    return FinishIdempotent(idempotencyKey, Ok(new { Message = "Đã thanh toán & In hóa đơn!" }));
+                    return FinishIdempotent(idempotencyKey, Ok(new
+                    {
+                        Message = request.ShouldPrintBill ? "Đã thanh toán & In hóa đơn!" : "Đã thanh toán (không in hóa đơn)!"
+                    }));
                 }
                 catch (Exception ex)
                 {

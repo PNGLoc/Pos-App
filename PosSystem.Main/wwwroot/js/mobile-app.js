@@ -1276,6 +1276,9 @@ async function doPaymentMobile(method = 'Cash') {
     // Đóng modal nếu đang mở
     closeModal('paymentModal');
 
+    const printToggle = document.getElementById('paymentPrintBill');
+    pendingShouldPrintBill = !printToggle || !printToggle.checked;
+
     // Kiểm tra xem có OrderID hợp lệ không
     if (!appState.currentOrderId || appState.currentOrderId === 0) {
         showToast("Bàn này đang trống hoặc chưa có đơn hàng!", "warning");
@@ -1283,7 +1286,7 @@ async function doPaymentMobile(method = 'Cash') {
     }
 
     // Thay confirm() của trình duyệt bằng popup confirmModal
-    openConfirmModal('payment', { method });
+    openConfirmModal('payment', { method, shouldPrintBill: pendingShouldPrintBill });
 }
 
 // [NEW] Open Modal
@@ -1369,6 +1372,7 @@ let currentActionType = '';
 let cancelState = { detailId: 0, currentQty: 1, maxQty: 0 };
 let moveTarget = null;
 let pendingPaymentMethod = 'Cash';
+let pendingShouldPrintBill = true;
 
 // --- 1. XỬ LÝ MENU TRƯỢT ---
 function toggleActionMenu() {
@@ -1429,12 +1433,16 @@ function openConfirmModal(type, payload = null) {
         btn.onclick = executeRequestBill;
     } else if (type === 'payment') {
         pendingPaymentMethod = (payload && payload.method) ? payload.method : pendingPaymentMethod;
+        pendingShouldPrintBill = payload && typeof payload.shouldPrintBill === 'boolean'
+            ? payload.shouldPrintBill
+            : pendingShouldPrintBill;
         const methodText = pendingPaymentMethod === 'Cash' ? 'Tiền mặt' : 'Chuyển khoản / QR';
+        const printText = pendingShouldPrintBill ? 'và in hóa đơn' : 'không in hóa đơn';
         title.innerText = "Thanh toán";
-        msg.innerText = `Xác nhận thanh toán (${methodText}) và in hóa đơn?`;
+        msg.innerText = `Xác nhận thanh toán (${methodText}) - ${printText}?`;
         btn.className = "btn btn-success";
         icon.className = "fas fa-money-bill-wave fa-3x text-success";
-        btn.onclick = () => executePayment(pendingPaymentMethod);
+        btn.onclick = () => executePayment(pendingPaymentMethod, pendingShouldPrintBill);
     }
     else if (type === 'move') {
         title.innerText = "Xác nhận Chuyển bàn";
@@ -1473,7 +1481,7 @@ async function executeRequestBill() {
     } catch (e) { handleRequestError(e, "Lỗi kết nối"); }
 }
 
-async function executePayment(method = 'Cash') {
+async function executePayment(method = 'Cash', shouldPrintBill = true) {
     closeModal('confirmModal');
     // Kiểm tra OrderID
     if (!appState.currentOrderId || appState.currentOrderId === 0) {
@@ -1485,6 +1493,7 @@ async function executePayment(method = 'Cash') {
         accID: currentUser.accID,
         orderID: appState.currentOrderId,
         paymentMethod: method,
+        shouldPrintBill: shouldPrintBill,
         discountPercent: 0,
         discountAmount: 0
     };
@@ -1493,7 +1502,7 @@ async function executePayment(method = 'Cash') {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), queueOnFail: true
         });
         if (res.ok) {
-            showToast("Thanh toán thành công!");
+            showToast(shouldPrintBill ? "Thanh toán thành công (đã in bill)!" : "Thanh toán thành công (không in bill)!");
             // Reset lại trạng thái
             appState.currentOrderId = 0;
             appState.orderDetails = [];

@@ -12,5 +12,8 @@ namespace PosSystem.Main.Server.Dtos
 
         // Phương thức: "Cash", "Transfer" (QR)
         public string PaymentMethod { get; set; } = "Cash";
+
+        // [NEW] Mobile có thể chọn không in bill khi thanh toán
+        public bool ShouldPrintBill { get; set; } = true;
     }
 }
