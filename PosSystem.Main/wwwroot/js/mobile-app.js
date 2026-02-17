@@ -17,6 +17,10 @@ const API_WRITE_TIMEOUT_MS = 20000;
 const API_GET_RETRIES = 2;
 const API_WRITE_RETRIES = 1;
 const OFFLINE_QUEUE_KEY = 'posOfflineQueue';
+const FOCUS_RELOAD_AFTER_MS = 60000;
+const FOCUS_REFRESH_AFTER_MS = 5000;
+
+let lastHiddenAt = 0;
 
 let offlineFlushInProgress = false;
 
@@ -73,6 +77,49 @@ function updateSyncQueueBadge(count) {
     badge.innerText = total;
     if (total > 0) badge.classList.remove('d-none');
     else badge.classList.add('d-none');
+}
+
+function setMenuConnectionStatus(isConnected) {
+    const el = document.getElementById('menuConnectionStatus');
+    if (!el) return;
+
+    if (isConnected) {
+        el.innerHTML = '<i class="fas fa-circle" style="font-size: 8px;"></i> Kết nối ổn định';
+        el.classList.remove('error');
+    } else {
+        el.innerHTML = '<i class="fas fa-exclamation-circle"></i> Mất kết nối!';
+        el.classList.add('error');
+    }
+}
+
+function setupVisibilityAutoReload() {
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            lastHiddenAt = Date.now();
+            return;
+        }
+
+        const hiddenFor = lastHiddenAt ? (Date.now() - lastHiddenAt) : 0;
+        if (hiddenFor >= FOCUS_RELOAD_AFTER_MS) {
+            window.location.reload();
+            return;
+        }
+        if (hiddenFor >= FOCUS_REFRESH_AFTER_MS) {
+            forceRefreshData(true);
+        }
+    });
+
+    window.addEventListener('online', () => {
+        setMenuConnectionStatus(true);
+        if (document.visibilityState === 'visible') {
+            forceRefreshData(true);
+        }
+    });
+
+    window.addEventListener('offline', () => {
+        setMenuConnectionStatus(false);
+        showToast('Mất kết nối mạng', 'warning');
+    });
 }
 
 async function flushOfflineQueue() {
@@ -251,6 +298,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => initSignalR(), 500);
     updateSyncQueueBadge();
     flushOfflineQueue();
+    setupVisibilityAutoReload();
 
     // [NEW] Hiển thị thông tin user lên Menu
     if (currentUser) {
@@ -401,22 +449,9 @@ function initSignalR() {
     const iconErr = document.getElementById('connectionIconErr');
     const btnReload = document.getElementById('btnReload');
 
-    function updateConnectionStatus(isConnected) {
-        const el = document.getElementById('menuConnectionStatus');
-        if (!el) return;
-
-        if (isConnected) {
-            el.innerHTML = '<i class="fas fa-circle" style="font-size: 8px;"></i> Kết nối ổn định';
-            el.classList.remove('error');
-        } else {
-            el.innerHTML = '<i class="fas fa-exclamation-circle"></i> Mất kết nối!';
-            el.classList.add('error');
-        }
-    }
-
     function showOverlay(tit, message, isFatal = false) {
         // [NEW] Cập nhật trạng thái menu
-        updateConnectionStatus(false);
+        setMenuConnectionStatus(false);
         if (!overlay) return;
         overlay.classList.remove('d-none');
         title.innerText = tit;
@@ -442,28 +477,8 @@ function initSignalR() {
     // [ANTI-FLICKER] Mobile browser/Wifi có thể làm websocket "rụng" rất ngắn (vài trăm ms)
     // dù nhìn vẫn ổn định. Ta debounce để không spam overlay/toast và tránh reload dữ liệu liên tục.
     let reconnectingSince = null;
-    let reconnectOverlayShown = false;
-    let reconnectOverlayTimer = null;
+    let reconnectToastShown = false;
     let hadFatalDisconnect = false;
-    const RECONNECT_OVERLAY_DELAY_MS = 2500; // chỉ hiện overlay nếu mất kết nối đủ lâu ("mất thật")
-    const AUTO_RELOAD_AFTER_MS = 1000;
-    let autoReloadTimer = null;
-
-    function scheduleAutoReload() {
-        if (autoReloadTimer) clearTimeout(autoReloadTimer);
-        autoReloadTimer = setTimeout(() => {
-            if (document.visibilityState === 'visible') {
-                window.location.reload();
-            }
-        }, AUTO_RELOAD_AFTER_MS);
-    }
-
-    function cancelAutoReload() {
-        if (autoReloadTimer) {
-            clearTimeout(autoReloadTimer);
-            autoReloadTimer = null;
-        }
-    }
 
     function bindSignalREvents(conn) {
         // 1. Đang thử kết nối lại (Mạng chập chờn hoặc Server vừa tắt)
@@ -471,47 +486,32 @@ function initSignalR() {
             console.warn('Kết nối không ổn định:', error);
 
             // Bình thường chỉ cần icon trạng thái
-            updateConnectionStatus(false);
+            setMenuConnectionStatus(false);
 
             if (!reconnectingSince) reconnectingSince = Date.now();
-            reconnectOverlayShown = false;
-
-            if (reconnectOverlayTimer) clearTimeout(reconnectOverlayTimer);
-            reconnectOverlayTimer = setTimeout(() => {
-                // Nếu vẫn đang reconnect sau delay thì mới show overlay
-                reconnectOverlayShown = true;
-                showOverlay('Mất kết nối!', 'Đang cố gắng tìm máy chủ...', false);
-            }, RECONNECT_OVERLAY_DELAY_MS);
-
-            scheduleAutoReload();
+            if (!reconnectToastShown) {
+                reconnectToastShown = true;
+                showToast('Mất kết nối, đang tự khôi phục...', 'warning');
+            }
         });
 
         // 2. Đã kết nối lại thành công
         conn.onreconnected(connectionId => {
             console.log('Đã kết nối lại:', connectionId);
 
-            if (reconnectOverlayTimer) { clearTimeout(reconnectOverlayTimer); reconnectOverlayTimer = null; }
-            cancelAutoReload();
-
             const since = reconnectingSince;
             reconnectingSince = null;
+            setMenuConnectionStatus(true);
 
-            // Nếu overlay đã hiện thì chắc chắn phải ẩn
-            if (reconnectOverlayShown) hideOverlay();
-            updateConnectionStatus(true);
+            showToast('Đã khôi phục kết nối!', 'success');
 
-            // Chỉ toast khi vừa mất kết nối "thật" (overlay đã hiện) hoặc từng bị onclose (fatal)
-            if (reconnectOverlayShown || hadFatalDisconnect) {
-                showToast('Đã khôi phục kết nối!', 'success');
-
-                // Sau khi mất thật, refresh để đảm bảo đồng bộ
-                loadTables(false);
-                if (appState.currentTableId) loadOrderData(appState.currentTableId);
+            const reconnectDuration = since ? (Date.now() - since) : 0;
+            if (reconnectDuration >= 3000 || hadFatalDisconnect) {
+                forceRefreshData(true);
             }
 
             hadFatalDisconnect = false;
-
-            reconnectOverlayShown = false;
+            reconnectToastShown = false;
         });
 
         // 3. Mất kết nối hoàn toàn (Hết số lần thử hoặc lỗi nghiêm trọng)
@@ -519,7 +519,6 @@ function initSignalR() {
             console.error('Ngắt kết nối hẳn:', error);
             hadFatalDisconnect = true;
             showOverlay('Không tìm thấy máy chủ', 'Vui lòng kiểm tra lại Wifi hoặc Máy tính thu ngân.', true);
-            cancelAutoReload();
         });
 
         // --- LOGIC NGHIỆP VỤ ---
@@ -544,7 +543,7 @@ function initSignalR() {
             await connection.start();
             console.log("SignalR Connected.");
             hideOverlay(); // Ẩn overlay nếu đang hiện
-            updateConnectionStatus(true);
+            setMenuConnectionStatus(true);
         } catch (err) {
             console.error("Khởi động lỗi:", err);
 
@@ -562,7 +561,7 @@ function initSignalR() {
                     await connection.start();
                     console.log("SignalR Connected (fallback).");
                     hideOverlay();
-                    updateConnectionStatus(true);
+                    setMenuConnectionStatus(true);
                     return;
                 } catch (e2) {
                     console.error('Fallback start failed:', e2);
@@ -1700,16 +1699,16 @@ async function clearCacheAndReload() {
     window.location.replace(url.toString());
 }
 
-async function forceRefreshData() {
+async function forceRefreshData(silent = false) {
     try {
         await loadTables();
         await loadMenuData();
         if (appState.currentTableId) {
             await loadOrderData(appState.currentTableId);
         }
-        showToast('Đã tải lại dữ liệu', 'success');
+        if (!silent) showToast('Đã tải lại dữ liệu', 'success');
     } catch {
-        showToast('Không thể tải lại dữ liệu', 'danger');
+        if (!silent) showToast('Không thể tải lại dữ liệu', 'danger');
     }
 }
 
