@@ -234,12 +234,23 @@ namespace PosSystem.Main
         private bool _isWaitingForMoveTargetTable = false;  // True when waiting for user to click target table for move
         private const int MIN_SECONDS_WAIT = 10; // Thời gian chờ giữa Check-in và Check-out chấm công
         private static readonly SemaphoreSlim _moveTableLock = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim _splitTableLock = new SemaphoreSlim(1, 1);
 
         private static void LogMoveTableDesktop(string message)
         {
             try
             {
                 var path = Path.Combine(AppPaths.DataRoot, "move_table.log");
+                File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} | WPF | {message}{Environment.NewLine}");
+            }
+            catch { }
+        }
+
+        private static void LogSplitTableDesktop(string message)
+        {
+            try
+            {
+                var path = Path.Combine(AppPaths.DataRoot, "split_table.log");
                 File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} | WPF | {message}{Environment.NewLine}");
             }
             catch { }
@@ -893,7 +904,7 @@ namespace PosSystem.Main
             {
                 int targetTableId = selected.TableID;
                 lstTables.SelectedItem = null;  // Deselect to reset
-                ExecuteSplitTransfer(targetTableId);
+                _ = ExecuteSplitTransferAsync(targetTableId);
                 return;
             }
 
@@ -2289,9 +2300,15 @@ namespace PosSystem.Main
         // --- CÁC HÀM HỖ TRỢ KHÁC (GIỮ NGUYÊN) ---
         private void RecalculateOrder(AppDbContext db, long orderId)
         {
-            var order = db.Orders.Include(o => o.OrderDetails).FirstOrDefault(o => o.OrderID == orderId);
+            var order = db.Orders.FirstOrDefault(o => o.OrderID == orderId);
             if (order == null) return;
-            order.SubTotal = order.OrderDetails.Where(d => d.ItemStatus != "Cancelled").Sum(d => d.TotalAmount);
+
+            order.SubTotal = db.OrderDetails
+                .AsNoTracking()
+                .Where(d => d.OrderID == orderId && d.ItemStatus != "Cancelled")
+                .Select(d => (decimal?)d.TotalAmount)
+                .Sum() ?? 0m;
+
             decimal discount = (order.DiscountPercent > 0) ? order.SubTotal * order.DiscountPercent / 100 : order.DiscountAmount;
             order.FinalAmount = order.SubTotal - discount;
             if (order.FinalAmount < 0) order.FinalAmount = 0;
@@ -2845,7 +2862,7 @@ namespace PosSystem.Main
 
                         if (sourceOrder == null)
                         {
-                            return (Success: false, Error: "❌ Không có đơn hàng để chuyển!", TargetTableId: targetTableId, OrderIdToNotify: 0L, OldName: "", NewName: "");
+                            return (Success: false, Error: "❌ Không có đơn hàng để chuyển!", TargetTableId: targetTableId, OrderIdToNotify: 0L, OldName: "", NewName: "", PrintWarning: "");
                         }
 
                         // Lưu tên bàn cũ trước khi cập nhật
@@ -2866,7 +2883,7 @@ namespace PosSystem.Main
                             {
                                 transaction.Rollback();
                                 LogMoveTableDesktop($"Move merge rollback mismatch sourceOrder={sourceOrderId} sourceDetailCount={sourceDetailCount} movedRows={movedRows}");
-                                return (Success: false, Error: "❌ Không thể chuyển món. Vui lòng thử lại.", TargetTableId: targetTableId, OrderIdToNotify: 0L, OldName: "", NewName: "");
+                                return (Success: false, Error: "❌ Không thể chuyển món. Vui lòng thử lại.", TargetTableId: targetTableId, OrderIdToNotify: 0L, OldName: "", NewName: "", PrintWarning: "");
                             }
 
                             targetOrder.SubTotal += sourceOrder.SubTotal;
@@ -2915,13 +2932,24 @@ namespace PosSystem.Main
                         string newTableName = newTableInfo?.TableName ?? $"Bàn {targetTableId}";
 
                         var orderIdToNotify = (targetOrder ?? sourceOrder).OrderID;
-                        return (Success: true, Error: (string?)null, TargetTableId: targetTableId, OrderIdToNotify: orderIdToNotify, OldName: oldTableName, NewName: newTableName);
+                        var printResult = PrintService.PrintMoveTableNotification(new Order { OrderID = orderIdToNotify }, oldTableName, newTableName);
+                        var printWarning = string.Empty;
+                        if (!printResult.Success)
+                        {
+                            printWarning = string.IsNullOrWhiteSpace(printResult.ErrorSummary)
+                                ? "In báo chuyển bàn thất bại"
+                                : $"In báo chuyển bàn thất bại: {printResult.ErrorSummary}";
+
+                            LogMoveTableDesktop($"Move print warning sourceTable={sourceTableId} targetTable={targetTableId} attempted={printResult.AttemptedPrinters} failed={printResult.FailedPrinters} detail={printResult.ErrorSummary}");
+                        }
+
+                        return (Success: true, Error: (string?)null, TargetTableId: targetTableId, OrderIdToNotify: orderIdToNotify, OldName: oldTableName, NewName: newTableName, PrintWarning: printWarning);
                     }
                 }
                 catch (Exception ex)
                 {
                     LogMoveTableDesktop($"Move exception sourceTable={sourceTableId} targetTable={targetTableId} error={ex.Message}");
-                    return (Success: false, Error: "❌ Không thể chuyển bàn. Vui lòng thử lại.", TargetTableId: targetTableId, OrderIdToNotify: 0L, OldName: "", NewName: "");
+                    return (Success: false, Error: "❌ Không thể chuyển bàn. Vui lòng thử lại.", TargetTableId: targetTableId, OrderIdToNotify: 0L, OldName: "", NewName: "", PrintWarning: "");
                 }
                 finally
                 {
@@ -2940,19 +2968,13 @@ namespace PosSystem.Main
                     LoadTables();
                     SelectAndLoadTable(result.TargetTableId);
                     NotifyTableMoved(sourceTableId, result.TargetTableId);
-                    ShowToast("✅ Chuyển bàn thành công!", 2000);
-
-                    if (result.OrderIdToNotify > 0 && !string.IsNullOrWhiteSpace(result.OldName) && !string.IsNullOrWhiteSpace(result.NewName))
+                    if (string.IsNullOrWhiteSpace(result.PrintWarning))
                     {
-                        _ = Task.Run(() =>
-                        {
-                            try
-                            {
-                                var orderStub = new Order { OrderID = result.OrderIdToNotify };
-                                PrintService.PrintMoveTableNotification(orderStub, result.OldName, result.NewName);
-                            }
-                            catch { }
-                        });
+                        ShowToast("✅ Chuyển bàn thành công!", 2000);
+                    }
+                    else
+                    {
+                        ShowToast($"✅ Chuyển bàn thành công. ⚠️ {result.PrintWarning}", 3500);
                     }
                 }
                 else
@@ -3230,83 +3252,156 @@ namespace PosSystem.Main
             SelectAndLoadTable(_selectedTableId);
         }
 
-        private void ExecuteSplitTransfer(int targetTableId)
+        private async Task ExecuteSplitTransferAsync(int targetTableId)
         {
-            if (targetTableId == _selectedTableId)
+            int sourceTableId = _selectedTableId;
+            var splitItemsSnapshot = _pendingSplitItems.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            if (targetTableId == sourceTableId)
             {
                 ShowToast("❌ Vui lòng chọn bàn khác!", 2000);
                 _isWaitingForTargetTable = false;
                 _pendingSplitItems.Clear();
+                btnCancelSplit.Visibility = Visibility.Collapsed;
                 return;
             }
 
-            using (var db = new AppDbContext())
+            if (splitItemsSnapshot.Count == 0)
             {
-                var sourceOrder = db.Orders
-                    .Include(o => o.OrderDetails).ThenInclude(od => od.Dish)
-                    .FirstOrDefault(o => o.TableID == _selectedTableId && o.OrderStatus == "Pending");
+                _isWaitingForTargetTable = false;
+                ShowToast("❌ Không có món để tách!", 2000);
+                btnCancelSplit.Visibility = Visibility.Collapsed;
+                return;
+            }
 
-                var targetOrder = db.Orders
-                    .Include(o => o.OrderDetails)
-                    .FirstOrDefault(o => o.TableID == targetTableId && o.OrderStatus == "Pending");
+            _isWaitingForTargetTable = false;
+            ShowToastPersistent("⏳ Đang tách bàn...");
 
-                if (targetOrder == null)
+            var result = await Task.Run(() =>
+            {
+                try
                 {
-                    targetOrder = new Order
-                    {
-                        TableID = targetTableId,
-                        OrderTime = DateTime.Now,
-                        OrderStatus = "Pending",
-                        PaymentMethod = "Cash",
-                        FirstSentTime = sourceOrder?.FirstSentTime
-                    };
-                    db.Orders.Add(targetOrder);
-                    db.SaveChanges();
-                }
+                    _splitTableLock.Wait();
+                    using var db = new AppDbContext();
+                    using var transaction = db.Database.BeginTransaction();
 
-                if (sourceOrder != null)
-                {
-                    // Transfer selected items
-                    foreach (var kvp in _pendingSplitItems)
+                    var sourceOrder = db.Orders
+                        .Include(o => o.Table)
+                        .FirstOrDefault(o => o.TableID == sourceTableId && o.OrderStatus == "Pending");
+
+                    if (sourceOrder == null)
                     {
-                        var detail = sourceOrder.OrderDetails.FirstOrDefault(d => d.OrderDetailID == kvp.Key);
-                        if (detail != null)
+                        LogSplitTableDesktop($"Split failed sourceTable={sourceTableId} targetTable={targetTableId} reason=source_order_missing");
+                        return (Success: false, Error: "❌ Bàn nguồn không còn đơn hàng!", TargetTableId: targetTableId, SourceEmptied: false);
+                    }
+
+                    var targetOrder = db.Orders
+                        .FirstOrDefault(o => o.TableID == targetTableId && o.OrderStatus == "Pending");
+
+                    if (targetOrder == null)
+                    {
+                        targetOrder = new Order
                         {
-                            if (kvp.Value == detail.Quantity)
-                            {
-                                // Move entire item
-                                detail.OrderID = targetOrder.OrderID;
-                            }
-                            else
-                            {
-                                // Split item: create new item for target table
-                                decimal dishPrice = detail.Dish?.Price ?? 0;
+                            TableID = targetTableId,
+                            OrderTime = DateTime.Now,
+                            OrderStatus = "Pending",
+                            PaymentMethod = "Cash",
+                            FirstSentTime = sourceOrder.FirstSentTime
+                        };
+                        db.Orders.Add(targetOrder);
+                        db.SaveChanges();
+                    }
 
-                                // Calculate how many of the split items were already printed
-                                int printedToSplit = Math.Min(kvp.Value, detail.PrintedQuantity);
+                    var detailIds = splitItemsSnapshot.Keys.ToList();
+                    var sourceDetails = db.OrderDetails
+                        .Where(d => d.OrderID == sourceOrder.OrderID && detailIds.Contains(d.OrderDetailID))
+                        .ToDictionary(d => d.OrderDetailID);
 
-                                var newDetail = new OrderDetail
-                                {
-                                    OrderID = targetOrder.OrderID,
-                                    DishID = detail.DishID,
-                                    Quantity = kvp.Value,
-                                    PrintedQuantity = printedToSplit,  // Split the printed quantity
-                                    KitchenBatch = detail.KitchenBatch,
-                                    TotalAmount = dishPrice * kvp.Value,
-                                    ItemStatus = detail.ItemStatus,  // Inherit status from original
-                                    Note = detail.Note
-                                };
-                                db.OrderDetails.Add(newDetail);
+                    if (sourceDetails.Count != splitItemsSnapshot.Count)
+                    {
+                        transaction.Rollback();
+                        LogSplitTableDesktop($"Split rollback sourceTable={sourceTableId} targetTable={targetTableId} reason=detail_missing expected={splitItemsSnapshot.Count} actual={sourceDetails.Count}");
+                        return (Success: false, Error: "❌ Dữ liệu món đã thay đổi, vui lòng thử lại.", TargetTableId: targetTableId, SourceEmptied: false);
+                    }
 
-                                // Reduce original item
-                                detail.Quantity -= kvp.Value;
-                                detail.PrintedQuantity -= printedToSplit;  // Also reduce printed quantity
-                                detail.TotalAmount = dishPrice * detail.Quantity;
-                            }
+                    foreach (var kvp in splitItemsSnapshot)
+                    {
+                        var detail = sourceDetails[kvp.Key];
+                        if (kvp.Value <= 0 || kvp.Value > detail.Quantity)
+                        {
+                            transaction.Rollback();
+                            LogSplitTableDesktop($"Split rollback sourceTable={sourceTableId} targetTable={targetTableId} reason=invalid_qty detail={kvp.Key} requested={kvp.Value} available={detail.Quantity}");
+                            return (Success: false, Error: "❌ Số lượng tách không hợp lệ. Vui lòng tải lại bàn.", TargetTableId: targetTableId, SourceEmptied: false);
                         }
                     }
 
-                    // Update target table status
+                    int movedLines = 0;
+                    foreach (var kvp in splitItemsSnapshot)
+                    {
+                        var detail = sourceDetails[kvp.Key];
+                        int splitQty = kvp.Value;
+
+                        if (splitQty == detail.Quantity)
+                        {
+                            detail.OrderID = targetOrder.OrderID;
+                            movedLines++;
+                            continue;
+                        }
+
+                        int printedToSplit = Math.Min(splitQty, Math.Max(0, detail.PrintedQuantity));
+                        decimal unitAmount = detail.Quantity > 0 ? detail.TotalAmount / detail.Quantity : detail.UnitPrice;
+
+                        var newDetail = new OrderDetail
+                        {
+                            OrderID = targetOrder.OrderID,
+                            DishID = detail.DishID,
+                            Quantity = splitQty,
+                            UnitPrice = detail.UnitPrice,
+                            DiscountRate = detail.DiscountRate,
+                            PrintedQuantity = printedToSplit,
+                            KitchenBatch = detail.KitchenBatch,
+                            TotalAmount = unitAmount * splitQty,
+                            ItemStatus = detail.ItemStatus,
+                            Note = detail.Note
+                        };
+
+                        db.OrderDetails.Add(newDetail);
+
+                        detail.Quantity -= splitQty;
+                        detail.PrintedQuantity = Math.Max(0, detail.PrintedQuantity - printedToSplit);
+                        detail.TotalAmount = unitAmount * detail.Quantity;
+                        movedLines++;
+                    }
+
+                    // Flush item transfer first, then verify source state from database
+                    db.SaveChanges();
+
+                    var sourceHasItems = db.OrderDetails
+                        .AsNoTracking()
+                        .Any(d => d.OrderID == sourceOrder.OrderID && d.Quantity > 0);
+
+                    var sourceEmptied = !sourceHasItems;
+                    if (!sourceHasItems)
+                    {
+                        var sourceOrderToRemove = db.Orders.FirstOrDefault(o => o.OrderID == sourceOrder.OrderID);
+                        if (sourceOrderToRemove != null)
+                        {
+                            db.Orders.Remove(sourceOrderToRemove);
+                        }
+
+                        var sourceTable = db.Tables.FirstOrDefault(t => t.TableID == sourceTableId);
+                        if (sourceTable != null)
+                        {
+                            sourceTable.TableStatus = "Empty";
+                        }
+                    }
+                    else
+                    {
+                        RecalculateOrder(db, sourceOrder.OrderID);
+                    }
+
+                    RecalculateOrder(db, targetOrder.OrderID);
+
                     var targetTable = db.Tables.FirstOrDefault(t => t.TableID == targetTableId);
                     if (targetTable != null)
                     {
@@ -3314,52 +3409,48 @@ namespace PosSystem.Main
                     }
 
                     db.SaveChanges();
+                    transaction.Commit();
+                    LogSplitTableDesktop($"Split success sourceTable={sourceTableId} targetTable={targetTableId} sourceOrder={sourceOrder.OrderID} targetOrder={targetOrder.OrderID} lines={movedLines}");
 
-                    // Reload source order to get updated OrderDetails
-                    db.Entry(sourceOrder).Reload();
-
-                    // Check if source order still has items with quantity > 0
-                    bool sourceOrderHasItems = sourceOrder.OrderDetails.Any(d => d.Quantity > 0);
-
-                    // If source order has no items left, delete it and mark table as empty
-                    if (!sourceOrderHasItems)
-                    {
-                        // Delete source order
-                        db.Orders.Remove(sourceOrder);
-
-                        var sourceTable = db.Tables.FirstOrDefault(t => t.TableID == _selectedTableId);
-                        if (sourceTable != null)
-                        {
-                            sourceTable.TableStatus = "Empty";
-                        }
-
-                        db.SaveChanges();
-                    }
-                    else
-                    {
-                        // Recalculate totals for source order if it still has items
-                        RecalculateOrder(db, sourceOrder.OrderID);
-                    }
-
-                    // Recalculate totals for target order
-                    RecalculateOrder(db, targetOrder.OrderID);
-
-                    Dispatcher.Invoke(() =>
-                    {
-                        _isWaitingForTargetTable = false;
-                        _pendingSplitItems.Clear();
-                        HideToast();
-
-                        btnDiscountBill.Visibility = Visibility.Visible;
-                        btnCancelSplit.Visibility = Visibility.Collapsed; // [NEW] Hide Cancel button
-
-                        LoadTables();
-                        SelectAndLoadTable(targetTableId);
-
-                        ShowToast("✅ Tách bàn thành công!", 2000);
-                    });
+                    return (Success: true, Error: (string?)null, TargetTableId: targetTableId, SourceEmptied: sourceEmptied);
                 }
-            }
+                catch (Exception ex)
+                {
+                    LogSplitTableDesktop($"Split exception sourceTable={sourceTableId} targetTable={targetTableId} error={ex.Message}");
+                    return (Success: false, Error: "❌ Không thể tách bàn. Vui lòng thử lại.", TargetTableId: targetTableId, SourceEmptied: false);
+                }
+                finally
+                {
+                    _splitTableLock.Release();
+                }
+            });
+
+            Dispatcher.Invoke(() =>
+            {
+                _pendingSplitItems.Clear();
+                HideToast();
+                btnCancelSplit.Visibility = Visibility.Collapsed;
+                btnDiscountBill.Visibility = Visibility.Visible;
+
+                if (result.Success)
+                {
+                    NotifyTableUpdated(sourceTableId);
+                    NotifyTableUpdated(result.TargetTableId);
+                    if (result.SourceEmptied)
+                    {
+                        NotifyTableMoved(sourceTableId, result.TargetTableId);
+                    }
+
+                    LoadTables();
+                    SelectAndLoadTable(result.TargetTableId);
+                    ShowToast("✅ Tách bàn thành công!", 2000);
+                }
+                else
+                {
+                    ShowToast(result.Error ?? "❌ Không thể tách bàn.", 2500);
+                    SelectAndLoadTable(sourceTableId);
+                }
+            });
         }
 
         // Timer handler to update table time display

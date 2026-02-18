@@ -945,15 +945,13 @@ namespace PosSystem.Main.Server.Controllers
                     await _hubContext.Clients.All.SendAsync("TableUpdated", req.TargetTableID);
                     await _hubContext.Clients.All.SendAsync("TableMoved", sourceTableId, req.TargetTableID);
 
-                    // 5. IN PHIẾU BÁO BẾP (chạy nền để không chặn response)
-                    _ = Task.Run(() =>
+                    // 5. IN PHIẾU BÁO CHUYỂN BÀN
+                    var orderForPrint = targetOrder ?? sourceOrder ?? throw new InvalidOperationException("MoveTable order is null after commit");
+                    var printResult = Services.PrintService.PrintMoveTableNotification(orderForPrint, oldTableName, newTableName);
+                    if (!printResult.Success)
                     {
-                        try
-                        {
-                            Services.PrintService.PrintMoveTableNotification(targetOrder ?? sourceOrder, oldTableName, newTableName);
-                        }
-                        catch { }
-                    });
+                        LogMoveTable($"Move print warning sourceTable={sourceTableId} targetTable={req.TargetTableID} attempted={printResult.AttemptedPrinters} failed={printResult.FailedPrinters} detail={printResult.ErrorSummary}");
+                    }
 
                     // Activity log
                     try
@@ -961,10 +959,24 @@ namespace PosSystem.Main.Server.Controllers
                         var action = targetOrder != null ? "gộp bàn" : "chuyển bàn";
                         var msg = $"{acc.AccName} {action}: {oldTableName} → {newTableName}";
                         await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", msg);
+                        if (!printResult.Success)
+                        {
+                            var printWarn = $"⚠️ In báo chuyển bàn lỗi: {oldTableName} → {newTableName} ({printResult.ErrorSummary})";
+                            await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", printWarn);
+                        }
                     }
                     catch { }
 
-                    return FinishIdempotent(idempotencyKey, Ok(new { Message = "Chuyển bàn thành công!" }));
+                    var responseMessage = printResult.Success
+                        ? "Chuyển bàn thành công!"
+                        : $"Chuyển bàn thành công, nhưng in báo chuyển bàn thất bại: {printResult.ErrorSummary}";
+
+                    return FinishIdempotent(idempotencyKey, Ok(new
+                    {
+                        Message = responseMessage,
+                        PrintMoveNoticeOk = printResult.Success,
+                        PrintMoveNoticeError = printResult.ErrorSummary
+                    }));
                 }
                 catch (Exception ex)
                 {

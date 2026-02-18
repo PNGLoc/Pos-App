@@ -1592,8 +1592,10 @@ async function executeMoveTableAction() {
             queueOnFail: true
         });
 
+        const data = await res.json().catch(() => ({}));
+
         if (res.ok) {
-            showToast("Chuyển bàn thành công!");
+            showToast(data.Message || "Chuyển bàn thành công!");
             showView('view-tables'); // Quay về trang chủ
         } else {
             showToast(await readErrorMessage(res), "danger");

@@ -17,6 +17,14 @@ namespace PosSystem.Main.Services
 {
     public static class PrintService
     {
+        public sealed class MoveTablePrintResult
+        {
+            public bool Success { get; set; }
+            public int AttemptedPrinters { get; set; }
+            public int FailedPrinters { get; set; }
+            public string ErrorSummary { get; set; } = string.Empty;
+        }
+
         public static event Action<string>? PrintFailed;
         private static readonly ConcurrentDictionary<string, object> PrinterLocks = new ConcurrentDictionary<string, object>();
         // ============================================================
@@ -438,19 +446,33 @@ namespace PosSystem.Main.Services
             }
         }
         // 3. HÀM IN THÔNG BÁO CHUYỂN BÀN
-        public static void PrintMoveTableNotification(Order orderInfo, string oldTableName, string newTableName)
+        public static MoveTablePrintResult PrintMoveTableNotification(Order orderInfo, string oldTableName, string newTableName)
         {
-            if (orderInfo == null) return;
+            var result = new MoveTablePrintResult { Success = false };
+
+            if (orderInfo == null)
+            {
+                result.ErrorSummary = "Order null";
+                return result;
+            }
 
             using (var db = new AppDbContext())
             {
+                var failures = new List<string>();
+
                 // Lấy danh sách tất cả các OrderDetail của order
                 var orderDetails = db.OrderDetails
                     .Include(od => od.Dish).ThenInclude(d => d.Category)
                     .Where(od => od.OrderID == orderInfo.OrderID)
                     .ToList();
 
-                if (!orderDetails.Any()) return;
+                if (!orderDetails.Any())
+                {
+                    var noItemDetails = "Không có món để xác định máy in bếp";
+                    LogPrintFailure($"PrintMoveTable:{orderInfo.OrderID}", new Printer { PrinterName = "(none)", ConnectionType = "N/A" }, noItemDetails);
+                    result.ErrorSummary = noItemDetails;
+                    return result;
+                }
 
                 // Gom nhóm theo PrinterID của Category
                 var printerGroups = orderDetails
@@ -458,33 +480,77 @@ namespace PosSystem.Main.Services
                     .GroupBy(od => od.Dish!.Category!.PrinterID)
                     .ToList();
 
+                var targetPrinters = new List<Printer>();
+
                 // Nếu không có nhóm nào, in cho tất cả các printer
                 if (!printerGroups.Any())
                 {
                     var allActivePrinters = db.Printers.Where(p => p.IsActive && !p.IsBillPrinter).ToList();
-                    foreach (var printer in allActivePrinters)
-                    {
-                        PrintMoveNotificationToPrinter(printer, oldTableName, newTableName);
-                    }
-                    return;
+                    targetPrinters.AddRange(allActivePrinters);
                 }
-
-                // In thông báo cho từng máy in
-                foreach (var group in printerGroups)
+                else
                 {
-                    if (group.Key == null) continue;
-                    int printerId = group.Key.Value;
+                    // In thông báo cho từng máy in
+                    foreach (var group in printerGroups)
+                    {
+                        if (group.Key == null) continue;
+                        int printerId = group.Key.Value;
 
-                    var printer = db.Printers.Find(printerId);
-                    if (printer == null || !printer.IsActive) continue;
+                        var printer = db.Printers.Find(printerId);
+                        if (printer == null || !printer.IsActive)
+                        {
+                            var details = $"PrinterID {printerId} không hoạt động hoặc không tồn tại";
+                            LogPrintFailure($"PrintMoveTable:{orderInfo.OrderID}", new Printer { PrinterName = $"#{printerId}", ConnectionType = "N/A" }, details);
+                            failures.Add(details);
+                            continue;
+                        }
 
-                    PrintMoveNotificationToPrinter(printer, oldTableName, newTableName);
+                        targetPrinters.Add(printer);
+                    }
                 }
+
+                targetPrinters = targetPrinters
+                    .GroupBy(p => p.PrinterID)
+                    .Select(g => g.First())
+                    .ToList();
+
+                result.AttemptedPrinters = targetPrinters.Count;
+
+                if (!targetPrinters.Any())
+                {
+                    var details = "Không tìm thấy máy in bếp khả dụng";
+                    LogPrintFailure($"PrintMoveTable:{orderInfo.OrderID}", new Printer { PrinterName = "(none)", ConnectionType = "N/A" }, details);
+                    failures.Add(details);
+                    result.FailedPrinters = failures.Count;
+                    result.ErrorSummary = string.Join("; ", failures.Take(3));
+                    return result;
+                }
+
+                foreach (var printer in targetPrinters)
+                {
+                    if (!PrintMoveNotificationToPrinter(orderInfo.OrderID, printer, oldTableName, newTableName, out var errorDetail))
+                    {
+                        failures.Add($"{printer.PrinterName ?? "Unknown"}: {errorDetail}");
+                    }
+                }
+
+                result.FailedPrinters = failures.Count;
+                result.Success = result.AttemptedPrinters > 0 && result.FailedPrinters == 0;
+
+                if (failures.Any())
+                {
+                    var preview = string.Join("; ", failures.Take(3));
+                    var remaining = failures.Count - 3;
+                    result.ErrorSummary = remaining > 0 ? $"{preview} (+{remaining} lỗi khác)" : preview;
+                }
+
+                return result;
             }
         }
 
-        private static void PrintMoveNotificationToPrinter(Printer printer, string oldTableName, string newTableName)
+        private static bool PrintMoveNotificationToPrinter(long orderId, Printer printer, string oldTableName, string newTableName, out string errorDetail)
         {
+            errorDetail = string.Empty;
             try
             {
                 System.Drawing.Bitmap? rendered = null;
@@ -501,7 +567,12 @@ namespace PosSystem.Main.Services
                     catch (Exception ex) { Console.WriteLine($"Lỗi render thông báo chuyển bàn: {ex.Message}"); }
                 });
 
-                if (rendered == null) return;
+                if (rendered == null)
+                {
+                    errorDetail = "Render thất bại";
+                    LogPrintFailure($"PrintMoveTable:{orderId}", printer, errorDetail);
+                    return false;
+                }
 
                 try
                 {
@@ -514,17 +585,28 @@ namespace PosSystem.Main.Services
                         cmd.AddRange(imgBytes);
                         cmd.AddRange(Encoding.ASCII.GetBytes("\n\n\n"));
                         cmd.AddRange(EscPos.CutPaper);
-                        SendBytesToPrinter(printer, cmd, "PrintMoveTableNotification");
+                        var ok = SendBytesToPrinter(printer, cmd, $"PrintMoveTable:{orderId}");
+                        if (!ok)
+                        {
+                            errorDetail = "Gửi lệnh in thất bại";
+                        }
+                        return ok;
                     }
                 }
                 catch (Exception ex)
                 {
+                    errorDetail = ex.Message;
+                    LogPrintFailure($"PrintMoveTable:{orderId}", printer, errorDetail);
                     Console.WriteLine($"Lỗi in thông báo chuyển bàn: {ex.Message}");
+                    return false;
                 }
             }
             catch (Exception ex)
             {
+                errorDetail = ex.Message;
+                LogPrintFailure($"PrintMoveTable:{orderId}", printer, errorDetail);
                 Console.WriteLine($"Lỗi in thông báo chuyển bàn: {ex.Message}");
+                return false;
             }
         }
     }
