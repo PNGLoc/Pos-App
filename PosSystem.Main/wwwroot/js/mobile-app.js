@@ -19,8 +19,11 @@ const API_WRITE_RETRIES = 1;
 const OFFLINE_QUEUE_KEY = 'posOfflineQueue';
 const FOCUS_RELOAD_AFTER_MS = 60000;
 const FOCUS_REFRESH_AFTER_MS = 5000;
+const RECONNECT_KICK_COOLDOWN_MS = 2000;
 
 let lastHiddenAt = 0;
+let lastReconnectKickAt = 0;
+let ensureRealtimeConnection = null;
 
 let offlineFlushInProgress = false;
 
@@ -92,6 +95,33 @@ function setMenuConnectionStatus(isConnected) {
     }
 }
 
+function kickRealtimeReconnect(reason = 'manual') {
+    const now = Date.now();
+    if ((now - lastReconnectKickAt) < RECONNECT_KICK_COOLDOWN_MS) return;
+    lastReconnectKickAt = now;
+    if (typeof ensureRealtimeConnection === 'function') {
+        ensureRealtimeConnection(reason);
+    }
+}
+
+function showNetworkOverlay(titleText, messageText) {
+    const overlay = document.getElementById('connectionOverlay');
+    if (!overlay) return;
+
+    const title = document.getElementById('connectionTitle');
+    const msg = document.getElementById('connectionMessage');
+    const spinner = document.getElementById('connectionSpinner');
+    const iconErr = document.getElementById('connectionIconErr');
+    const btnReload = document.getElementById('btnReload');
+
+    overlay.classList.remove('d-none');
+    if (title) title.innerText = titleText;
+    if (msg) msg.innerText = messageText;
+    if (spinner) spinner.classList.remove('d-none');
+    if (iconErr) iconErr.classList.add('d-none');
+    if (btnReload) btnReload.classList.add('d-none');
+}
+
 function setupVisibilityAutoReload() {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
@@ -104,13 +134,27 @@ function setupVisibilityAutoReload() {
             window.location.reload();
             return;
         }
+
+        kickRealtimeReconnect('visibilitychange');
+
         if (hiddenFor >= FOCUS_REFRESH_AFTER_MS) {
             forceRefreshData(true);
         }
     });
 
+    window.addEventListener('focus', () => {
+        if (document.visibilityState !== 'visible') return;
+        kickRealtimeReconnect('focus');
+    });
+
+    window.addEventListener('pageshow', () => {
+        if (document.visibilityState !== 'visible') return;
+        kickRealtimeReconnect('pageshow');
+    });
+
     window.addEventListener('online', () => {
         setMenuConnectionStatus(true);
+        kickRealtimeReconnect('online');
         if (document.visibilityState === 'visible') {
             forceRefreshData(true);
         }
@@ -118,6 +162,7 @@ function setupVisibilityAutoReload() {
 
     window.addEventListener('offline', () => {
         setMenuConnectionStatus(false);
+        showNetworkOverlay('Mất kết nối mạng', 'Vui lòng kiểm tra Wifi. Hệ thống sẽ tự kết nối lại khi có mạng.');
         showToast('Mất kết nối mạng', 'warning');
     });
 }
@@ -190,6 +235,7 @@ function shouldRetryStatus(status) {
 async function apiRequest(url, options = {}) {
     const method = (options.method || 'GET').toUpperCase();
     const isWrite = !['GET', 'HEAD'].includes(method);
+    const isRead = !isWrite;
     const retries = options.retries ?? (isWrite ? API_WRITE_RETRIES : API_GET_RETRIES);
     const timeoutMs = options.timeoutMs ?? (isWrite ? API_WRITE_TIMEOUT_MS : API_DEFAULT_TIMEOUT_MS);
     const queueOnFail = options.queueOnFail === true;
@@ -199,6 +245,10 @@ async function apiRequest(url, options = {}) {
     if (isWrite) {
         const idempotencyKey = options.idempotencyKey || createIdempotencyKey();
         headers.set('X-Idempotency-Key', idempotencyKey);
+    } else {
+        headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        headers.set('Pragma', 'no-cache');
+        headers.set('Expires', '0');
     }
 
     let lastError = null;
@@ -213,7 +263,11 @@ async function apiRequest(url, options = {}) {
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
-            const res = await fetch(url, { ...options, headers, signal: controller.signal });
+            const fetchOptions = { ...options, headers, signal: controller.signal };
+            if (isRead) {
+                fetchOptions.cache = 'no-store';
+            }
+            const res = await fetch(url, fetchOptions);
             clearTimeout(timeoutId);
 
             if (!res.ok && attempt < retries) {
@@ -433,6 +487,30 @@ function initSignalR() {
     }
 
     let connection = createConnection(true);
+    let startInProgress = false;
+    let manualReconnectTimer = null;
+    let manualReconnectAttempt = 0;
+    const manualReconnectPlanMs = [0, 1000, 2000, 5000, 10000];
+
+    function clearManualReconnectTimer() {
+        if (!manualReconnectTimer) return;
+        clearTimeout(manualReconnectTimer);
+        manualReconnectTimer = null;
+    }
+
+    function nextManualReconnectDelay() {
+        const idx = Math.min(manualReconnectAttempt, manualReconnectPlanMs.length - 1);
+        manualReconnectAttempt++;
+        return manualReconnectPlanMs[idx];
+    }
+
+    function scheduleManualReconnect(delayMs = 0, reason = 'unknown') {
+        if (manualReconnectTimer) return;
+        manualReconnectTimer = setTimeout(() => {
+            manualReconnectTimer = null;
+            start(`retry:${reason}`);
+        }, Math.max(0, delayMs));
+    }
 
     // --- TIMEOUT (ANTI-FALSE-DISCONNECT) ---
     // 6s là quá nhạy: chỉ cần browser pause/GC/CPU spike ngắn là bị "Server timeout elapsed".
@@ -493,6 +571,8 @@ function initSignalR() {
                 reconnectToastShown = true;
                 showToast('Mất kết nối, đang tự khôi phục...', 'warning');
             }
+
+            showOverlay('Đang khôi phục kết nối', 'Hệ thống đang tự kết nối lại...', false);
         });
 
         // 2. Đã kết nối lại thành công
@@ -502,8 +582,12 @@ function initSignalR() {
             const since = reconnectingSince;
             reconnectingSince = null;
             setMenuConnectionStatus(true);
+            clearManualReconnectTimer();
+            manualReconnectAttempt = 0;
 
             showToast('Đã khôi phục kết nối!', 'success');
+            hideOverlay();
+            flushOfflineQueue();
 
             const reconnectDuration = since ? (Date.now() - since) : 0;
             if (reconnectDuration >= 3000 || hadFatalDisconnect) {
@@ -518,7 +602,10 @@ function initSignalR() {
         conn.onclose(error => {
             console.error('Ngắt kết nối hẳn:', error);
             hadFatalDisconnect = true;
-            showOverlay('Không tìm thấy máy chủ', 'Vui lòng kiểm tra lại Wifi hoặc Máy tính thu ngân.', true);
+            setMenuConnectionStatus(false);
+            showOverlay('Mất kết nối máy chủ', 'Đang thử kết nối lại...', false);
+            showToast('Mất kết nối máy chủ, đang tự kết nối lại...', 'warning');
+            scheduleManualReconnect(nextManualReconnectDelay(), 'onclose');
         });
 
         // --- LOGIC NGHIỆP VỤ ---
@@ -530,7 +617,10 @@ function initSignalR() {
         conn.on("TableMoved", async (sourceTableId, targetTableId) => {
             await loadTables(false);
 
-            if (appState.currentTableId == sourceTableId) {
+            const activeView = getActiveViewId();
+            const isInDetailView = activeView === 'view-detail';
+
+            if (isInDetailView && appState.currentTableId == sourceTableId) {
                 const targetTable = appState.tables.find(t => t.tableID === targetTableId);
                 if (targetTable) {
                     openTableDetail(targetTable);
@@ -542,7 +632,7 @@ function initSignalR() {
                 return;
             }
 
-            if (appState.currentTableId == targetTableId) {
+            if (isInDetailView && appState.currentTableId == targetTableId) {
                 loadOrderData(targetTableId);
             }
         });
@@ -558,12 +648,28 @@ function initSignalR() {
     bindSignalREvents(connection);
 
     // Bắt đầu kết nối
-    async function start() {
+    async function start(reason = 'initial') {
+        if (startInProgress) return;
+
+        if (navigator && navigator.onLine === false) {
+            showOverlay('Mất kết nối mạng', 'Vui lòng kiểm tra Wifi/4G. Hệ thống sẽ tự kết nối lại khi có mạng.', false);
+            return;
+        }
+
+        const state = connection.state;
+        if (state === signalR.HubConnectionState.Connected || state === signalR.HubConnectionState.Connecting || state === signalR.HubConnectionState.Reconnecting) {
+            return;
+        }
+
+        startInProgress = true;
         try {
             await connection.start();
             console.log("SignalR Connected.");
             hideOverlay(); // Ẩn overlay nếu đang hiện
             setMenuConnectionStatus(true);
+            clearManualReconnectTimer();
+            manualReconnectAttempt = 0;
+            flushOfflineQueue();
         } catch (err) {
             console.error("Khởi động lỗi:", err);
 
@@ -573,6 +679,7 @@ function initSignalR() {
             if (isWebSocketStartFail) {
                 try {
                     console.warn('WebSocket failed, falling back to default transports...');
+                    try { clearManualReconnectTimer(); } catch { }
                     connection = createConnection(false);
                     // Apply same timeout settings
                     connection.keepAliveIntervalInMilliseconds = 15000;
@@ -582,17 +689,30 @@ function initSignalR() {
                     console.log("SignalR Connected (fallback).");
                     hideOverlay();
                     setMenuConnectionStatus(true);
+                    manualReconnectAttempt = 0;
+                    flushOfflineQueue();
                     return;
                 } catch (e2) {
                     console.error('Fallback start failed:', e2);
                 }
             }
 
-            // Nếu mở app lên mà không thấy server ngay -> Báo lỗi luôn
-            showOverlay('Không thể kết nối', 'Đang thử lại sau 5 giây...', false);
-            setTimeout(start, 5000);
+            // Nếu mở app lên mà không thấy server ngay -> Báo lỗi và retry mềm
+            showOverlay('Không thể kết nối', 'Đang tự thử lại sau ít giây...', false);
+            scheduleManualReconnect(nextManualReconnectDelay(), reason || 'start-failed');
+        } finally {
+            startInProgress = false;
         }
     }
+
+    ensureRealtimeConnection = (reason = 'external') => {
+        if (!connection) return;
+        const state = connection.state;
+        if (state === signalR.HubConnectionState.Connected || state === signalR.HubConnectionState.Connecting || state === signalR.HubConnectionState.Reconnecting) {
+            return;
+        }
+        scheduleManualReconnect(0, reason);
+    };
 
     start();
 }
@@ -1725,7 +1845,16 @@ async function clearCacheAndReload() {
         }
     } catch { }
 
-    const url = new URL(window.location.href);
+    try {
+        if (window.localStorage) {
+            localStorage.removeItem('menuCache');
+        }
+        if (window.sessionStorage) {
+            sessionStorage.clear();
+        }
+    } catch { }
+
+    const url = new URL(window.location.origin + window.location.pathname);
     url.searchParams.set('v', Date.now().toString());
     window.location.replace(url.toString());
 }
