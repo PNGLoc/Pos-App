@@ -35,6 +35,6 @@ POS System là phần mềm quản lý bán hàng (Point of Sale) kiến trúc H
 
 ## Kết nối thiết bị di động
 * Đảm bảo thiết bị di động kết nối cùng mạng Wi-Fi/LAN với máy tính chạy phần mềm.
-* Mở trình duyệt trên thiết bị di động và truy cập vào địa chỉ IP của máy tính kèm cổng dịch vụ (Ví dụ: http://192.168.1.100:5000), sau đó login với account đã được admin tạo.
+* Mở trình duyệt trên thiết bị di động và truy cập vào địa chỉ IP của máy tính kèm cổng dịch vụ (Ví dụ: `http://192.168.1.100:5000)`, sau đó login với account đã được admin tạo.
   <img width="693" height="350" alt="image" src="https://github.com/user-attachments/assets/687774d9-258a-4dce-b996-e59d0626ff29" />
 * Thao tác đặt món trên giao diện mobile và quan sát dữ liệu đồng bộ về màn hình Desktop.
