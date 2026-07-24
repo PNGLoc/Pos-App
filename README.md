@@ -27,7 +27,8 @@ POS System là phần mềm quản lý bán hàng (Point of Sale) kiến trúc H
 * **Frontend (Mobile):** HTML5, CSS3, Vanilla JavaScript
 
 ## Hướng dẫn cài đặt & Chạy ứng dụng
-* Tải bộ cài đặt **`LP_Pos-Setup.exe`** tại thư mục `/installer` của kho lưu trữ này.
+* Tải bộ cài đặt **`LP_Pos-Setup.exe`** tại thư mục `/installer` của kho lưu trữ này hoặc tải trực tiếp tại đây:
+  **[Tải xuống LP_Pos-Setup.exe (v1.0.0)](https://github.com/PNGLoc/Pos-App/releases/download/v1.0.0/LP_Pos-Setup.exe)**.
 * Chạy bộ cài đặt và khởi động phần mềm từ Desktop. Hệ thống sẽ tự động khởi tạo CSDL SQLite và bật Web Server nhúng.
 * Tài khoản admin mặc định: user name **`admin`** , password `123`.
 * Sau khi cài đặt thành công ứng dụng, vào setting để thiết lập các phần còn lại như máy in, menu, danh sách bàn, tạo tài khoản cho nhân viên...
